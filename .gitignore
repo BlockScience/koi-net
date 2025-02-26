@@ -1,0 +1,4 @@
+rid-lib
+__pycache__
+*.json
+venv
