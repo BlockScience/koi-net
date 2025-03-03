@@ -1,6 +1,6 @@
 import httpx
 import uvicorn
-from koi_net import Node, Edge, Provides, cache_compare, EventArray
+from koi_net import Node, Edge, NodeType, Provides, cache_compare, EventArray
 from rid_types import KoiNetEdge, KoiNetNode
 from rid_lib import RID
 from rid_lib.ext import Bundle, Event, EventType, Manifest, Cache
@@ -11,14 +11,14 @@ from fastapi import FastAPI, APIRouter
 cache = Cache("client_cache")
 network_cache = Cache("client_network_cache")
 
-node_rid = KoiNetNode("client_node_id")
-provider_node_rid = KoiNetNode("provider_node_id")
+node_rid = KoiNetNode("test_client_node_id")
 provider_url = "http://127.0.0.1:8000/koi-net"
 
 
 @asynccontextmanager
 async def lifespan(server: FastAPI):
     node_profile = Node(
+        node_type=NodeType.FULL,
         base_url="http://127.0.0.1:5000/koi-net",
         provides=Provides()
     )
@@ -32,17 +32,20 @@ async def lifespan(server: FastAPI):
     if event is not None:
         network_cache.write(node_profile_bundle)
 
+    print("shaking hands with node at", provider_url)
     resp = httpx.post(provider_url + "/handshake", data=node_profile_bundle.model_dump_json())
     
     partner_bundle = Bundle(**resp.json())
     
     network_cache.write(partner_bundle)
+    print("other node's RID is", partner_bundle.manifest.rid)
     
-    negotiate_edge(provider_node_rid)
+    negotiate_edge(partner_bundle.manifest.rid)
 
     yield
 
 def negotiate_edge(partner_node_rid: KoiNetNode):
+    print("proposing new edge agreement with", partner_node_rid)
     edge_profile = Edge(
         source=partner_node_rid,
         target=node_rid,
@@ -51,7 +54,7 @@ def negotiate_edge(partner_node_rid: KoiNetNode):
         status="proposed"
     )
 
-    edge_rid = KoiNetEdge("test_id")
+    edge_rid = KoiNetEdge("test_edge_id")
 
     event = Event(
         rid=edge_rid,
@@ -87,7 +90,7 @@ def listen_to_events(events: list[Event]):
         handle_incoming_event(event)
         
 def handle_incoming_event(event: Event):
-    print(event.event_type, event.rid)
+    print("handling incoming event:", event.event_type, event.rid)
     if event.rid.context == KoiNetEdge.context:
         if event.bundle is None or event.bundle.contents is None:
             print("bundle not provided")
@@ -97,6 +100,7 @@ def handle_incoming_event(event: Event):
         if edge.target == node_rid:
             if edge.status == "approved": 
                 network_cache.write(event.bundle)
+                print(edge.source, "approved edge agreement, writing updated bundle to cache")
     else:
         cache.write(event.bundle)
     

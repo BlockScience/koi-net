@@ -6,7 +6,7 @@ import uvicorn
 from rid_lib.types import SlackMessage, SlackChannel, SlackUser
 from rid_lib.ext import Cache, utils, Event, EventType, Bundle, Manifest
 from contextlib import asynccontextmanager
-from koi_net import Node, Provides, Edge, cache_compare, EventArray
+from koi_net import Node, NodeType, Provides, Edge, cache_compare, EventArray
 from pydantic import BaseModel
 from rid_types import KoiNetEdge, KoiNetNode
 from rid_lib.ext.pydantic_adapter import RIDField
@@ -14,13 +14,14 @@ from rid_lib.ext.pydantic_adapter import RIDField
 cache = Cache("cache")
 network_cache = Cache("network_cache")
 
-node_rid = RID.from_string("orn:koi-net.node:provider_node_id")
+node_rid = KoiNetNode("test_provider_node_id")
 
 
 @asynccontextmanager
 async def lifespan(server: FastAPI):
     node_profile = Node(
         base_url="http://127.0.0.1:8000/koi-net",
+        node_type=NodeType.FULL,
         provides=Provides(
             event=[SlackMessage.context],
             state=[SlackChannel.context, SlackMessage.context]
@@ -49,8 +50,8 @@ koi_router = APIRouter(
 # network configuration
 @koi_router.post("/handshake")
 def get_profile(partner_bundle: Bundle):
-    print(partner_bundle)
     network_cache.write(partner_bundle)
+    print(f"handshaking with {partner_bundle.manifest.rid}")
     bundle = network_cache.read(node_rid)
     if not bundle: return
     return bundle
@@ -64,14 +65,12 @@ def poll_events(rid: RIDField) -> list[Event]:
 def listen_to_events(events: list[Event], background: BackgroundTasks):
     for event in events:
         background.add_task(handle_incoming_event, event)
-    print("awaited event handlers")
 
-class RetrieveRids(BaseModel):
-    contexts: list[str] = []
+
             
 
 def handle_incoming_event(event: Event):
-    print(event.event_type, event.rid)
+    print("handling incoming event:", event.event_type, event.rid)
     if event.rid.context == KoiNetEdge.context:
         if event.bundle is None or event.bundle.contents is None:
             print("bundle not provided")
@@ -82,6 +81,8 @@ def handle_incoming_event(event: Event):
             if edge.status != "proposed": 
                 print("edge status is not 'proposed', ignoring")
                 return
+            
+            print(edge.source, "proposed a new edge agreement, approving and returning")
             
             edge.status = "approved"
             
@@ -134,6 +135,9 @@ def handle_outgoing_event(event: Event, i):
         elif comm_type == "poll":
             ...
 
+
+class RetrieveRids(BaseModel):
+    contexts: list[str] = []
 
 @koi_router.post("/state/rids")
 def retrieve_rids(retrieve: RetrieveRids = RetrieveRids()):
