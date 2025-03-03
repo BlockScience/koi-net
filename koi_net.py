@@ -1,9 +1,10 @@
 from enum import StrEnum
-from pydantic import BaseModel, PrivateAttr, RootModel
+from pydantic import BaseModel, RootModel
 from rid_lib.ext import EventType, utils, Bundle, Cache, Event
 from rid_lib.ext.pydantic_adapter import RIDField
 
 class KoiNetPath(StrEnum):
+    HANDSHAKE = "/handshake"
     EVENTS_BROADCAST = "/events/broadcast"
     EVENTS_POLL = "/events/poll"
     STATE_RIDS = "/state/rids"
@@ -19,7 +20,7 @@ class Provides(BaseModel):
     state: list[str] = []
 
 class Node(BaseModel):
-    base_url: str
+    base_url: str | None = None
     node_type: NodeType
     provides: Provides
     
@@ -29,6 +30,17 @@ class Edge(BaseModel):
     comm_type: str
     contexts: list[str]
     status: str
+
+# class NormalizedEventType(StrEnum):
+#     NEW = "NEW"
+#     UPDATE = "UPDATE"
+#     FORGET = "FORGET"
+#     IGNORE = "IGNORE"
+
+# class NormalizedEvent(BaseModel):
+#     rid: RIDField
+#     event_type: NormalizedEventType
+#     bundle: Bundle
     
 EventArray = RootModel[list[Event]]
 

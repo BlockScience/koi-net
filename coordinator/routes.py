@@ -3,10 +3,9 @@ from pydantic import BaseModel
 from rid_lib.ext import Bundle, Event
 from rid_lib.ext.manifest import Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
-from coordinator.event_handler import handle_incoming_event
 from rid_types import KoiNetNode
 from koi_net import Node, cache_compare
-from .core import cache, network
+from .core import cache, network_state, processor
 from .config import this_node_rid
 from .setup import lifespan
 
@@ -35,16 +34,19 @@ def handshake(peer_bundle: NodeBundle) -> NodeBundle:
 @koi_net_router.post("/events/broadcast")
 def broadcast_events(events: list[Event], background: BackgroundTasks):
     for event in events:
-        background.add_task(handle_incoming_event, event)
+        background.add_task(processor.route_event, event)
 
         
 @koi_net_router.get("/events/poll")
 def poll_events(rid: RIDField) -> list[Event]:
-    events = network.sub_queue.poll.get(rid)
+    print(network_state.sub_queue)
+    print(rid)
+    events = network_state.sub_queue.poll.get(rid)
+    print(events)
     if not events:
         return []
     
-    network.sub_queue.poll[rid].clear()
+    # network_state.sub_queue.poll[rid].clear()
     return events
     
 

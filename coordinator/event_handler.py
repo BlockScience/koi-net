@@ -1,29 +1,94 @@
-import httpx
 from rid_lib.ext import Event, Bundle
+from rid_lib.ext.cache import Cache
 from rid_lib.ext.event import EventType
-from rid_lib.ext.manifest import Manifest
 
-from koi_net import Edge, EventArray, Node
+from coordinator.network_state import NetworkState
+from koi_net import Edge
 from rid_types import KoiNetEdge, KoiNetNode
 from .config import this_node_rid, this_node_profile
-from .core import cache
 
 
-def handle_incoming_event(event: Event):
-    if event.rid.context == KoiNetEdge.context:
-        handle_incoming_edge_event(event)
-    elif event.rid.context == KoiNetNode.context:
-        ...
+class KnowledgeProcessor:
+    def __init__(self, cache: Cache, network: NetworkState):
+        self.cache = cache
+        self.network = network
+        self.allowed_contexts = [
+            KoiNetNode.context,
+            KoiNetEdge.context
+        ]
         
+    def route_event(self, event: Event):
+        self.handle_event(event)
         
-def handle_incoming_edge_event(event: Event):
-    if event.bundle is None or event.bundle.contents is None:
-        # TODO: state transfer from event source
-        return
+        if event.rid.context == KoiNetEdge.context:
+            bundle = event.bundle or self.cache.read(event.rid)
+            edge_profile = Edge(**bundle.contents)
+        
+            # indicates peer subscriber
+            if edge_profile.source == this_node_rid:
+                bundle = self.handle_edge_negotiation(bundle)            
+            
     
-    edge_profile = Edge(**event.bundle.contents)
-    # indicates peer subscriber
-    if edge_profile.source == this_node_rid:
+    def handle_event(self, event: Event):
+        print("handling event:", event.event_type, event.rid)
+        if event.rid.context not in self.allowed_contexts:
+            print("ignoring disallowed context")
+            return None
+        
+        if event.event_type in (EventType.NEW, EventType.UPDATE):
+            if event.bundle is None:
+                print("bundle not attached")
+                # TODO: retrieve bundle
+                return None
+            
+            internal_event_type = self.handle_state(event.bundle)
+            if internal_event_type is not None:
+                self.network.push_event(
+                    Event(
+                        rid=event.rid,
+                        event_type=internal_event_type,
+                        bundle=event.bundle
+                    )
+                )
+        elif event.event_type == EventType.FORGET:
+            print("deleting", event.rid, "from cache")
+            internal_event_type = self.cache.delete(event.rid)
+            self.network.push_event(event)
+        
+        return internal_event_type
+    
+    def handle_state(self, bundle: Bundle):
+        print("handling state:", bundle.manifest.rid)
+        if self.cache.exists(bundle.manifest.rid):
+            print("RID known to cache")
+            prev_bundle = self.cache.read(bundle.manifest.rid)
+
+            if bundle.manifest.sha256_hash == prev_bundle.manifest.sha256_hash:
+                print("no change in knowledge, ignoring")
+                return None # same knowledge
+            if bundle.manifest.timestamp <= prev_bundle.manifest.timestamp:
+                print("older manifest, ignoring")
+                return None # incoming state is older
+            
+            print("newer manifest")
+            print("writing", bundle.manifest.rid, "to cache")
+            self.cache.write(bundle)
+            return EventType.UPDATE
+            
+            # if bundle.manifest.rid.context == KoiNetNode.context:
+            #     return self.handle_node_state(bundle)
+            # elif bundle.manifest.rid.context == KoiNetEdge.context:
+            #     return self.handle_edge_state(bundle)
+
+        else:
+            print("RID unknown to cache")
+            print("writing", bundle.manifest.rid, "to cache")
+            self.cache.write(bundle)
+            return EventType.NEW
+        
+    def handle_edge_negotiation(self, bundle: Bundle):
+        edge_profile = Edge(**bundle.contents)
+        
         if edge_profile.status != "proposed":
             # TODO: handle other status
             return
@@ -31,40 +96,25 @@ def handle_incoming_edge_event(event: Event):
         if any(context not in this_node_profile.provides.event for context in edge_profile.contexts):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
-            ...
+            print("requested context not provided")
+            return
+            
+        if not self.cache.read(edge_profile.target):
+            # TODO: handle unknown subscriber node (delete edge?)
+            print("unknown subscriber")
+            return
         
         # approve edge profile
         edge_profile.status = "approved"
-        updated_edge_bundle = Bundle.generate(event.rid, event.bundle.contents)
-        cache.write(updated_edge_bundle)
-        
-        # forward to subscriber
-        target_node_bundle = cache.read(edge_profile.target)
-        if target_node_bundle is None:
-            # TODO: handle unknown subscriber node (delete edge?)
-            ...
-        target_node_profile = Node(**target_node_bundle.contents)
+        updated_bundle = Bundle.generate(bundle.manifest.rid, bundle.contents)
         
         event = Event(
-            rid=event.rid,
+            rid=bundle.manifest.rid,
             event_type=EventType.UPDATE,
-            bundle=updated_edge_bundle
+            bundle=updated_bundle
         )
-        events_json = EventArray([event]).model_dump_json()
         
-        # TODO: broadcast event to subscriber
-    
-    # indiciates peer provider
-    elif edge_profile.target == this_node_rid:
-        ...
-    
-    # edge regarding third party nodes, handle as sensor
-    else:
-        ...
-        
-    # cache.write()
-    
-def handle_outgoing_event(event: Event):    
-    ...
-    
+        self.network.push_event_to(event, edge_profile.target)
+        self.handle_event(event)
+
 

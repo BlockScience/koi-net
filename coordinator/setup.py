@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from rid_lib.ext.bundle import Bundle
 from koi_net import cache_compare
-from .core import cache, network
+from .core import cache, network_state
 from .config import this_node_profile, this_node_rid
 
 
@@ -18,9 +18,9 @@ async def lifespan(server: FastAPI):
         
     print(node_bundle)
     
-    network.load_queue()
+    network_state.load_queue()
         
     yield
     
-    network.save_queue()
+    network_state.save_queue()
         

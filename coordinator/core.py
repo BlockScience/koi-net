@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from rid_lib.ext import Cache
 
-from coordinator.network_adapter import Network
+from coordinator.event_handler import KnowledgeProcessor
+from coordinator.network_state import NetworkState
 
 
 cache = Cache("coordinator_cache")
-network = Network("sub_queue.json", cache)
+network_state = NetworkState("sub_queue.json", cache)
+processor = KnowledgeProcessor(cache, network_state)
