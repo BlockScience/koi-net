@@ -2,14 +2,14 @@ from rid_lib.ext import Event, Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.ext.event import EventType
 
-from coordinator.network_state import NetworkState
-from koi_net import Edge
+from coordinator.network_interface import NetworkInterface
+from koi_net import EdgeModel
 from rid_types import KoiNetEdge, KoiNetNode
 from .config import this_node_rid, this_node_profile
 
 
 class KnowledgeProcessor:
-    def __init__(self, cache: Cache, network: NetworkState):
+    def __init__(self, cache: Cache, network: NetworkInterface):
         self.cache = cache
         self.network = network
         self.allowed_contexts = [
@@ -22,7 +22,7 @@ class KnowledgeProcessor:
         
         if event.rid.context == KoiNetEdge.context:
             bundle = event.bundle or self.cache.read(event.rid)
-            edge_profile = Edge(**bundle.contents)
+            edge_profile = EdgeModel(**bundle.contents)
         
             # indicates peer subscriber
             if edge_profile.source == this_node_rid:
@@ -41,23 +41,14 @@ class KnowledgeProcessor:
                 # TODO: retrieve bundle
                 return None
             
-            internal_event_type = self.handle_state(event.bundle)
-            if internal_event_type is not None:
-                self.network.push_event(
-                    Event(
-                        rid=event.rid,
-                        event_type=internal_event_type,
-                        bundle=event.bundle
-                    )
-                )
+            self.handle_state(event.bundle)
         elif event.event_type == EventType.FORGET:
             print("deleting", event.rid, "from cache")
-            internal_event_type = self.cache.delete(event.rid)
-            self.network.push_event(event)
-        
-        return internal_event_type
+            self.cache.delete(event.rid)
+            self.network.push_event(event)    
     
     def handle_state(self, bundle: Bundle):
+        internal_type = None
         print("handling state:", bundle.manifest.rid)
         if self.cache.exists(bundle.manifest.rid):
             print("RID known to cache")
@@ -73,21 +64,27 @@ class KnowledgeProcessor:
             print("newer manifest")
             print("writing", bundle.manifest.rid, "to cache")
             self.cache.write(bundle)
-            return EventType.UPDATE
-            
-            # if bundle.manifest.rid.context == KoiNetNode.context:
-            #     return self.handle_node_state(bundle)
-            # elif bundle.manifest.rid.context == KoiNetEdge.context:
-            #     return self.handle_edge_state(bundle)
+            internal_type = EventType.UPDATE
 
         else:
             print("RID unknown to cache")
             print("writing", bundle.manifest.rid, "to cache")
             self.cache.write(bundle)
-            return EventType.NEW
+            internal_type = EventType.NEW
+        
+        if bundle.manifest.rid.context in (KoiNetNode.context, KoiNetEdge.context):
+            self.network.state.generate()
+        
+        self.network.push_event(
+            Event(
+                rid=bundle.manifest.rid,
+                event_type=internal_type,
+                bundle=bundle
+            )
+        )
         
     def handle_edge_negotiation(self, bundle: Bundle):
-        edge_profile = Edge(**bundle.contents)
+        edge_profile = EdgeModel(**bundle.contents)
         
         if edge_profile.status != "proposed":
             # TODO: handle other status
@@ -106,7 +103,7 @@ class KnowledgeProcessor:
         
         # approve edge profile
         edge_profile.status = "approved"
-        updated_bundle = Bundle.generate(bundle.manifest.rid, bundle.contents)
+        updated_bundle = Bundle.generate(bundle.manifest.rid, edge_profile.model_dump())
         
         event = Event(
             rid=bundle.manifest.rid,
@@ -114,7 +111,8 @@ class KnowledgeProcessor:
             bundle=updated_bundle
         )
         
-        self.network.push_event_to(event, edge_profile.target)
+        self.network.push_event_to(event, edge_profile.target, flush=True)
+        # self.network.flush_webhook_queue(edge_profile.target)
         self.handle_event(event)
 
 

@@ -1,8 +1,8 @@
-from koi_net import Node, NodeType
+from koi_net import NodeModel, NodeType
 from rid_types import KoiNetNode, KoiNetEdge
 
 this_node_rid = KoiNetNode("coordinator")
-this_node_profile = Node(
+this_node_profile = NodeModel(
     base_url="http://127.0.0.1:8000",
     node_type=NodeType.FULL,
     provides={

@@ -1,33 +1,26 @@
 from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel
 from rid_lib.ext import Bundle, Event
 from rid_lib.ext.manifest import Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
 from rid_types import KoiNetNode
-from koi_net import Node, cache_compare
-from .core import cache, network_state, processor
+from .core import cache, network, processor
 from .config import this_node_rid
 from .setup import lifespan
+from .network_models import *
 
 
 server = FastAPI(lifespan=lifespan)
 koi_net_router = APIRouter(prefix="/koi-net")
 
-class NodeBundle(Bundle):
-    contents: Node
 
 @koi_net_router.post("/handshake")
-def handshake(peer_bundle: NodeBundle) -> NodeBundle:
+def handshake(peer_bundle: HandshakeModel) -> HandshakeModel:
     if peer_bundle.manifest.rid.context != KoiNetNode.context:
         raise Exception("Provided bundle must be a node profile")
     
-    cache_state = cache_compare(cache, peer_bundle)
-    # TODO: create and broadcast node profile events
+    print("received handshake from", peer_bundle.manifest.rid)
     
-    if cache_state:
-        cache.write(peer_bundle)
-        # TODO: handle event propagation to subscribers
-        
+    processor.handle_state(peer_bundle)
     return cache.read(this_node_rid)
 
 
@@ -36,22 +29,12 @@ def broadcast_events(events: list[Event], background: BackgroundTasks):
     for event in events:
         background.add_task(processor.route_event, event)
 
-        
-@koi_net_router.get("/events/poll")
-def poll_events(rid: RIDField) -> list[Event]:
-    print(network_state.sub_queue)
-    print(rid)
-    events = network_state.sub_queue.poll.get(rid)
-    print(events)
-    if not events:
-        return []
-    
-    # network_state.sub_queue.poll[rid].clear()
-    return events
-    
 
-class RetrieveRids(BaseModel):
-    contexts: list[str] = []
+@koi_net_router.post("/events/poll")
+def poll_events(poll: PollEvents) -> list[Event]:
+    events = network.flush_poll_queue(poll.rid)
+    return events
+
 
 @koi_net_router.post("/state/rids")
 def retrieve_rids(retrieve: RetrieveRids = RetrieveRids()) -> list[RIDField]:
@@ -64,10 +47,6 @@ def retrieve_rids(retrieve: RetrieveRids = RetrieveRids()) -> list[RIDField]:
     ]
     
 
-class RetrieveManifests(BaseModel):
-    contexts: list[str] = []
-    rids: list[str] = []
-    
 @koi_net_router.post("/state/manifests")
 def retrieve_manifests(retrieve: RetrieveManifests = RetrieveManifests()) -> list[Manifest]:
     return [
@@ -81,9 +60,6 @@ def retrieve_manifests(retrieve: RetrieveManifests = RetrieveManifests()) -> lis
     ]
 
 
-class RetrieveBundles(BaseModel):
-    rids: list[RIDField]
-    
 @koi_net_router.post("/state/bundles")
 def retrieve_bundles(retrieve: RetrieveBundles) -> list[Bundle]:    
     return [

@@ -1,6 +1,6 @@
 import httpx
 import uvicorn
-from koi_net import Node, Edge, NodeType, Provides, cache_compare, EventArray
+from koi_net import NodeModel, EdgeModel, NodeType, Provides, cache_compare, EventArrayModel
 from rid_types import KoiNetEdge, KoiNetNode
 from rid_lib import RID
 from rid_lib.ext import Bundle, Event, EventType, Manifest, Cache
@@ -17,7 +17,7 @@ provider_url = "http://127.0.0.1:8000/koi-net"
 
 @asynccontextmanager
 async def lifespan(server: FastAPI):
-    node_profile = Node(
+    node_profile = NodeModel(
         node_type=NodeType.FULL,
         base_url="http://127.0.0.1:5000/koi-net",
         provides=Provides()
@@ -46,7 +46,7 @@ async def lifespan(server: FastAPI):
 
 def negotiate_edge(partner_node_rid: KoiNetNode):
     print("proposing new edge agreement with", partner_node_rid)
-    edge_profile = Edge(
+    edge_profile = EdgeModel(
         source=partner_node_rid,
         target=node_rid,
         comm_type="webhook",
@@ -70,10 +70,10 @@ def negotiate_edge(partner_node_rid: KoiNetNode):
         print("edge partner bundle not found")
         return
     
-    partner_node_profile = Node(**bundle.contents)
+    partner_node_profile = NodeModel(**bundle.contents)
 
 
-    events_json = EventArray([event]).model_dump_json()    
+    events_json = EventArrayModel([event]).model_dump_json()    
 
     httpx.post(partner_node_profile.base_url + "/events/broadcast", data=events_json)
 
@@ -96,7 +96,7 @@ def handle_incoming_event(event: Event):
             print("bundle not provided")
             return
             
-        edge = Edge(**event.bundle.contents)
+        edge = EdgeModel(**event.bundle.contents)
         if edge.target == node_rid:
             if edge.status == "approved": 
                 network_cache.write(event.bundle)

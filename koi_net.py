@@ -19,12 +19,12 @@ class Provides(BaseModel):
     event: list[str] = []
     state: list[str] = []
 
-class Node(BaseModel):
+class NodeModel(BaseModel):
     base_url: str | None = None
     node_type: NodeType
     provides: Provides
     
-class Edge(BaseModel):
+class EdgeModel(BaseModel):
     source: RIDField
     target: RIDField
     comm_type: str
@@ -42,11 +42,10 @@ class Edge(BaseModel):
 #     event_type: NormalizedEventType
 #     bundle: Bundle
     
-EventArray = RootModel[list[Event]]
-
-class SubQueue(BaseModel):
-    poll: dict[RIDField, list[Event]] = {}
-    webhook: dict[RIDField, list[Event]] = {}
+EventArrayModel = RootModel[list[Event]]
+class EventQueueModel(BaseModel):
+    webhook: dict[RIDField, list[Event]]
+    poll: dict[RIDField, list[Event]]
     
 def cache_compare(cache: Cache, curr_bundle: Bundle):
     prev_bundle = cache.read(curr_bundle.manifest.rid)

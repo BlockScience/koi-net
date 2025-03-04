@@ -6,7 +6,7 @@ import uvicorn
 from rid_lib.types import SlackMessage, SlackChannel, SlackUser
 from rid_lib.ext import Cache, utils, Event, EventType, Bundle, Manifest
 from contextlib import asynccontextmanager
-from koi_net import Node, NodeType, Provides, Edge, cache_compare, EventArray
+from koi_net import NodeModel, NodeType, Provides, EdgeModel, cache_compare, EventArrayModel
 from pydantic import BaseModel
 from rid_types import KoiNetEdge, KoiNetNode
 from rid_lib.ext.pydantic_adapter import RIDField
@@ -19,7 +19,7 @@ node_rid = KoiNetNode("test_provider_node_id")
 
 @asynccontextmanager
 async def lifespan(server: FastAPI):
-    node_profile = Node(
+    node_profile = NodeModel(
         base_url="http://127.0.0.1:8000/koi-net",
         node_type=NodeType.FULL,
         provides=Provides(
@@ -76,7 +76,7 @@ def handle_incoming_event(event: Event):
             print("bundle not provided")
             return
             
-        edge = Edge(**event.bundle.contents)
+        edge = EdgeModel(**event.bundle.contents)
         if edge.source == node_rid:
             if edge.status != "proposed": 
                 print("edge status is not 'proposed', ignoring")
@@ -98,7 +98,7 @@ def handle_incoming_event(event: Event):
                 print("edge partner bundle not found")
                 return
 
-            target_node_profile = Node(**target_node_bundle.contents)
+            target_node_profile = NodeModel(**target_node_bundle.contents)
             
             event = Event(
                 rid=event.rid,
@@ -106,7 +106,7 @@ def handle_incoming_event(event: Event):
                 bundle=updated_bundle
             )
             
-            events_json = EventArray([event]).model_dump_json()
+            events_json = EventArrayModel([event]).model_dump_json()
             
             httpx.post(target_node_profile.base_url + "/events/broadcast", data=events_json)
             
@@ -120,15 +120,15 @@ def handle_outgoing_event(event: Event, i):
     for rid in network_rids:
         if rid.context == KoiNetEdge.context:
             bundle = network_cache.read(rid)
-            edge = Edge(**bundle.contents)
+            edge = EdgeModel(**bundle.contents)
             if edge.source == node_rid and event.rid.context in edge.contexts:
                 subscribers.append((edge.target, edge.comm_type))
     
     for sub_rid, comm_type in subscribers:
         bundle = network_cache.read(sub_rid)
-        node = Node(**bundle.contents)
+        node = NodeModel(**bundle.contents)
         if comm_type == "webhook":
-            events_json = EventArray([event]).model_dump_json()
+            events_json = EventArrayModel([event]).model_dump_json()
 
             httpx.post(node.base_url + "/events/broadcast", data=events_json)
             
