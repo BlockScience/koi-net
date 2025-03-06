@@ -2,7 +2,7 @@ from rid_lib.ext import Event, Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.ext.event import EventType
 
-from coordinator.network_interface import NetworkInterface
+from .network_interface import NetworkInterface
 from koi_net import EdgeModel
 from rid_types import KoiNetEdge, KoiNetNode
 from .config import this_node_rid, this_node_profile
@@ -45,7 +45,7 @@ class KnowledgeProcessor:
         elif event.event_type == EventType.FORGET:
             print("deleting", event.rid, "from cache")
             self.cache.delete(event.rid)
-            self.network.push_event(event)    
+            self.network.push_event(event, flush=True)    
     
     def handle_state(self, bundle: Bundle):
         internal_type = None
@@ -80,7 +80,8 @@ class KnowledgeProcessor:
                 rid=bundle.manifest.rid,
                 event_type=internal_type,
                 bundle=bundle
-            )
+            ),
+            flush=True
         )
         
     def handle_edge_negotiation(self, bundle: Bundle):

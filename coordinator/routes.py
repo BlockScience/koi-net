@@ -27,6 +27,7 @@ def handshake(peer_bundle: HandshakeModel) -> HandshakeModel:
 @koi_net_router.post("/events/broadcast")
 def broadcast_events(events: list[Event], background: BackgroundTasks):
     for event in events:
+        print('added background task')
         background.add_task(processor.route_event, event)
 
 

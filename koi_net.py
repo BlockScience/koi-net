@@ -1,6 +1,7 @@
 from enum import StrEnum
 from pydantic import BaseModel, RootModel
-from rid_lib.ext import EventType, utils, Bundle, Cache, Event
+from rid_lib import RID
+from rid_lib.ext import EventType, utils, Bundle, Cache, Event, Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
 
 class KoiNetPath(StrEnum):
@@ -46,6 +47,10 @@ EventArrayModel = RootModel[list[Event]]
 class EventQueueModel(BaseModel):
     webhook: dict[RIDField, list[Event]]
     poll: dict[RIDField, list[Event]]
+    
+BundleArrayModel = RootModel[list[Bundle]]
+ManifestArrayModel = RootModel[list[Manifest]]
+RIDArrayModel = RootModel[list[RIDField]]
     
 def cache_compare(cache: Cache, curr_bundle: Bundle):
     prev_bundle = cache.read(curr_bundle.manifest.rid)
