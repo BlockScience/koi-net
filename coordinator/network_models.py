@@ -1,11 +1,7 @@
 from pydantic import BaseModel, RootModel
-from koi_net import NodeModel
-from rid_lib.ext import Bundle, Event
+from rid_lib.ext import Event
 from rid_lib.ext.pydantic_adapter import RIDField
 
-
-class HandshakeModel(Bundle):
-    contents: NodeModel
     
 EventArrayModel = RootModel[list[Event]]
 

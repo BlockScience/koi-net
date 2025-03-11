@@ -2,7 +2,7 @@ from rid_lib.ext import Event, Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.ext.event import EventType
 
-from .network_interface import NetworkInterface
+from .network import NetworkInterface
 from koi_net import EdgeModel
 from rid_types import KoiNetEdge, KoiNetNode
 from .config import this_node_rid, this_node_profile
@@ -18,36 +18,54 @@ class KnowledgeProcessor:
         ]
         
     def route_event(self, event: Event):
-        self.handle_event(event)
+        internal_type = self.handle_event(event)
+        print(internal_type, "type from event routing")
         
-        if event.rid.context == KoiNetEdge.context:
+        # responds to handshake if peer is unknown to node
+        if event.rid.context == KoiNetNode.context:
+            my_bundle = self.cache.read(this_node_rid)
+            
+            if internal_type != EventType.NEW: return
+            
+            self.network.push_event_to(
+                event=Event(
+                    rid=this_node_rid,
+                    event_type=EventType.NEW,
+                    bundle=my_bundle
+                ),
+                node=event.rid,
+                flush=True
+            )
+            
+        elif event.rid.context == KoiNetEdge.context:
             bundle = event.bundle or self.cache.read(event.rid)
             edge_profile = EdgeModel(**bundle.contents)
         
             # indicates peer subscriber
             if edge_profile.source == this_node_rid:
-                bundle = self.handle_edge_negotiation(bundle)            
+                bundle = self.handle_edge_negotiation(bundle)
             
     
-    def handle_event(self, event: Event):
+    def handle_event(self, event: Event) -> EventType | None:
         print("handling event:", event.event_type, event.rid)
         if event.rid.context not in self.allowed_contexts:
             print("ignoring disallowed context")
-            return None
+            return
         
         if event.event_type in (EventType.NEW, EventType.UPDATE):
             if event.bundle is None:
                 print("bundle not attached")
                 # TODO: retrieve bundle
-                return None
+                return
             
-            self.handle_state(event.bundle)
+            return self.handle_state(event.bundle)
         elif event.event_type == EventType.FORGET:
             print("deleting", event.rid, "from cache")
             self.cache.delete(event.rid)
-            self.network.push_event(event, flush=True)    
+            self.network.push_event(event, flush=True)
+            return EventType.FORGET
     
-    def handle_state(self, bundle: Bundle):
+    def handle_state(self, bundle: Bundle) -> EventType | None:
         internal_type = None
         print("handling state:", bundle.manifest.rid)
         if self.cache.exists(bundle.manifest.rid):
@@ -83,6 +101,8 @@ class KnowledgeProcessor:
             ),
             flush=True
         )
+        
+        return internal_type
         
     def handle_edge_negotiation(self, bundle: Bundle):
         edge_profile = EdgeModel(**bundle.contents)

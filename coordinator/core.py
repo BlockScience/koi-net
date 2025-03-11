@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from rid_lib.ext import Cache
 
 from .event_handler import KnowledgeProcessor
-from .network_interface import NetworkInterface
+from .network import NetworkInterface
 
 
 cache = Cache("coordinator_cache")

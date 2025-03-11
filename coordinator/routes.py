@@ -13,17 +13,6 @@ server = FastAPI(lifespan=lifespan)
 koi_net_router = APIRouter(prefix="/koi-net")
 
 
-@koi_net_router.post("/handshake")
-def handshake(peer_bundle: HandshakeModel) -> HandshakeModel:
-    if peer_bundle.manifest.rid.context != KoiNetNode.context:
-        raise Exception("Provided bundle must be a node profile")
-    
-    print("received handshake from", peer_bundle.manifest.rid)
-    
-    processor.handle_state(peer_bundle)
-    return cache.read(this_node_rid)
-
-
 @koi_net_router.post("/events/broadcast")
 def broadcast_events(events: list[Event], background: BackgroundTasks):
     for event in events:

@@ -1,110 +1,11 @@
-import networkx as nx
-import httpx
 from rid_lib import RID
 from rid_lib.ext.cache import Cache
 from rid_lib.ext.event import Event
-from koi_net import EdgeModel, EventArrayModel, EventQueueModel, KoiNetPath, NodeModel, NodeType, ManifestArrayModel, RIDArrayModel, BundleArrayModel
-from rid_types import KoiNetEdge, KoiNetNode
-from .config import this_node_rid
+from koi_net import EventQueueModel, NodeType
 from queue import Queue
-from .network_models import *
+from .state import NetworkState
+from .adapter import NetworkAdapter
 
-
-class NetworkState:
-    def __init__(self, cache: Cache):
-        self.cache = cache
-        self.dg = nx.DiGraph()
-        self.generate()
-        
-    def generate(self):
-        print("generating network state...")
-        self.dg.clear()
-        for rid in self.cache.read_all_rids():
-            if rid.context == KoiNetNode.context:
-                node_bundle = self.cache.read(rid)
-                
-                self.dg.add_node(
-                    str(rid),
-                    **node_bundle.contents
-                )
-                
-            elif rid.context == KoiNetEdge.context:
-                edge_bundle = self.cache.read(rid)
-                edge = EdgeModel(**edge_bundle.contents)
-                
-                self.dg.add_edge(
-                    str(edge.source),
-                    str(edge.target),
-                    **edge_bundle.contents
-                )
-        
-    def get_sub_rids(self, context: str | None = None):
-        potential_sub_rids = self.dg.successors(str(this_node_rid))
-        subscribers = []
-        for sub_rid in potential_sub_rids:
-            edge_profile = EdgeModel(**self.dg.edges[str(this_node_rid), sub_rid])
-            if edge_profile.status != "approved": continue
-            if context and (context not in edge_profile.contexts): continue
-            subscribers.append(RID.from_string(sub_rid))
-        return subscribers
-            
-    def get_node(self, node: RID):
-        node_contents = self.dg.nodes.get(str(node))
-        if node_contents:
-            return NodeModel(**node_contents)
-
-
-
-class NetworkAdapter:
-    def __init__(self, state: NetworkState):
-        self.state = state
-    
-    def handshake(self, url, bundle):        
-        resp = httpx.post(
-            url=url + KoiNetPath.HANDSHAKE,
-            data=bundle.model_dump_json()
-        )
-        return Bundle.model_validate(resp.json())
-    
-    def broadcast_events(self, node: RID, events):
-        node_profile = self.state.get_node(node)
-                
-        httpx.post(
-            url=node_profile.base_url + KoiNetPath.EVENTS_BROADCAST,
-            data=EventArrayModel(events).model_dump_json()
-        )
-    
-    def retrieve_rids(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_RIDS,
-            data=RetrieveRids(**kwargs).model_dump_json()
-        )
-        
-        return RIDArrayModel.model_validate(resp.json()).root
-        
-        
-    def retrieve_manifests(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_MANIFESTS,
-            data=RetrieveManifests(**kwargs).model_dump_json()
-        )
-        
-        return ManifestArrayModel.model_validate(resp.json()).root
-        
-    def retrieve_bundles(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_BUNDLES,
-            data=RetrieveBundles(**kwargs).model_dump_json()
-        )
-        
-        return BundleArrayModel.model_validate(resp.json()).root
-        
 
 class NetworkInterface:
     def __init__(self, file_path, cache: Cache):
@@ -188,6 +89,7 @@ class NetworkInterface:
     
     def flush_poll_queue(self, node: RID) -> list[Event]:
         queue = self.poll_event_queue.get(node)
+        if not queue: return []
         print(queue)
         print("flushing poll queue, size:", queue.qsize())
         events = list()
