@@ -4,7 +4,7 @@ from rid_lib.ext.cache import Cache
 from koi_net import EdgeModel, NodeModel
 from rid_types import KoiNetEdge, KoiNetNode
 from ..config import this_node_rid
-from ..network_models import *
+from .models import *
 
 class NetworkState:
     def __init__(self, cache: Cache):

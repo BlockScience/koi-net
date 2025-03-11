@@ -1,22 +1,17 @@
-from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks
 from rid_lib.ext import Bundle, Event
 from rid_lib.ext.manifest import Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
-from rid_types import KoiNetNode
 from .core import cache, network, processor
-from .config import this_node_rid
-from .setup import lifespan
-from .network_models import *
+from .network.models import *
+from .config import api_prefix
 
 
-server = FastAPI(lifespan=lifespan)
-koi_net_router = APIRouter(prefix="/koi-net")
-
+koi_net_router = APIRouter(prefix=api_prefix)
 
 @koi_net_router.post("/events/broadcast")
 def broadcast_events(events: list[Event], background: BackgroundTasks):
     for event in events:
-        print('added background task')
         background.add_task(processor.route_event, event)
 
 
@@ -56,6 +51,3 @@ def retrieve_bundles(retrieve: RetrieveBundles) -> list[Bundle]:
         bundle for rid in retrieve.rids
         if (bundle := cache.read(rid))
     ]
-
-
-server.include_router(koi_net_router)

@@ -1,7 +1,7 @@
 import httpx
 from rid_lib import RID
-from koi_net import  EventArrayModel, KoiNetPath, ManifestArrayModel, RIDArrayModel, BundleArrayModel
-from ..network_models import *
+from koi_net import EventArrayModel, KoiNetPath, ManifestArrayModel, RIDArrayModel, BundleArrayModel
+from .models import *
 from .state import NetworkState
 
 class NetworkAdapter:

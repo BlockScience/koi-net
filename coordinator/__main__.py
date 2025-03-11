@@ -1,3 +1,3 @@
 import uvicorn
 
-uvicorn.run("coordinator.routes:server")
+uvicorn.run("coordinator.server:app")

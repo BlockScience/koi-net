@@ -10,3 +10,5 @@ this_node_profile = NodeModel(
         "state": [KoiNetNode.context, KoiNetEdge.context]
     }
 )
+
+api_prefix = "/koi-net"
