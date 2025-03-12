@@ -4,13 +4,7 @@ from rid_lib import RID
 from rid_lib.ext import EventType, utils, Bundle, Cache, Event, Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
 
-class KoiNetPath(StrEnum):
-    HANDSHAKE = "/handshake"
-    EVENTS_BROADCAST = "/events/broadcast"
-    EVENTS_POLL = "/events/poll"
-    STATE_RIDS = "/state/rids"
-    STATE_MANIFESTS = "/state/manifests"
-    STATE_BUNDLES = "/state/bundles"
+
 
 class NodeType(StrEnum):
     FULL = "FULL"
@@ -42,7 +36,10 @@ class EdgeModel(BaseModel):
 #     rid: RIDField
 #     event_type: NormalizedEventType
 #     bundle: Bundle
-    
+
+
+
+
 EventArrayModel = RootModel[list[Event]]
 class EventQueueModel(BaseModel):
     webhook: dict[RIDField, list[Event]]

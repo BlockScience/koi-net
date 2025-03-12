@@ -1,6 +1,5 @@
 from rid_lib import RID
-from rid_lib.ext.cache import Cache
-from rid_lib.ext.event import Event
+from rid_lib.ext import Cache, Event, Bundle
 from koi_net import EventQueueModel, NodeType
 from queue import Queue
 from .state import NetworkState
@@ -8,10 +7,11 @@ from .adapter import NetworkAdapter
 
 
 class NetworkInterface:
-    def __init__(self, file_path, cache: Cache):
+    def __init__(self, file_path, cache: Cache, me: RID):
         print('CREATED A NEW NETWORK INTERFACE')
-        self.state = NetworkState(cache)
+        self.state = NetworkState(cache, me)
         self.adapter = NetworkAdapter(self.state)
+        self.me = me
         self.event_queues_file_path = file_path
         
         self.poll_event_queue: dict[RID, Queue] = dict()

@@ -3,13 +3,13 @@ from rid_lib import RID
 from rid_lib.ext.cache import Cache
 from koi_net import EdgeModel, NodeModel
 from rid_types import KoiNetEdge, KoiNetNode
-from ..config import this_node_rid
 from .models import *
 
 class NetworkState:
-    def __init__(self, cache: Cache):
+    def __init__(self, cache: Cache, me: RID):
         self.cache = cache
         self.dg = nx.DiGraph()
+        self.me = me
         self.generate()
         
     def generate(self):
@@ -19,6 +19,7 @@ class NetworkState:
             if rid.context == KoiNetNode.context:
                 node_bundle = self.cache.read(rid)
                 
+                print("adding node", rid)
                 self.dg.add_node(
                     str(rid),
                     **node_bundle.contents
@@ -28,21 +29,30 @@ class NetworkState:
                 edge_bundle = self.cache.read(rid)
                 edge = EdgeModel(**edge_bundle.contents)
                 
+                print("adding edge", edge.source, "->", edge.target)
                 self.dg.add_edge(
                     str(edge.source),
                     str(edge.target),
                     **edge_bundle.contents
                 )
+        print("done.")
         
-    def get_sub_rids(self, context: str | None = None):
-        potential_sub_rids = self.dg.successors(str(this_node_rid))
+    def get_adjacent_rids(self, nodes, context: str | None = None):
         subscribers = []
-        for sub_rid in potential_sub_rids:
-            edge_profile = EdgeModel(**self.dg.edges[str(this_node_rid), sub_rid])
+        for sub_rid in nodes:
+            edge_profile = EdgeModel.model_validate(
+                self.dg.edges[str(self.me), sub_rid])
             if edge_profile.status != "approved": continue
             if context and (context not in edge_profile.contexts): continue
             subscribers.append(RID.from_string(sub_rid))
         return subscribers
+    
+    
+    def get_sub_rids(self, context: str | None = None):
+        return self.get_adjacent_rids(self.dg.successors(str(self.me)), context)
+    
+    def get_pub_rids(self, context: str | None = None):
+        return self.get_adjacent_rids(self.dg.predecessors(str(self.me)), context)
             
     def get_node(self, node: RID):
         node_contents = self.dg.nodes.get(str(node))

@@ -5,7 +5,6 @@ from rid_lib.ext.event import EventType
 from .network import NetworkInterface
 from koi_net import EdgeModel
 from rid_types import KoiNetEdge, KoiNetNode
-from .config import this_node_rid, this_node_profile
 
 
 class KnowledgeProcessor:
@@ -23,16 +22,12 @@ class KnowledgeProcessor:
         
         # responds to handshake if peer is unknown to node
         if event.rid.context == KoiNetNode.context:
-            my_bundle = self.cache.read(this_node_rid)
+            my_bundle = self.cache.read(self.network.me)
             
             if internal_type != EventType.NEW: return
             
             self.network.push_event_to(
-                event=Event(
-                    rid=this_node_rid,
-                    event_type=EventType.NEW,
-                    bundle=my_bundle
-                ),
+                event=Event.from_bundle(EventType.NEW, my_bundle),
                 node=event.rid,
                 flush=True
             )
@@ -42,7 +37,7 @@ class KnowledgeProcessor:
             edge_profile = EdgeModel(**bundle.contents)
         
             # indicates peer subscriber
-            if edge_profile.source == this_node_rid:
+            if edge_profile.source == self.network.me:
                 bundle = self.handle_edge_negotiation(bundle)
             
     
@@ -94,11 +89,7 @@ class KnowledgeProcessor:
             self.network.state.generate()
         
         self.network.push_event(
-            Event(
-                rid=bundle.manifest.rid,
-                event_type=internal_type,
-                bundle=bundle
-            ),
+            Event.from_bundle(internal_type, bundle),
             flush=True
         )
         
@@ -111,7 +102,7 @@ class KnowledgeProcessor:
             # TODO: handle other status
             return
         
-        if any(context not in this_node_profile.provides.event for context in edge_profile.contexts):
+        if any(context not in self.network.state.get_node(self.network.me).provides.event for context in edge_profile.contexts):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
             print("requested context not provided")
@@ -126,11 +117,7 @@ class KnowledgeProcessor:
         edge_profile.status = "approved"
         updated_bundle = Bundle.generate(bundle.manifest.rid, edge_profile.model_dump())
         
-        event = Event(
-            rid=bundle.manifest.rid,
-            event_type=EventType.UPDATE,
-            bundle=updated_bundle
-        )
+        event = Event.from_bundle(EventType.UPDATE, updated_bundle)
         
         self.network.push_event_to(event, edge_profile.target, flush=True)
         # self.network.flush_webhook_queue(edge_profile.target)

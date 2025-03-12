@@ -5,7 +5,7 @@ from .config import this_node_profile, this_node_rid
 
 
 cache = Cache("coordinator_cache")
-network = NetworkInterface("coordinator_event_queues.json", cache)
+network = NetworkInterface("coordinator_event_queues.json", cache, this_node_rid)
 processor = KnowledgeProcessor(cache, network)
 
 processor.handle_state(Bundle.generate(
