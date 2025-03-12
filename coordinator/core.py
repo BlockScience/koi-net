@@ -1,5 +1,6 @@
 from rid_lib.ext import Cache, Bundle
-from .event_handler import KnowledgeProcessor
+
+from .processor import KnowledgeProcessor
 from .network import NetworkInterface
 from .config import this_node_profile, this_node_rid
 
@@ -7,6 +8,8 @@ from .config import this_node_profile, this_node_rid
 cache = Cache("coordinator_cache")
 network = NetworkInterface("coordinator_event_queues.json", cache, this_node_rid)
 processor = KnowledgeProcessor(cache, network)
+
+from . import handlers
 
 processor.handle_state(Bundle.generate(
     rid=this_node_rid,

@@ -9,7 +9,7 @@ koi_net_router = APIRouter(prefix=api_prefix)
 @koi_net_router.post("/events/broadcast")
 def broadcast_events(req: EventsPayload, background: BackgroundTasks):
     for event in req.events:
-        background.add_task(processor.route_event, event)
+        background.add_task(processor.handle_event, event)
 
 
 @koi_net_router.post("/events/poll")

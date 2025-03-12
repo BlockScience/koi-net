@@ -49,10 +49,10 @@ class NetworkState:
     
     
     def get_sub_rids(self, context: str | None = None):
-        return self.get_adjacent_rids(self.dg.successors(str(self.me)), True,context)
+        return self.get_adjacent_rids(self.dg.successors(str(self.me)), False, context)
     
     def get_pub_rids(self, context: str | None = None):
-        return self.get_adjacent_rids(self.dg.predecessors(str(self.me)), False, context)
+        return self.get_adjacent_rids(self.dg.predecessors(str(self.me)), True, context)
             
     def get_node(self, node: RID):
         node_contents = self.dg.nodes.get(str(node))
