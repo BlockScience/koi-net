@@ -3,6 +3,7 @@ from koi_net import EdgeModel, NodeModel, NodeType
 from rid_types import KoiNetEdge, KoiNetNode
 from coordinator.network import NetworkInterface
 from coordinator.event_handler import KnowledgeProcessor
+import time
 
 COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
 
@@ -30,36 +31,46 @@ if len(network.state.dg.nodes) == 1:
             Event.from_bundle(EventType.NEW, my_bundle)
         ]
     )
-    print(resp)
+    print(resp)    
+    
 
+while True:
     resp = network.adapter.poll_events(url=COORDINATOR_URL, rid=my_rid)
-    print(resp)
-    processor.handle_event(resp.events[0])
-
+    if resp.events: print("handling", len(resp.events), "events")
+    for event in resp.events:
+        processor.route_event(event)
     
-    coordinator_rid = resp.events[0].rid
     
-    bundle = Bundle.generate(
-        KoiNetEdge("testing_edge"),
-        EdgeModel(
-            source=coordinator_rid,
-            target=my_rid,
-            comm_type="poll",
-            contexts=[
-                KoiNetNode.context,
-                KoiNetEdge.context
-            ],
-            status="proposed"
-        ).model_dump()
-    )
+    has_edges = False
+    for rid in cache.read_all_rids():
+        if rid.context == KoiNetEdge.context:
+            has_edges = True
+        elif rid.context == KoiNetNode.context:
+            if rid != network.me:
+                peer = rid
     
-    network.adapter.broadcast_events(
-        node=coordinator_rid,
-        events=[
-            Event.from_bundle(EventType.NEW, bundle)
-        ]
-    )
     
-    resp = network.adapter.poll_events(url=COORDINATOR_URL, rid=my_rid)
-    processor.handle_event(resp.events[0])
-
+    if len(network.state.get_sub_rids(network.me)) == 10:
+        print("subscribing to coordinator")
+        bundle = Bundle.generate(
+            KoiNetEdge("coordinator->partial_edge"),
+            EdgeModel(
+                source=peer,
+                target=my_rid,
+                comm_type="poll",
+                contexts=[
+                    KoiNetNode.context,
+                    KoiNetEdge.context
+                ],
+                status="proposed"
+            ).model_dump()
+        )
+        
+        network.adapter.broadcast_events(
+            node=peer,
+            events=[
+                Event.from_bundle(EventType.NEW, bundle)
+            ]
+        )
+    
+    time.sleep(5)

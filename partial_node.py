@@ -1,4 +1,4 @@
-from coordinator.network.models import PollEventsReq
+from coordinator.network.models import RequestEvents
 from koi_net import EdgeModel, EventArrayModel, KoiNetPath, NodeModel, NodeType
 from rid_types import KoiNetEdge, KoiNetNode
 import httpx
@@ -39,7 +39,7 @@ input()
 print("polling response")
 resp = httpx.post(
     COORDINATOR_URL + KoiNetPath.EVENTS_POLL,
-    data=PollEventsReq(rid=str(my_rid)).model_dump_json()
+    data=RequestEvents(rid=str(my_rid)).model_dump_json()
 )
 
 data = resp.json()
@@ -85,7 +85,7 @@ while True:
     print("polling")
     resp = httpx.post(
         COORDINATOR_URL + KoiNetPath.EVENTS_POLL,
-        data=PollEventsReq(rid=str(my_rid)).model_dump_json()
+        data=RequestEvents(rid=str(my_rid)).model_dump_json()
     )
 
     data = resp.json()

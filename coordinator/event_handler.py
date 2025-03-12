@@ -32,6 +32,30 @@ class KnowledgeProcessor:
                 flush=True
             )
             
+            edge_bundle = Bundle.generate(
+                KoiNetEdge("partial->coordinator"),
+                EdgeModel(
+                    source=event.rid,
+                    target=self.network.me,
+                    comm_type="webhook",
+                    contexts=[
+                        KoiNetNode.context,
+                        KoiNetEdge.context
+                    ],
+                    status="proposed"
+                ).model_dump()
+            )
+            
+            print(edge_bundle)
+            
+            self.handle_state(edge_bundle)
+            
+            self.network.push_event_to(
+                event=Event.from_bundle(EventType.NEW, edge_bundle),
+                node=event.rid,
+                flush=True
+            )
+            
         elif event.rid.context == KoiNetEdge.context:
             bundle = event.bundle or self.cache.read(event.rid)
             edge_profile = EdgeModel(**bundle.contents)
@@ -39,6 +63,9 @@ class KnowledgeProcessor:
             # indicates peer subscriber
             if edge_profile.source == self.network.me:
                 bundle = self.handle_edge_negotiation(bundle)
+                
+            elif edge_profile.target == self.network.me:
+                print("other node approved my edge!")
             
     
     def handle_event(self, event: Event) -> EventType | None:

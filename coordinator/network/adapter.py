@@ -7,60 +7,61 @@ class NetworkAdapter:
     def __init__(self, state: NetworkState):
         self.state = state
         
-    # def make_request(self):
-    #     try:
-    #         httpx.post(
-    #             url=...,
-    #             data=...
-    #         )
+    def make_request(self, url, model: BaseModel):
+        try:
+            resp = httpx.post(
+                url=url,
+                data=model.model_dump_json()
+            )
+            return resp.json()
+        except httpx.RequestError as err:
+            print(err)
+            
+    def get_url(self, node, url):
+        if node:
+            bundle = self.state.get_node(node)
+            if not bundle:
+                raise Exception
+            return bundle.base_url
+        else:
+            return url
     
     def broadcast_events(self, node: RID = None, url: str = None, events=[]):
-        base_url = self.state.get_node(node).base_url if node else url
-                
-        resp = httpx.post(
-            url=base_url + KoiNetPath.EVENTS_BROADCAST,
-            data=RetrieveEventsResp(events=events).model_dump_json()
-        )
-        print(resp.json())
-        
-    def poll_events(self, node: RID = None, url: str = None, **kwargs):
-        base_url = self.state.get_node(node).base_url if node else url
-        
-        resp = httpx.post(
-            url=base_url + KoiNetPath.EVENTS_POLL,
-            data=PollEventsReq(**kwargs).model_dump_json()
+        resp = self.make_request(
+            self.get_url(node, url) + KoiNetPath.EVENTS_BROADCAST,
+            EventsPayload(events=events)
         )
         
-        return RetrieveEventsResp.model_validate(resp.json())
+    def poll_events(self, node: RID = None, url: str = None, **kwargs):        
+        resp = self.make_request(
+            self.get_url(node, url) + KoiNetPath.EVENTS_POLL,
+            RequestEvents(**kwargs)
+        )
+        
+        return EventsPayload.model_validate(resp)
     
-    def retrieve_rids(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_RIDS,
-            data=RetrieveRidsReq(**kwargs).model_dump_json()
+    def retrieve_rids(self, node: RID = None, url: str = None, **kwargs):        
+        resp = self.make_request(
+            self.get_url(node, url) + KoiNetPath.STATE_RIDS,
+            RequestRids(**kwargs)
         )
         
-        return RetrieveRidsResp.model_validate(resp.json())
+        return RidsPayload.model_validate(resp)
         
         
-    def retrieve_manifests(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_MANIFESTS,
-            data=RetrieveManifestsReq(**kwargs).model_dump_json()
+    def retrieve_manifests(self, node: RID = None, url: str = None, **kwargs):        
+        resp = self.make_request(
+            self.get_url(node, url) + KoiNetPath.STATE_MANIFESTS,
+            RequestManifests(**kwargs)
         )
         
-        return RetrieveManifestsResp.model_validate(resp.json())
+        return ManifestsPayload.model_validate(resp)
         
-    def retrieve_bundles(self, node: RID, **kwargs):
-        node_profile = self.state.get_node(node)
-        
-        resp = httpx.post(
-            url=node_profile.base_url + KoiNetPath.STATE_BUNDLES,
-            data=RetrieveBundlesReq(**kwargs).model_dump_json()
+    def retrieve_bundles(self, node: RID = None, url: str = None, **kwargs):        
+        resp = self.make_request(
+            self.get_url(node, url) + KoiNetPath.STATE_BUNDLES,
+            RequestBundles(**kwargs)
         )
         
-        return RetrieveBundlesResp.model_validate(resp.json())
+        return BundlesPayload.model_validate(resp)
         

@@ -13,30 +13,30 @@ class KoiNetPath(StrEnum):
 
 
 # request models
-class PollEventsReq(BaseModel):
+class RequestEvents(BaseModel):
     rid: RIDField
     limit: int = 0
     
-class RetrieveRidsReq(BaseModel):
+class RequestRids(BaseModel):
     contexts: list[str] = []
     
-class RetrieveManifestsReq(BaseModel):
+class RequestManifests(BaseModel):
     contexts: list[str] = []
     rids: list[str] = []
     
-class RetrieveBundlesReq(BaseModel):
+class RequestBundles(BaseModel):
     rids: list[RIDField]
     
 
 # response models
-class RetrieveEventsResp(BaseModel):
+class EventsPayload(BaseModel):
     events: list[Event]
     
-class RetrieveBundlesResp(BaseModel):
+class BundlesPayload(BaseModel):
     bundles: list[Bundle]
 
-class RetrieveManifestsResp(BaseModel):
+class ManifestsPayload(BaseModel):
     manifests: list[Manifest]
 
-class RetrieveRidsResp(BaseModel):
+class RidsPayload(BaseModel):
     rids: list[RIDField]
