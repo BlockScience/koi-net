@@ -1,12 +1,24 @@
+from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache, Event
+from rid_lib.ext.pydantic_adapter import RIDField
 from queue import Queue
 from .state import NetworkState
 from .adapter import NetworkAdapter
-from ..models import EventQueueModel, NodeType
+from ..models import NodeType
+
+
+class EventQueueModel(BaseModel):
+    webhook: dict[RIDField, list[Event]]
+    poll: dict[RIDField, list[Event]]
 
 
 class NetworkInterface:
+    state: NetworkState
+    adapter: NetworkAdapter
+    poll_event_queue: dict[RID, Queue]
+    webhook_event_queue: dict[RID, Queue]
+    
     def __init__(self, file_path, cache: Cache, me: RID):
         print('CREATED A NEW NETWORK INTERFACE')
         self.state = NetworkState(cache, me)
@@ -14,8 +26,8 @@ class NetworkInterface:
         self.me = me
         self.event_queues_file_path = file_path
         
-        self.poll_event_queue: dict[RID, Queue] = dict()
-        self.webhook_event_queue: dict[RID, Queue] = dict()
+        self.poll_event_queue = dict()
+        self.webhook_event_queue = dict()
         self.load_queues()
     
     def load_queues(self):

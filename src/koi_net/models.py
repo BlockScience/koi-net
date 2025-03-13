@@ -1,46 +1,49 @@
 from enum import StrEnum
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
 from rid_lib.ext import Event, Bundle, Manifest
 from rid_lib.ext.pydantic_adapter import RIDField
 
 
-class KoiNetPath(StrEnum):
-    EVENTS_BROADCAST = "/events/broadcast"
-    EVENTS_POLL = "/events/poll"
-    STATE_RIDS = "/state/rids"
-    STATE_MANIFESTS = "/state/manifests"
-    STATE_BUNDLES = "/state/bundles"
+class ApiPath(StrEnum):
+    BROADCAST_EVENTS = "/events/broadcast"
+    POLL_EVENTS      = "/events/poll"
+    FETCH_RIDS       = "/rids/fetch"
+    FETCH_MANIFESTS  = "/manifests/fetch"
+    FETCH_BUNDLES    = "/bundles/fetch"
 
 
 # request models
-class RequestEvents(BaseModel):
+class PollEvents(BaseModel):
     rid: RIDField
     limit: int = 0
     
-class RequestRids(BaseModel):
+class FetchRids(BaseModel):
     contexts: list[str] = []
     
-class RequestManifests(BaseModel):
+class FetchManifests(BaseModel):
     contexts: list[str] = []
     rids: list[str] = []
     
-class RequestBundles(BaseModel):
+class FetchBundles(BaseModel):
     rids: list[RIDField]
     
 
-# response models
-class EventsPayload(BaseModel):
-    events: list[Event]
-    
-class BundlesPayload(BaseModel):
-    bundles: list[Bundle]
+# response/payload models
+class RidsPayload(BaseModel):
+    rids: list[RIDField]
 
 class ManifestsPayload(BaseModel):
     manifests: list[Manifest]
-
-class RidsPayload(BaseModel):
-    rids: list[RIDField]
+    not_found: list[RIDField] | None = None
     
+class BundlesPayload(BaseModel):
+    bundles: list[Bundle]
+    not_found: list[RIDField] | None = None
+    deferred: list[RIDField] | None = None
+    
+class EventsPayload(BaseModel):
+    events: list[Event]
+
 
 # koi-net models
 class NodeType(StrEnum):
@@ -63,6 +66,3 @@ class EdgeModel(BaseModel):
     contexts: list[str]
     status: str
 
-class EventQueueModel(BaseModel):
-    webhook: dict[RIDField, list[Event]]
-    poll: dict[RIDField, list[Event]]

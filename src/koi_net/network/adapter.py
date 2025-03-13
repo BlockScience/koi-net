@@ -28,22 +28,22 @@ class NetworkAdapter:
     
     def broadcast_events(self, node: RID = None, url: str = None, events=[]):
         resp = self.make_request(
-            self.get_url(node, url) + KoiNetPath.EVENTS_BROADCAST,
+            self.get_url(node, url) + ApiPath.BROADCAST_EVENTS,
             EventsPayload(events=events)
         )
         
     def poll_events(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + KoiNetPath.EVENTS_POLL,
-            RequestEvents(**kwargs)
+            self.get_url(node, url) + ApiPath.POLL_EVENTS,
+            PollEvents(**kwargs)
         )
         
         return EventsPayload.model_validate(resp)
     
     def retrieve_rids(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + KoiNetPath.STATE_RIDS,
-            RequestRids(**kwargs)
+            self.get_url(node, url) + ApiPath.FETCH_RIDS,
+            FetchRids(**kwargs)
         )
         
         return RidsPayload.model_validate(resp)
@@ -51,16 +51,16 @@ class NetworkAdapter:
         
     def retrieve_manifests(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + KoiNetPath.STATE_MANIFESTS,
-            RequestManifests(**kwargs)
+            self.get_url(node, url) + ApiPath.FETCH_MANIFESTS,
+            FetchManifests(**kwargs)
         )
         
         return ManifestsPayload.model_validate(resp)
         
     def retrieve_bundles(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + KoiNetPath.STATE_BUNDLES,
-            RequestBundles(**kwargs)
+            self.get_url(node, url) + ApiPath.FETCH_BUNDLES,
+            FetchBundles(**kwargs)
         )
         
         return BundlesPayload.model_validate(resp)
