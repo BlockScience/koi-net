@@ -40,3 +40,29 @@ class ManifestsPayload(BaseModel):
 
 class RidsPayload(BaseModel):
     rids: list[RIDField]
+    
+
+# koi-net models
+class NodeType(StrEnum):
+    FULL = "FULL"
+    PARTIAL = "PARTIAL"
+
+class Provides(BaseModel):
+    event: list[str] = []
+    state: list[str] = []
+
+class NodeModel(BaseModel):
+    base_url: str | None = None
+    node_type: NodeType
+    provides: Provides
+    
+class EdgeModel(BaseModel):
+    source: RIDField
+    target: RIDField
+    comm_type: str
+    contexts: list[str]
+    status: str
+
+class EventQueueModel(BaseModel):
+    webhook: dict[RIDField, list[Event]]
+    poll: dict[RIDField, list[Event]]

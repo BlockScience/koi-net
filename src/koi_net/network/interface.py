@@ -1,9 +1,9 @@
 from rid_lib import RID
-from rid_lib.ext import Cache, Event, Bundle
-from koi_net import EventQueueModel, NodeType
+from rid_lib.ext import Cache, Event
 from queue import Queue
 from .state import NetworkState
 from .adapter import NetworkAdapter
+from ..models import EventQueueModel, NodeType
 
 
 class NetworkInterface:

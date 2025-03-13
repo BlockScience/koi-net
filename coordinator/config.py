@@ -1,5 +1,5 @@
-from koi_net import NodeModel, NodeType
-from rid_types import KoiNetNode, KoiNetEdge
+from koi_net.models import NodeModel, NodeType
+from koi_net.rid_types import KoiNetNode, KoiNetEdge
 
 this_node_rid = KoiNetNode("coordinator")
 this_node_profile = NodeModel(

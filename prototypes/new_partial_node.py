@@ -1,8 +1,8 @@
 from rid_lib.ext import Cache, Bundle, Event, EventType
 from koi_net import EdgeModel, NodeModel, NodeType, Provides
-from rid_types import KoiNetEdge, KoiNetNode
+from koi_net.rid_types import KoiNetEdge, KoiNetNode
 from coordinator.network import NetworkInterface
-from coordinator.processor import HandlerType, KnowledgeProcessor
+from src.koi_net.processor.interface import HandlerType, ProcessorInterface
 import time
 
 COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
@@ -17,7 +17,7 @@ my_profile = NodeModel(
 my_bundle = Bundle.generate(my_rid, my_profile.model_dump())
 
 network = NetworkInterface("none.json", cache, me=my_rid)
-processor = KnowledgeProcessor(cache, network)
+processor = ProcessorInterface(cache, network)
 
 
 @processor.register_handler(

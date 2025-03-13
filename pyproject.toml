@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "koi-net"
+version = "1.0.0"
+description = "Implementation of KOI-net protocol in Python"
+authors = [
+    {name = "Luke Miller", email = "luke@block.science"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+
+# [project.optional-dependencies]
+# ext = ["pydantic>=2.10"]
+# dev = ["pytest>=8.0", "pytest-cov>=6.0", "twine>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/BlockScience/koi-net/"
+
+# [tool.pytest.ini_options]
+# minversion = 6.0
+# testpaths = [
+#     "tests"
+# ]
+
+# [tool.coverage.report]
+# exclude_also = [
+#     "@abstractmethod"
+# ]

@@ -8,7 +8,7 @@ from rid_lib.ext import Cache, utils, Event, EventType, Bundle, Manifest
 from contextlib import asynccontextmanager
 from koi_net import NodeModel, NodeType, Provides, EdgeModel, cache_compare, EventArrayModel
 from pydantic import BaseModel
-from rid_types import KoiNetEdge, KoiNetNode
+from koi_net.rid_types import KoiNetEdge, KoiNetNode
 from rid_lib.ext.pydantic_adapter import RIDField
 
 cache = Cache("cache")

@@ -1,9 +1,8 @@
 import networkx as nx
 from rid_lib import RID
 from rid_lib.ext.cache import Cache
-from koi_net import EdgeModel, NodeModel
-from rid_types import KoiNetEdge, KoiNetNode
-from .models import *
+from ..rid_types import KoiNetEdge, KoiNetNode
+from ..models import *
 
 class NetworkState:
     def __init__(self, cache: Cache, me: RID):

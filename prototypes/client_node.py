@@ -1,7 +1,7 @@
 import httpx
 import uvicorn
 from koi_net import NodeModel, EdgeModel, NodeType, Provides, cache_compare, EventArrayModel
-from rid_types import KoiNetEdge, KoiNetNode
+from koi_net.rid_types import KoiNetEdge, KoiNetNode
 from rid_lib import RID
 from rid_lib.ext import Bundle, Event, EventType, Manifest, Cache
 from contextlib import asynccontextmanager

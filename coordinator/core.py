@@ -1,19 +1,16 @@
-from rid_lib.ext import Cache, Bundle
-
-from .processor import KnowledgeProcessor
-from .network import NetworkInterface
+from rid_lib.ext import Bundle
+from koi_net import NodeInterface
 from .config import this_node_profile, this_node_rid
 
-
-cache = Cache("coordinator_cache")
-network = NetworkInterface("coordinator_event_queues.json", cache, this_node_rid)
-processor = KnowledgeProcessor(cache, network)
+node = NodeInterface(
+    rid=this_node_rid
+)
 
 from . import handlers
 
-processor.handle_state(Bundle.generate(
+node.processor.handle_state(Bundle.generate(
     rid=this_node_rid,
     contents=this_node_profile.model_dump()
 ))
 
-this_node_bundle = cache.read(this_node_rid)
+this_node_bundle = node.cache.read(this_node_rid)

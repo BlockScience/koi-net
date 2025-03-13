@@ -1,6 +1,6 @@
 import httpx
 from rid_lib import RID
-from .models import *
+from ..models import *
 from .state import NetworkState
 
 class NetworkAdapter:

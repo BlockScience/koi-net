@@ -1,6 +1,6 @@
 from coordinator.network.models import RequestEvents
 from koi_net import EdgeModel, EventArrayModel, KoiNetPath, NodeModel, NodeType
-from rid_types import KoiNetEdge, KoiNetNode
+from koi_net.rid_types import KoiNetEdge, KoiNetNode
 import httpx
 from rid_lib.ext import Bundle, Event, EventType
 
