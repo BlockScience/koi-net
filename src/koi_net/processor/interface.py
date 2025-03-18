@@ -1,39 +1,56 @@
+from dataclasses import dataclass
 from typing import Callable
+from rid_lib.core import RIDType
 from rid_lib.ext import Event, EventType, Bundle, Cache
+from ..models import NormalizedType
 from ..rid_types import KoiNetEdge, KoiNetNode
-from .handlers import EventHandler, StateHandler, HandlerType
 from ..network import NetworkInterface
+
+
+@dataclass
+class Handler:
+    contexts: list[RIDType]
+    func: Callable[[Event | Bundle, NormalizedType], None]
+    
+    def call(self, obj: Event | Bundle, normalized_type: NormalizedType):
+        if type(obj.rid) not in self.contexts:
+            return
+        
+        self.func(obj, normalized_type)
 
 
 class ProcessorInterface:
     def __init__(self, cache: Cache, network: NetworkInterface):
         self.cache = cache
         self.network = network
-        self.allowed_contexts = [
-            KoiNetNode.context,
-            KoiNetEdge.context
+        self.allowed_types = [
+            KoiNetNode,
+            KoiNetEdge
         ]
-        self.state_handlers: list[EventHandler] = []
-        self.event_handlers: list[EventHandler] = []
+        self.state_handlers: list[Handler] = []
+        self.event_handlers: list[Handler] = []
     
     def register_handler(
         self,
-        contexts: list[str],
-        handler_type: HandlerType
-    ):
+        contexts: list[RIDType],
+        handler_list: list[Handler]
+):
         def decorator(func: Callable):
-            print("registering", handler_type, "handler for", contexts)
-            if handler_type == HandlerType.STATE:
-                self.state_handlers.append(StateHandler(contexts, func))
-            elif handler_type == HandlerType.EVENT:
-                self.event_handlers.append(EventHandler(contexts, func))
+            handler_list.append(Handler(contexts, func))
+            print(handler_list)
             return func
         return decorator
+    
+    def register_state_handler(self, contexts: list[RIDType]):
+        return self.register_handler(contexts, self.state_handlers)
+    
+    def register_event_handler(self, contexts: list[RIDType]):
+        return self.register_handler(contexts, self.event_handlers)
     
     def handle_event(self, event: Event) -> EventType | None:
         normalized_type = None
         print("handling event:", event.event_type, event.rid)
-        if event.rid.context in self.allowed_contexts:        
+        if event.rid.type in self.allowed_types:        
             if event.event_type in (EventType.NEW, EventType.UPDATE):
                 if event.bundle is None:
                     print("bundle not attached")

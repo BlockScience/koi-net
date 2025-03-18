@@ -14,8 +14,8 @@ class NetworkState:
     def generate(self):
         print("generating network state...")
         self.dg.clear()
-        for rid in self.cache.read_all_rids():
-            if rid.context == KoiNetNode.context:
+        for rid in self.cache.read_rids():
+            if type(rid) == KoiNetNode:
                 node_bundle = self.cache.read(rid)
                 
                 print("\t> adding node", rid)
@@ -24,7 +24,7 @@ class NetworkState:
                     **node_bundle.contents
                 )
                 
-            elif rid.context == KoiNetEdge.context:
+            elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
                 edge = EdgeModel(**edge_bundle.contents)
                 
@@ -42,7 +42,7 @@ class NetworkState:
             edge_profile = EdgeModel.model_validate(
                 self.dg.edges[str(self.me), sub_rid] if forward else self.dg.edges[sub_rid, str(self.me)])
             if edge_profile.status != "approved": continue
-            if context and (context not in edge_profile.contexts): continue
+            if context and (context not in edge_profile.rid_types): continue
             subscribers.append(RID.from_string(sub_rid))
         return subscribers
     

@@ -1,7 +1,7 @@
 from enum import StrEnum
 from pydantic import BaseModel
-from rid_lib.ext import Event, Bundle, Manifest
-from rid_lib.ext.pydantic_adapter import RIDField
+from rid_lib.ext import Event, Bundle, Manifest, EventType
+from rid_lib.ext.pydantic_adapter import RIDField, RIDTypeField
 
 
 class ApiPath(StrEnum):
@@ -18,10 +18,10 @@ class PollEvents(BaseModel):
     limit: int = 0
     
 class FetchRids(BaseModel):
-    contexts: list[str] = []
+    allowed_types: list[RIDTypeField] = []
     
 class FetchManifests(BaseModel):
-    contexts: list[str] = []
+    allowed_types: list[RIDTypeField] = []
     rids: list[str] = []
     
 class FetchBundles(BaseModel):
@@ -63,6 +63,7 @@ class EdgeModel(BaseModel):
     source: RIDField
     target: RIDField
     comm_type: str
-    contexts: list[str]
+    rid_types: list[RIDTypeField]
     status: str
 
+type NormalizedType = EventType | None

@@ -1,14 +1,11 @@
-from src.koi_net.processor.interface import HandlerType
-from koi_net.models import EdgeModel
+from koi_net.models import EdgeModel, NormalizedType
 from koi_net.rid_types import KoiNetNode, KoiNetEdge
 from rid_lib.ext import Event, EventType, Bundle
 from .core import node
 
-@node.processor.register_handler(
-    contexts=[KoiNetNode.context],
-    handler_type=HandlerType.EVENT
-)
-def handshake_handler(event: Event, event_type: EventType | None):
+
+@node.processor.register_event_handler(contexts=[KoiNetNode])
+def handshake_handler(event: Event, event_type: NormalizedType):
     print("trigger handshake handler")
     # only respond if node is unknown to me
     if event_type != EventType.NEW: return
@@ -27,9 +24,9 @@ def handshake_handler(event: Event, event_type: EventType | None):
             source=event.rid,
             target=node.network.me,
             comm_type="webhook",
-            contexts=[
-                KoiNetNode.context,
-                KoiNetEdge.context
+            rid_types=[
+                KoiNetNode,
+                KoiNetEdge
             ],
             status="proposed"
         ).model_dump()
@@ -45,11 +42,8 @@ def handshake_handler(event: Event, event_type: EventType | None):
         flush=True
     )
     
-@node.processor.register_handler(
-    contexts=[KoiNetEdge.context],
-    handler_type=HandlerType.EVENT
-)
-def edge_negotiation_handler(event: Event, event_type: EventType):
+@node.processor.register_event_handler(contexts=[KoiNetEdge.context])
+def edge_negotiation_handler(event: Event, event_type: NormalizedType):
     print("trigger negotiation handler")
     bundle = event.bundle or node.cache.read(event.rid)
     edge_profile = EdgeModel(**bundle.contents)
@@ -62,7 +56,7 @@ def edge_negotiation_handler(event: Event, event_type: EventType):
             # TODO: handle other status
             return
         
-        if any(context not in node.network.state.get_node(node.network.me).provides.event for context in edge_profile.contexts):
+        if any(context not in node.network.state.get_node(node.network.me).provides.event for context in edge_profile.rid_types):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
             print("requested context not provided")
