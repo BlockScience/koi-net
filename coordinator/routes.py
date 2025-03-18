@@ -19,7 +19,7 @@ def poll_events(req: PollEvents) -> EventsPayload:
 
 
 @koi_net_router.post(ApiPath.FETCH_RIDS)
-def retrieve_rids(req: FetchRids) -> RidsPayload:
+def fetch_rids(req: FetchRids) -> RidsPayload:
     rids = [
         rid for rid in node.cache.read_all_rids()
         if (
@@ -31,7 +31,7 @@ def retrieve_rids(req: FetchRids) -> RidsPayload:
 
 
 @koi_net_router.post(ApiPath.FETCH_MANIFESTS)
-def retrieve_manifests(req: FetchManifests) -> ManifestsPayload:
+def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
     manifests = [
         bundle.manifest for rid in req.rids or node.cache.read_all_rids()
         if (
@@ -45,7 +45,7 @@ def retrieve_manifests(req: FetchManifests) -> ManifestsPayload:
 
 
 @koi_net_router.post(ApiPath.FETCH_BUNDLES)
-def retrieve_bundles(req: FetchBundles) -> BundlesPayload:    
+def fetch_bundles(req: FetchBundles) -> BundlesPayload:    
     bundles = [
         bundle for rid in req.rids
         if (bundle := node.cache.read(rid))
