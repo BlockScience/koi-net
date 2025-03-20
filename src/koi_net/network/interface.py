@@ -3,9 +3,9 @@ from rid_lib import RID
 from rid_lib.ext import Cache, Event
 from rid_lib.ext.pydantic_adapter import RIDField
 from queue import Queue
-from .state import NetworkState
+from .graph import NetworkGraph
 from .adapter import NetworkAdapter
-from ..models import NodeType
+from ..models import NodeModel, NodeType
 
 
 class EventQueueModel(BaseModel):
@@ -14,16 +14,17 @@ class EventQueueModel(BaseModel):
 
 
 class NetworkInterface:
-    state: NetworkState
+    graph: NetworkGraph
     adapter: NetworkAdapter
     poll_event_queue: dict[RID, Queue]
     webhook_event_queue: dict[RID, Queue]
     
     def __init__(self, file_path, cache: Cache, me: RID):
         print('CREATED A NEW NETWORK INTERFACE')
-        self.state = NetworkState(cache, me)
-        self.adapter = NetworkAdapter(self.state)
         self.me = me
+        self.cache = cache
+        self.adapter = NetworkAdapter(cache)
+        self.graph = NetworkGraph(cache, me)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
@@ -71,18 +72,20 @@ class NetworkInterface:
                 
     
     def push_event(self, event: Event, flush=False):
-        subs = self.state.get_sub_rids(event.rid.context)
-        for sub in subs:
-            self.push_event_to(event, sub, flush)
+        for node in self.graph.get_neighbors(
+            direction="out", 
+            allowed_type=type(event.rid)
+        ):
+            self.push_event_to(event, node, flush)
                 
     def push_event_to(self, event: Event, node: RID, flush=False):
         if not isinstance(node, RID):
             raise Exception("node must be of type RID")
         print(repr(node))
         print("pushing event", event.event_type, event.rid, "to", node)
-        node_profile = self.state.get_node(node)
-        if not node_profile:
-            raise Exception("unknown node", node)
+      
+        bundle = self.cache.read(node)
+        node_profile = NodeModel.model_validate(bundle.contents)
         
         # select queue from node type
         if node_profile.node_type == NodeType.FULL:
@@ -114,9 +117,8 @@ class NetworkInterface:
         return events
     
     def flush_webhook_queue(self, node: RID):
-        node_profile = self.state.get_node(node)
-        if not node_profile:
-            raise Exception("unknown node", node)
+        bundle = self.cache.read(node)
+        node_profile = NodeModel.model_validate(bundle.contents)
         
         if node_profile.node_type != NodeType.FULL:
             return

@@ -50,7 +50,7 @@ class ProcessorInterface:
     def handle_event(self, event: Event) -> EventType | None:
         normalized_type = None
         print("handling event:", event.event_type, event.rid)
-        if event.rid.type in self.allowed_types:        
+        if type(event.rid) in self.allowed_types:        
             if event.event_type in (EventType.NEW, EventType.UPDATE):
                 if event.bundle is None:
                     print("bundle not attached")
@@ -96,7 +96,7 @@ class ProcessorInterface:
             normalized_type = EventType.NEW
         
         if bundle.manifest.rid.context in (KoiNetNode.context, KoiNetEdge.context):
-            self.network.state.generate()
+            self.network.graph.generate()
         
         self.network.push_event(
             Event.from_bundle(normalized_type, bundle),

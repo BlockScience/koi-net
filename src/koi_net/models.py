@@ -1,7 +1,10 @@
 from enum import StrEnum
+from typing import Annotated
 from pydantic import BaseModel
+from rid_lib import RID
 from rid_lib.ext import Event, Bundle, Manifest, EventType
-from rid_lib.ext.pydantic_adapter import RIDField, RIDTypeField
+from rid_lib.ext.pydantic_adapter import RIDField, RIDTypeField, allowed_types
+from .rid_types import KoiNetNode, KoiNetEdge
 
 
 class ApiPath(StrEnum):
@@ -22,7 +25,7 @@ class FetchRids(BaseModel):
     
 class FetchManifests(BaseModel):
     allowed_types: list[RIDTypeField] = []
-    rids: list[str] = []
+    rids: list[RIDField] = []
     
 class FetchBundles(BaseModel):
     rids: list[RIDField]
@@ -51,8 +54,8 @@ class NodeType(StrEnum):
     PARTIAL = "PARTIAL"
 
 class Provides(BaseModel):
-    event: list[str] = []
-    state: list[str] = []
+    event: list[RIDTypeField] = []
+    state: list[RIDTypeField] = []
 
 class NodeModel(BaseModel):
     base_url: str | None = None
@@ -60,8 +63,8 @@ class NodeModel(BaseModel):
     provides: Provides
     
 class EdgeModel(BaseModel):
-    source: RIDField
-    target: RIDField
+    source: Annotated[RID, allowed_types(KoiNetNode)]
+    target: Annotated[RID, allowed_types(KoiNetNode)]
     comm_type: str
     rid_types: list[RIDTypeField]
     status: str

@@ -12,21 +12,15 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
+dependencies = [
+    "rid-lib>=3.2.0",
+    "networkx>=3.4.2",
+    "httpx>=0.28.1",
+    "pydantic>=2.10.6"
+]
 
-# [project.optional-dependencies]
-# ext = ["pydantic>=2.10"]
-# dev = ["pytest>=8.0", "pytest-cov>=6.0", "twine>=6.0"]
+[project.optional-dependencies]
+dev = ["twine>=6.0"]
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
-
-# [tool.pytest.ini_options]
-# minversion = 6.0
-# testpaths = [
-#     "tests"
-# ]
-
-# [tool.coverage.report]
-# exclude_also = [
-#     "@abstractmethod"
-# ]

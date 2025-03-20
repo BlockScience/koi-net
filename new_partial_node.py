@@ -1,37 +1,45 @@
 from rid_lib.ext import Cache, Bundle, Event, EventType
-from koi_net import EdgeModel, NodeModel, NodeType, Provides
+from koi_net import NodeInterface
+from koi_net.models import NodeModel, NodeType, Provides, EdgeModel
 from koi_net.rid_types import KoiNetEdge, KoiNetNode
-from coordinator.network import NetworkInterface
-from src.koi_net.processor.interface import HandlerType, ProcessorInterface
 import time
 
 COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
-
-cache = Cache("partial_node_cache")
-
 my_rid = KoiNetNode("new_partial_node")
+
+node = NodeInterface(
+    rid=my_rid,
+    cache=Cache("_cache-partial-node")
+)
+
 my_profile = NodeModel(
     node_type=NodeType.PARTIAL,
-    provides=Provides(state=[KoiNetNode.context, KoiNetEdge.context], event=[KoiNetNode.context, KoiNetEdge.context])
+    provides=Provides(
+        state=[KoiNetNode, KoiNetEdge], 
+        event=[KoiNetNode, KoiNetEdge]
+    )
 )
-my_bundle = Bundle.generate(my_rid, my_profile.model_dump())
 
-network = NetworkInterface("none.json", cache, me=my_rid)
-processor = ProcessorInterface(cache, network)
+node.processor.handle_state(
+    Bundle.generate(my_rid, my_profile.model_dump()))
+
+my_bundle = node.cache.read(my_rid)
 
 
-@processor.register_handler(
-    contexts=[KoiNetEdge.context],
-    handler_type=HandlerType.EVENT
-)
+
+
+print(node.network.graph.get_neighbors(direction="out", status="approved"))
+
+
+@node.processor.register_event_handler([KoiNetEdge])
 def edge_negotiation_handler(event: Event, event_type: EventType):
     print("trigger negotiation handler")
-    bundle = event.bundle or cache.read(event.rid)
+    bundle = event.bundle or node.cache.read(event.rid)
     edge_profile = EdgeModel(**bundle.contents)
     
 
     # indicates peer subscriber
-    if edge_profile.source == network.me:
+    if edge_profile.source == node.network.me:
         edge_profile = EdgeModel(**bundle.contents)
         
         print("proposed edge", edge_profile)
@@ -40,13 +48,13 @@ def edge_negotiation_handler(event: Event, event_type: EventType):
             # TODO: handle other status
             return
         
-        if any(context not in network.state.get_node(network.me).provides.event for context in edge_profile.contexts):
+        if any(context not in my_profile.provides.event for context in edge_profile.rid_types):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
             print("requested context not provided")
             return
             
-        if not cache.read(edge_profile.target):
+        if not node.cache.read(edge_profile.target):
             # TODO: handle unknown subscriber node (delete edge?)
             print("unknown subscriber")
             return
@@ -57,49 +65,45 @@ def edge_negotiation_handler(event: Event, event_type: EventType):
         
         event = Event.from_bundle(EventType.UPDATE, updated_bundle)
         
-        network.push_event_to(event, edge_profile.target, flush=True)
+        node.network.push_event_to(event, edge_profile.target, flush=True)
         # self.network.flush_webhook_queue(edge_profile.target)
-        processor.handle_event(event)
+        node.processor.handle_event(event)
         
-    elif edge_profile.target == network.me:
+    elif edge_profile.target == node.network.me:
         print("other node approved my edge!")
 
 
-processor.handle_state(my_bundle)
-
-
 # if you don't know anybody
-if len(network.state.dg.nodes) == 1:
-    resp = network.adapter.broadcast_events(
+if len(node.network.graph.dg.nodes) == 1:
+    print("i don't know anyone...")
+    resp = node.network.adapter.broadcast_events(
         url=COORDINATOR_URL,
         events=[
             Event.from_bundle(EventType.NEW, my_bundle)
         ]
     )
-    print(resp)    
 
-print("publishers", network.state.get_pub_rids())
-print("subscribers", network.state.get_sub_rids())
 
 while True:
-    resp = network.adapter.poll_events(url=COORDINATOR_URL, rid=my_rid)
+    resp = node.network.adapter.poll_events(url=COORDINATOR_URL, rid=my_rid)
     if resp.events: print("handling", len(resp.events), "events")
     for event in resp.events:
-        processor.handle_event(event)
+        node.processor.handle_event(event)
     
     if len(resp.events) == 0:
         break
     
     has_edges = False
-    for rid in cache.read_all_rids():
+    for rid in node.cache.read_all_rids():
         if rid.context == KoiNetEdge.context:
             has_edges = True
         elif rid.context == KoiNetNode.context:
-            if rid != network.me:
+            if rid != node.network.me:
                 peer = rid
     
+    print("I know this many subscribers", node.network.graph.get_neighbors(direction="out"))
     
-    if len(network.state.get_sub_rids()) == 0:
+    if len(node.network.graph.get_neighbors(direction="in")) == 0:
         print("subscribing to coordinator")
         bundle = Bundle.generate(
             KoiNetEdge("coordinator->partial_edge"),
@@ -107,19 +111,19 @@ while True:
                 source=peer,
                 target=my_rid,
                 comm_type="poll",
-                contexts=[
-                    KoiNetNode.context,
-                    KoiNetEdge.context
+                rid_types=[
+                    KoiNetNode,
+                    KoiNetEdge
                 ],
                 status="proposed"
             ).model_dump()
         )
         
-        network.adapter.broadcast_events(
+        node.network.adapter.broadcast_events(
             node=peer,
             events=[
                 Event.from_bundle(EventType.NEW, bundle)
             ]
         )
     
-    time.sleep(5)
+    time.sleep(1)

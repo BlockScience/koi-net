@@ -1,10 +1,8 @@
 from contextlib import asynccontextmanager
-from sys import prefix
-from fastapi import FastAPI, APIRouter, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks
 from rid_lib import RID
 from koi_net.models import *
 from .core import node
-from .routes import app
 from .config import api_prefix
 
 @asynccontextmanager
@@ -13,7 +11,7 @@ async def lifespan(app: FastAPI):
     
     node.network.save_queues()
 
-app = FastAPI(lifespan=lifespan, prefix=api_prefix)
+app = FastAPI(lifespan=lifespan, root_path=api_prefix)
 
 @app.post(ApiPath.BROADCAST_EVENTS)
 def broadcast_events(req: EventsPayload, background: BackgroundTasks):

@@ -1,9 +1,10 @@
-from rid_lib.ext import Bundle
+from rid_lib.ext import Bundle, Cache
 from koi_net import NodeInterface
 from .config import this_node_profile, this_node_rid
 
 node = NodeInterface(
-    rid=this_node_rid
+    rid=this_node_rid,
+    cache=Cache("_cache-coordinator-node")
 )
 
 from . import handlers

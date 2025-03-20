@@ -1,7 +1,7 @@
 from koi_net.models import EdgeModel, NormalizedType
 from koi_net.rid_types import KoiNetNode, KoiNetEdge
 from rid_lib.ext import Event, EventType, Bundle
-from .core import node
+from .core import node, this_node_profile
 
 
 @node.processor.register_event_handler(contexts=[KoiNetNode])
@@ -24,10 +24,7 @@ def handshake_handler(event: Event, event_type: NormalizedType):
             source=event.rid,
             target=node.network.me,
             comm_type="webhook",
-            rid_types=[
-                KoiNetNode,
-                KoiNetEdge
-            ],
+            rid_types=[KoiNetNode, KoiNetEdge],
             status="proposed"
         ).model_dump()
     )
@@ -42,7 +39,7 @@ def handshake_handler(event: Event, event_type: NormalizedType):
         flush=True
     )
     
-@node.processor.register_event_handler(contexts=[KoiNetEdge.context])
+@node.processor.register_event_handler(contexts=[KoiNetEdge])
 def edge_negotiation_handler(event: Event, event_type: NormalizedType):
     print("trigger negotiation handler")
     bundle = event.bundle or node.cache.read(event.rid)
@@ -56,7 +53,7 @@ def edge_negotiation_handler(event: Event, event_type: NormalizedType):
             # TODO: handle other status
             return
         
-        if any(context not in node.network.state.get_node(node.network.me).provides.event for context in edge_profile.rid_types):
+        if any(context not in this_node_profile.provides.event for context in edge_profile.rid_types):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
             print("requested context not provided")

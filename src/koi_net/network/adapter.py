@@ -1,11 +1,24 @@
 import httpx
+from pydantic import BaseModel
 from rid_lib import RID
-from ..models import *
-from .state import NetworkState
+from rid_lib.ext import Cache
+from ..models import (
+    ApiPath,
+    NodeModel,
+    RidsPayload,
+    ManifestsPayload,
+    BundlesPayload,
+    EventsPayload,
+    FetchRids,
+    FetchManifests,
+    FetchBundles,
+    PollEvents
+)
+
 
 class NetworkAdapter:
-    def __init__(self, state: NetworkState):
-        self.state = state
+    def __init__(self, cache: Cache):
+        self.cache = cache
         
     def make_request(self, url, model: BaseModel):
         try:
@@ -17,12 +30,11 @@ class NetworkAdapter:
         except httpx.RequestError as err:
             print(err)
             
-    def get_url(self, node, url):
-        if node:
-            bundle = self.state.get_node(node)
-            if not bundle:
-                raise Exception
-            return bundle.base_url
+    def get_url(self, node_rid, url):
+        if node_rid:
+            bundle = self.cache.read(node_rid)
+            node = NodeModel.model_validate(bundle.contents)
+            return node.base_url
         else:
             return url
     

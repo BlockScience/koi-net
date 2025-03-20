@@ -13,4 +13,4 @@ class NodeInterface:
         self.rid = rid
         self.cache = cache or Cache("cache")
         self.network = network or NetworkInterface("event_queues.json", self.cache, self.rid)
-        self.processor = ProcessorInterface(self.cache, self.network)
+        self.processor = processor or ProcessorInterface(self.cache, self.network)
