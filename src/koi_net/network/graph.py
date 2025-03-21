@@ -16,9 +16,7 @@ class NetworkGraph:
         print("generating network state...")
         self.dg.clear()
         for rid in self.cache.read_all_rids():
-            if type(rid) == KoiNetNode:
-                node_bundle = self.cache.read(rid)
-                
+            if type(rid) == KoiNetNode:                
                 print("\t> adding node", rid)
                 self.dg.add_node(rid)
                 
@@ -50,7 +48,6 @@ class NetworkGraph:
                 print("failed to find edge", edge_rid, "in cache")
                 continue
             edge = EdgeModel.model_validate(edge_bundle.contents)
-            print(edge)
             
             if status and edge.status != status:
                 continue

@@ -20,7 +20,6 @@ class NetworkInterface:
     webhook_event_queue: dict[RID, Queue]
     
     def __init__(self, file_path, cache: Cache, me: RID):
-        print('CREATED A NEW NETWORK INTERFACE')
         self.me = me
         self.cache = cache
         self.adapter = NetworkAdapter(cache)
@@ -32,7 +31,6 @@ class NetworkInterface:
         self.load_queues()
     
     def load_queues(self):
-        print("LOADED QUEUES")
         try:
             with open(self.event_queues_file_path, "r") as f:
                 queues = EventQueueModel.model_validate_json(f.read())
@@ -46,9 +44,7 @@ class NetworkInterface:
                 for event in queues.webhook[node]:
                     queue = self.webhook_event_queue.setdefault(node, Queue())
                     queue.put(event)
-                    
-            print(self.poll_event_queue)
-            
+                                
         except FileNotFoundError:
             return
         
@@ -81,7 +77,6 @@ class NetworkInterface:
     def push_event_to(self, event: Event, node: RID, flush=False):
         if not isinstance(node, RID):
             raise Exception("node must be of type RID")
-        print(repr(node))
         print("pushing event", event.event_type, event.rid, "to", node)
       
         bundle = self.cache.read(node)
@@ -94,10 +89,9 @@ class NetworkInterface:
             event_queue = self.poll_event_queue
         
         queue = event_queue.setdefault(node, Queue())
-        print(queue)
         queue.put(event)
         
-        print("queue size:", queue.qsize(), node_profile.node_type)
+        print(node_profile.node_type, "node queue size:", queue.qsize())
         
         if flush:
             self.flush_webhook_queue(node)

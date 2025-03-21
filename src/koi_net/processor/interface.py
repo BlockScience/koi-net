@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Callable
 from rid_lib.core import RIDType
 from rid_lib.ext import Event, EventType, Bundle, Cache
-from ..models import NormalizedType
+from ..models import NormalizedType, NodeModel, NodeType
 from ..rid_types import KoiNetEdge, KoiNetNode
 from ..network import NetworkInterface
 
@@ -37,7 +37,6 @@ class ProcessorInterface:
 ):
         def decorator(func: Callable):
             handler_list.append(Handler(contexts, func))
-            print(handler_list)
             return func
         return decorator
     
@@ -54,9 +53,29 @@ class ProcessorInterface:
             if event.event_type in (EventType.NEW, EventType.UPDATE):
                 if event.bundle is None:
                     print("bundle not attached")
-                    # TODO: retrieve bundle
+                    
+                    remote_bundle = None
+                    for node_rid in self.cache.list_rids(allowed_types=[KoiNetNode]):
+                        node_bundle = self.cache.read(node_rid)
+                        node = node_bundle.validate_contents(NodeModel)
+                        if node.node_type == NodeType.FULL and type(event.rid) in node.provides.state:
+                            print("asking", node_rid, "for it...")
+                            payload = self.network.adapter.fetch_bundles(
+                                node=node_rid, rids=[event.rid])
+                            if payload.bundles:
+                                remote_bundle = payload.bundles[0]
+                                print("bundle found!")
+                                break
+                    
+                    if not remote_bundle:
+                        raise Exception("Unable to locate remote bundle", event.rid)
+                    
+                    bundle = remote_bundle
                 
-                normalized_type = self.handle_state(event.bundle)
+                else:
+                    bundle = event.bundle
+                
+                normalized_type = self.handle_state(bundle)
             elif event.event_type == EventType.FORGET:
                 print("deleting", event.rid, "from cache")
                 self.cache.delete(event.rid)

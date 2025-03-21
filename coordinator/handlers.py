@@ -34,7 +34,7 @@ def handshake_handler(event: Event, event_type: NormalizedType):
     node.processor.handle_state(edge_bundle)
     
     node.network.push_event_to(
-        event=Event.from_bundle(EventType.NEW, edge_bundle),
+        event=Event.from_manifest(EventType.NEW, edge_bundle.manifest),
         node=event.rid,
         flush=True
     )

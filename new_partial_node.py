@@ -41,9 +41,7 @@ def edge_negotiation_handler(event: Event, event_type: EventType):
     # indicates peer subscriber
     if edge_profile.source == node.network.me:
         edge_profile = EdgeModel(**bundle.contents)
-        
-        print("proposed edge", edge_profile)
-        
+                
         if edge_profile.status != "proposed":
             # TODO: handle other status
             return
