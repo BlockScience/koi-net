@@ -1,3 +1,4 @@
+import logging
 import httpx
 from pydantic import BaseModel
 from rid_lib import RID
@@ -16,12 +17,15 @@ from ..models import (
     PollEvents
 )
 
+logger = logging.getLogger(__name__)
+
 
 class NetworkAdapter:
     def __init__(self, cache: Cache):
         self.cache = cache
         
     def make_request(self, url, request: BaseModel):
+        logger.info(f"Making request to {url}")
         resp = httpx.post(
             url=url,
             data=request.model_dump_json()
@@ -37,6 +41,7 @@ class NetworkAdapter:
             node = NodeModel.model_validate(bundle.contents)
             if node.node_type != NodeType.FULL:
                 raise Exception("Can't query partial node")
+            logger.info(f"Resolved {node_rid!r} to {node.base_url}")
             return node.base_url
         else:
             return url

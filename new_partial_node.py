@@ -1,8 +1,20 @@
+import logging
+from rich.logging import RichHandler
 from rid_lib.ext import Cache, Bundle, Event, EventType
 from koi_net import NodeInterface
 from koi_net.models import NodeModel, NodeType, Provides, EdgeModel
 from koi_net.rid_types import KoiNetEdge, KoiNetNode
 import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[RichHandler()]
+)
+
+logging.getLogger("koi_net").setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
 my_rid = KoiNetNode("new_partial_node")
@@ -25,23 +37,17 @@ node.processor.handle_state(
 
 my_bundle = node.cache.read(my_rid)
 
-
-
-
-print(node.network.graph.get_neighbors(direction="out", status="approved"))
-
+breakpoint()
 
 @node.processor.register_event_handler([KoiNetEdge])
 def edge_negotiation_handler(event: Event, event_type: EventType):
-    print("trigger negotiation handler")
     bundle = event.bundle or node.cache.read(event.rid)
-    edge_profile = EdgeModel(**bundle.contents)
-    
+    edge_profile = EdgeModel.model_validate(bundle.contents)
+
+    logger.info("Handling edge negotiation")
 
     # indicates peer subscriber
-    if edge_profile.source == node.network.me:
-        edge_profile = EdgeModel(**bundle.contents)
-                
+    if edge_profile.source == node.network.me:                
         if edge_profile.status != "proposed":
             # TODO: handle other status
             return
@@ -49,42 +55,41 @@ def edge_negotiation_handler(event: Event, event_type: EventType):
         if any(context not in my_profile.provides.event for context in edge_profile.rid_types):
             # indicates node subscribing to unsupported event
             # TODO: either reject or repropose agreement
-            print("requested context not provided")
-            return
+            logger.info("Requested contexts not provided by this node")
+            event = Event.from_rid(EventType.FORGET, event.rid)
+
             
-        if not node.cache.read(edge_profile.target):
+        elif not node.cache.read(edge_profile.target):
             # TODO: handle unknown subscriber node (delete edge?)
-            print("unknown subscriber")
-            return
-        
-        # approve edge profile
-        edge_profile.status = "approved"
-        updated_bundle = Bundle.generate(bundle.manifest.rid, edge_profile.model_dump())
-        
-        event = Event.from_bundle(EventType.UPDATE, updated_bundle)
-        
+            logger.warning("Peer unknown to this node")
+            event = Event.from_bundle(EventType.FORGET, event.rid)
+
+        else:
+            # approve edge profile
+            edge_profile.status = "approved"
+            updated_bundle = Bundle.generate(bundle.manifest.rid, edge_profile.model_dump())
+            
+            event = Event.from_bundle(EventType.UPDATE, updated_bundle)
+            
         node.network.push_event_to(event, edge_profile.target, flush=True)
-        # self.network.flush_webhook_queue(edge_profile.target)
         node.processor.handle_event(event)
         
     elif edge_profile.target == node.network.me:
-        print("other node approved my edge!")
+        logger.info("Edge approved by other node!")
 
 
 # if you don't know anybody
 if len(node.network.graph.dg.nodes) == 1:
-    print("i don't know anyone...")
+    logger.info("I don't know any other nodes, shaking hands with coordinator")
     resp = node.network.adapter.broadcast_events(
         url=COORDINATOR_URL,
-        events=[
-            Event.from_bundle(EventType.NEW, my_bundle)
-        ]
+        events=[Event.from_bundle(EventType.NEW, my_bundle)]
     )
 
 
 while True:
     resp = node.network.adapter.poll_events(url=COORDINATOR_URL, rid=my_rid)
-    if resp.events: print("handling", len(resp.events), "events")
+    logger.info(f"Received {len(resp.events)} event(s)")
     for event in resp.events:
         node.processor.handle_event(event)
     
@@ -99,10 +104,9 @@ while True:
             if rid != node.network.me:
                 peer = rid
     
-    print("I know this many subscribers", node.network.graph.get_neighbors(direction="out"))
     
     if len(node.network.graph.get_neighbors(direction="in")) == 0:
-        print("subscribing to coordinator")
+        logger.info("I don't have any neighbors, subscribing to peer")
         bundle = Bundle.generate(
             KoiNetEdge("coordinator->partial_edge"),
             EdgeModel(
@@ -124,4 +128,4 @@ while True:
             ]
         )
     
-    time.sleep(1)
+    time.sleep(0.5)

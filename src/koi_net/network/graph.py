@@ -1,9 +1,13 @@
+import logging
 from typing import Literal
 import networkx as nx
 from rid_lib import RID, RIDType
 from rid_lib.ext.cache import Cache
 from ..rid_types import KoiNetEdge, KoiNetNode
 from ..models import *
+
+logger = logging.getLogger(__name__)
+
 
 class NetworkGraph:
     def __init__(self, cache: Cache, me: RID):
@@ -13,20 +17,19 @@ class NetworkGraph:
         self.generate()
         
     def generate(self):
-        print("generating network state...")
+        logger.info("Generating network graph")
         self.dg.clear()
         for rid in self.cache.read_all_rids():
             if type(rid) == KoiNetNode:                
-                print("\t> adding node", rid)
                 self.dg.add_node(rid)
+                logger.info(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
                 edge = EdgeModel(**edge_bundle.contents)
-                
-                print("\t> adding edge", edge.source, "->", edge.target)
                 self.dg.add_edge(edge.source, edge.target, rid=rid)
-        print("\tdone.\n")
+                logger.info(f"Added edge {edge.source} -> {edge.target}")
+        logger.info("Done")
     
     def get_neighbors(
         self,
@@ -45,8 +48,9 @@ class NetworkGraph:
             
             edge_bundle = self.cache.read(edge_rid)
             if not edge_bundle: 
-                print("failed to find edge", edge_rid, "in cache")
+                logger.warning(f"Failed to find edge {edge_rid} in cache")
                 continue
+            
             edge = EdgeModel.model_validate(edge_bundle.contents)
             
             if status and edge.status != status:

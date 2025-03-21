@@ -1,11 +1,15 @@
+import logging
+from queue import Queue
+from re import sub
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache, Event
 from rid_lib.ext.pydantic_adapter import RIDField
-from queue import Queue
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..models import NodeModel, NodeType
+
+logger = logging.getLogger(__name__)
 
 
 class EventQueueModel(BaseModel):
@@ -68,16 +72,19 @@ class NetworkInterface:
                 
     
     def push_event(self, event: Event, flush=False):
-        for node in self.graph.get_neighbors(
+        subscribers = self.graph.get_neighbors(
             direction="out", 
             allowed_type=type(event.rid)
-        ):
+        )
+        logger.info(f"Pushing event to {len(subscribers)} subscribers")
+        for node in subscribers:
             self.push_event_to(event, node, flush)
                 
     def push_event_to(self, event: Event, node: RID, flush=False):
         if not isinstance(node, RID):
             raise Exception("node must be of type RID")
-        print("pushing event", event.event_type, event.rid, "to", node)
+        
+        logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
       
         bundle = self.cache.read(node)
         node_profile = NodeModel.model_validate(bundle.contents)
@@ -90,33 +97,31 @@ class NetworkInterface:
         
         queue = event_queue.setdefault(node, Queue())
         queue.put(event)
-        
-        print(node_profile.node_type, "node queue size:", queue.qsize())
-        
-        if flush:
+                
+        if flush and node_profile.node_type == NodeType.FULL:
             self.flush_webhook_queue(node)
     
     def flush_poll_queue(self, node: RID) -> list[Event]:
+        logger.info(f"Flushing poll queue for {node}")
         queue = self.poll_event_queue.get(node)
         if not queue: return []
-        print(queue)
-        print("flushing poll queue, size:", queue.qsize())
         events = list()
+
         if queue:
             while not queue.empty():
                 events.append(queue.get())
         
-        print("got", len(events), "items")
-        
+        logger.info(f"Returning {len(events)} events")        
         return events
     
     def flush_webhook_queue(self, node: RID):
+        logger.info(f"Flushing webhook queue for {node}")
         bundle = self.cache.read(node)
         node_profile = NodeModel.model_validate(bundle.contents)
         
         if node_profile.node_type != NodeType.FULL:
+            logger.warning(f"{node} is a partial node!")
             return
-            # raise Exception("poll node", node)
         
         queue = self.webhook_event_queue.get(node)
         if not queue: return
@@ -125,6 +130,7 @@ class NetworkInterface:
         while not queue.empty():
             events.append(queue.get())
         
+        logger.info(f"Broadcasting {len(events)} events")        
         self.adapter.broadcast_events(node, events=events)
         
         # TODO: retry if request failed

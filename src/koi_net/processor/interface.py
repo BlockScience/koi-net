@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import Callable
 from rid_lib.core import RIDType
@@ -5,6 +6,8 @@ from rid_lib.ext import Event, EventType, Bundle, Cache
 from ..models import NormalizedType, NodeModel, NodeType
 from ..rid_types import KoiNetEdge, KoiNetNode
 from ..network import NetworkInterface
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -48,41 +51,43 @@ class ProcessorInterface:
     
     def handle_event(self, event: Event) -> EventType | None:
         normalized_type = None
-        print("handling event:", event.event_type, event.rid)
+        logger.info(f"Handling event {event.event_type} {event.rid}")
         if type(event.rid) in self.allowed_types:        
             if event.event_type in (EventType.NEW, EventType.UPDATE):
                 if event.bundle is None:
-                    print("bundle not attached")
-                    
+                    logger.info("Bundle not attached")                    
                     remote_bundle = None
                     for node_rid in self.cache.list_rids(allowed_types=[KoiNetNode]):
                         node_bundle = self.cache.read(node_rid)
                         node = node_bundle.validate_contents(NodeModel)
                         if node.node_type == NodeType.FULL and type(event.rid) in node.provides.state:
-                            print("asking", node_rid, "for it...")
+                            logger.info(f"Attempting to fetch from {node_rid}")
+                            
                             payload = self.network.adapter.fetch_bundles(
                                 node=node_rid, rids=[event.rid])
+                            
                             if payload.bundles:
                                 remote_bundle = payload.bundles[0]
-                                print("bundle found!")
+                                logger.info("Got bundle!")
                                 break
-                    
-                    if not remote_bundle:
-                        raise Exception("Unable to locate remote bundle", event.rid)
-                    
-                    bundle = remote_bundle
                 
+                    bundle = remote_bundle
                 else:
                     bundle = event.bundle
+                    
+                if bundle:
+                    normalized_type = self.handle_state(bundle)
+                else:
+                    normalized_type = None
+                    logger.warning("Failed to locate bundle")
                 
-                normalized_type = self.handle_state(bundle)
             elif event.event_type == EventType.FORGET:
-                print("deleting", event.rid, "from cache")
+                logger.info(f"Deleting {event.rid} from cache")
                 self.cache.delete(event.rid)
                 self.network.push_event(event, flush=True)
                 normalized_type = EventType.FORGET
         else:
-            print("ignoring disallowed context")
+            logger.info(f"Ignoring disallowed type {event.event_type}")
         
         for handler in self.event_handlers:
             handler.call(event, normalized_type)
@@ -91,26 +96,24 @@ class ProcessorInterface:
     
     def handle_state(self, bundle: Bundle) -> EventType | None:
         normalized_type = None
-        print("handling state:", bundle.manifest.rid)
+        logger.info(f"Handling state {bundle.manifest.rid}")
         if self.cache.exists(bundle.manifest.rid):
-            print("RID known to cache")
+            logger.info("RID known to cache")
             prev_bundle = self.cache.read(bundle.manifest.rid)
 
             if bundle.manifest.sha256_hash == prev_bundle.manifest.sha256_hash:
-                print("no change in knowledge, ignoring")
+                logger.info("No change in knowledge, ignoring")
                 return None # same knowledge
             if bundle.manifest.timestamp <= prev_bundle.manifest.timestamp:
-                print("older manifest, ignoring")
+                logger.info("Older manifest, ignoring")
                 return None # incoming state is older
             
-            print("newer manifest")
-            print("writing", bundle.manifest.rid, "to cache")
+            logger.info(f"Newer manifest, writing {bundle.manifest.rid} to cache")
             self.cache.write(bundle)
             normalized_type = EventType.UPDATE
 
         else:
-            print("RID unknown to cache")
-            print("writing", bundle.manifest.rid, "to cache")
+            logger.info(f"RID unknown to cache, writing {bundle.manifest.rid} to cache")
             self.cache.write(bundle)
             normalized_type = EventType.NEW
         
@@ -123,6 +126,7 @@ class ProcessorInterface:
         )
         
         for handler in self.state_handlers:
+            logger.info("Triggering handler")
             handler.call(bundle, normalized_type)
         
         return normalized_type
