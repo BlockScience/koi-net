@@ -37,6 +37,7 @@ class NetworkGraph:
         status: Literal["proposed"] | Literal["approved"] | None = None,
         allowed_type: RIDType | None = None
     ) -> list[RID]:
+        
         neighbors = []
         for edge in self.dg.edges:
             edge_rid = self.dg.edges[edge]["rid"]

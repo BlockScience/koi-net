@@ -1,9 +1,8 @@
 from enum import StrEnum
 from typing import Annotated
 from pydantic import BaseModel
-from rid_lib import RID
+from rid_lib import RID, RIDType
 from rid_lib.ext import Event, Bundle, Manifest, EventType
-from rid_lib.ext.pydantic_adapter import RIDField, RIDTypeField, allowed_types
 from .rid_types import KoiNetNode, KoiNetEdge
 
 
@@ -17,32 +16,32 @@ class ApiPath(StrEnum):
 
 # request models
 class PollEvents(BaseModel):
-    rid: RIDField
+    rid: RID
     limit: int = 0
     
 class FetchRids(BaseModel):
-    allowed_types: list[RIDTypeField] = []
+    allowed_types: list[RIDType] = []
     
 class FetchManifests(BaseModel):
-    allowed_types: list[RIDTypeField] = []
-    rids: list[RIDField] = []
+    allowed_types: list[RIDType] = []
+    rids: list[RID] = []
     
 class FetchBundles(BaseModel):
-    rids: list[RIDField]
+    rids: list[RID]
     
 
 # response/payload models
 class RidsPayload(BaseModel):
-    rids: list[RIDField]
+    rids: list[RID]
 
 class ManifestsPayload(BaseModel):
     manifests: list[Manifest]
-    not_found: list[RIDField] | None = None
+    not_found: list[RID] | None = None
     
 class BundlesPayload(BaseModel):
     bundles: list[Bundle]
-    not_found: list[RIDField] | None = None
-    deferred: list[RIDField] | None = None
+    not_found: list[RID] | None = None
+    deferred: list[RID] | None = None
     
 class EventsPayload(BaseModel):
     events: list[Event]
@@ -54,8 +53,8 @@ class NodeType(StrEnum):
     PARTIAL = "PARTIAL"
 
 class Provides(BaseModel):
-    event: list[RIDTypeField] = []
-    state: list[RIDTypeField] = []
+    event: list[RIDType] = []
+    state: list[RIDType] = []
 
 class NodeModel(BaseModel):
     base_url: str | None = None
@@ -63,10 +62,10 @@ class NodeModel(BaseModel):
     provides: Provides
     
 class EdgeModel(BaseModel):
-    source: Annotated[RID, allowed_types(KoiNetNode)]
-    target: Annotated[RID, allowed_types(KoiNetNode)]
+    source: KoiNetNode
+    target: KoiNetNode
     comm_type: str
-    rid_types: list[RIDTypeField]
+    rid_types: list[RIDType]
     status: str
 
 type NormalizedType = EventType | None

@@ -1,20 +1,19 @@
 import logging
 from queue import Queue
-from re import sub
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache, Event
-from rid_lib.ext.pydantic_adapter import RIDField
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..models import NodeModel, NodeType
+from ..rid_types import KoiNetNode
 
 logger = logging.getLogger(__name__)
 
 
 class EventQueueModel(BaseModel):
-    webhook: dict[RIDField, list[Event]]
-    poll: dict[RIDField, list[Event]]
+    webhook: dict[KoiNetNode, list[Event]]
+    poll: dict[KoiNetNode, list[Event]]
 
 
 class NetworkInterface:
