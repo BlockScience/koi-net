@@ -77,7 +77,7 @@ class NetworkAdapter:
         
         return ManifestsPayload.model_validate_json(resp.text)
         
-    def fetch_bundles(self, node: RID = None, url: str = None, **kwargs: FetchBundles):        
+    def fetch_bundles(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
             self.get_url(node, url) + ApiPath.FETCH_BUNDLES,
             FetchBundles.model_validate(kwargs)

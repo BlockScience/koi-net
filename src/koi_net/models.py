@@ -1,9 +1,8 @@
 from enum import StrEnum
-from typing import Annotated
 from pydantic import BaseModel
 from rid_lib import RID, RIDType
 from rid_lib.ext import Event, Bundle, Manifest, EventType
-from .rid_types import KoiNetNode, KoiNetEdge
+from rid_lib.types import KoiNetNode, KoiNetEdge
 
 
 class ApiPath(StrEnum):
@@ -20,10 +19,10 @@ class PollEvents(BaseModel):
     limit: int = 0
     
 class FetchRids(BaseModel):
-    allowed_types: list[RIDType] = []
+    rid_types: list[RIDType] = []
     
 class FetchManifests(BaseModel):
-    allowed_types: list[RIDType] = []
+    rid_types: list[RIDType] = []
     rids: list[RID] = []
     
 class FetchBundles(BaseModel):
@@ -36,12 +35,12 @@ class RidsPayload(BaseModel):
 
 class ManifestsPayload(BaseModel):
     manifests: list[Manifest]
-    not_found: list[RID] | None = None
+    not_found: list[RID] = []
     
 class BundlesPayload(BaseModel):
     bundles: list[Bundle]
-    not_found: list[RID] | None = None
-    deferred: list[RID] | None = None
+    not_found: list[RID] = []
+    deferred: list[RID] = []
     
 class EventsPayload(BaseModel):
     events: list[Event]

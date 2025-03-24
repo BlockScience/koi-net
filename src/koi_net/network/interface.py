@@ -3,10 +3,10 @@ from queue import Queue
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache, Event
+from rid_lib.types import KoiNetNode
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..models import NodeModel, NodeType
-from ..rid_types import KoiNetNode
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,6 @@ class NetworkInterface:
                 
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
-            
                 
     
     def push_event(self, event: Event, flush=False):
@@ -137,4 +136,27 @@ class NetworkInterface:
     def flush_all_webhook_queues(self):
         for node in self.webhook_event_queue.keys():
             self.flush_webhook_queue(node)
+            
+    def fetch_remote_bundle(self, rid: RID):
+        logger.info(f"Fetching remote bundle '{rid}'")
+        remote_bundle = None
+        for node_rid in self.cache.list_rids(allowed_types=[KoiNetNode]):
+            node_bundle = self.cache.read(node_rid)
+            node = node_bundle.validate_contents(NodeModel)
+            
+            if node.node_type == NodeType.FULL and type(rid) in node.provides.state:
+                logger.info(f"Attempting to fetch from {node_rid}")
+                
+                payload = self.adapter.fetch_bundles(
+                    node=node_rid, rids=[rid])
+                
+                if payload.bundles:
+                    remote_bundle = payload.bundles[0]
+                    logger.info("Got bundle!")
+                    break
+        
+        if not remote_bundle:
+            logger.warning("Failed to fetch remote bundle")
+            
+        return remote_bundle
         

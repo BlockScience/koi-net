@@ -2,7 +2,18 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
 from rid_lib import RID
-from koi_net.models import *
+from rid_lib.ext import Manifest, Bundle
+from koi_net.models import (
+    ApiPath,
+    PollEvents,
+    FetchRids,
+    FetchManifests,
+    FetchBundles,
+    EventsPayload,
+    RidsPayload,
+    ManifestsPayload,
+    BundlesPayload
+)
 from .core import node
 from .config import api_prefix
 
@@ -33,18 +44,18 @@ def poll_events(req: PollEvents) -> EventsPayload:
 
 @app.post(ApiPath.FETCH_RIDS)
 def fetch_rids(req: FetchRids) -> RidsPayload:
-    logger.info(f"Request to {ApiPath.FETCH_RIDS}, allowed types {req.allowed_types}")
-    rids = node.cache.read_all_rids(req.allowed_types)
+    logger.info(f"Request to {ApiPath.FETCH_RIDS}, allowed types {req.rid_types}")
+    rids = node.cache.read_all_rids(req.rid_types)
     return RidsPayload(rids=rids)
 
 
 @app.post(ApiPath.FETCH_MANIFESTS)
 def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
-    logger.info(f"Request to {ApiPath.FETCH_MANIFESTS}, allowed types {req.allowed_types}, rids {req.rids}")
+    logger.info(f"Request to {ApiPath.FETCH_MANIFESTS}, allowed types {req.rid_types}, rids {req.rids}")
     manifests: list[Manifest] = []
     not_found: list[RID] = []
     
-    for rid in (req.rids or node.cache.read_all_rids(req.allowed_types)):
+    for rid in (req.rids or node.cache.read_all_rids(req.rid_types)):
         bundle = node.cache.read(rid)
         if bundle:
             manifests.append(bundle.manifest)

@@ -3,7 +3,7 @@ from typing import Literal
 import networkx as nx
 from rid_lib import RID, RIDType
 from rid_lib.ext.cache import Cache
-from ..rid_types import KoiNetEdge, KoiNetNode
+from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..models import *
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,8 @@ class NetworkGraph:
     
     def get_neighbors(
         self,
-        direction: Literal["in"] | Literal["out"] | None = None,
-        status: Literal["proposed"] | Literal["approved"] | None = None,
+        direction: Literal["in", "out"] | None = None,
+        status: Literal["proposed", "approved"] | None = None,
         allowed_type: RIDType | None = None
     ) -> list[RID]:
         
