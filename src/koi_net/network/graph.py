@@ -2,9 +2,9 @@ import logging
 from typing import Literal
 import networkx as nx
 from rid_lib import RID, RIDType
-from rid_lib.ext.cache import Cache
+from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
-from ..models import *
+from ..protocol.edge import EdgeModel
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class NetworkGraph:
     def generate(self):
         logger.info("Generating network graph")
         self.dg.clear()
-        for rid in self.cache.read_all_rids():
+        for rid in self.cache.list_rids():
             if type(rid) == KoiNetNode:                
                 self.dg.add_node(rid)
                 logger.info(f"Added node {rid}")

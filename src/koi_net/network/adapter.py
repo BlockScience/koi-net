@@ -3,10 +3,7 @@ import httpx
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache
-from ..models import (
-    ApiPath,
-    NodeType,
-    NodeModel,
+from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -16,6 +13,15 @@ from ..models import (
     FetchBundles,
     PollEvents
 )
+from ..protocol.consts import (
+    BROADCAST_EVENTS_PATH,
+    POLL_EVENTS_PATH,
+    FETCH_RIDS_PATH,
+    FETCH_MANIFESTS_PATH,
+    FETCH_BUNDLES_PATH
+)
+from ..protocol.node import NodeModel, NodeType
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +54,13 @@ class NetworkAdapter:
     
     def broadcast_events(self, node: RID = None, url: str = None, events=[]):
         self.make_request(
-            self.get_url(node, url) + ApiPath.BROADCAST_EVENTS,
+            self.get_url(node, url) + BROADCAST_EVENTS_PATH,
             EventsPayload(events=events)
         )
         
     def poll_events(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + ApiPath.POLL_EVENTS,
+            self.get_url(node, url) + POLL_EVENTS_PATH,
             PollEvents.model_validate(kwargs)
         )
         
@@ -62,7 +68,7 @@ class NetworkAdapter:
     
     def fetch_rids(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + ApiPath.FETCH_RIDS,
+            self.get_url(node, url) + FETCH_RIDS_PATH,
             FetchRids.model_validate(kwargs)
         )
         
@@ -71,7 +77,7 @@ class NetworkAdapter:
         
     def fetch_manifests(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + ApiPath.FETCH_MANIFESTS,
+            self.get_url(node, url) + FETCH_MANIFESTS_PATH,
             FetchManifests.model_validate(kwargs)
         )
         
@@ -79,7 +85,7 @@ class NetworkAdapter:
         
     def fetch_bundles(self, node: RID = None, url: str = None, **kwargs):        
         resp = self.make_request(
-            self.get_url(node, url) + ApiPath.FETCH_BUNDLES,
+            self.get_url(node, url) + FETCH_BUNDLES_PATH,
             FetchBundles.model_validate(kwargs)
         )
         

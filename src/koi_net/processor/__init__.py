@@ -1,2 +1,2 @@
-from .interface import ProcessorInterface
+from .interface import ProcessorInterface, NormalizedType
 from . import default_handlers

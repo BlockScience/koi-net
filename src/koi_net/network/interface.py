@@ -2,11 +2,12 @@ import logging
 from queue import Queue
 from pydantic import BaseModel
 from rid_lib import RID
-from rid_lib.ext import Cache, Event
+from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
-from ..models import NodeModel, NodeType
+from ..protocol.node import NodeModel, NodeType
+from ..protocol.event import Event
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class NetworkInterface:
     def fetch_remote_bundle(self, rid: RID):
         logger.info(f"Fetching remote bundle '{rid}'")
         remote_bundle = None
-        for node_rid in self.cache.list_rids(allowed_types=[KoiNetNode]):
+        for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
             node_bundle = self.cache.read(node_rid)
             node = node_bundle.validate_contents(NodeModel)
             
