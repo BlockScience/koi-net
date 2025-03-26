@@ -1,8 +1,11 @@
 import logging
 from rich.logging import RichHandler
 from rid_lib.ext import Bundle, Cache
+from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
-from .config import this_node_profile, this_node_rid
+from koi_net.protocol import NodeModel, NodeType, NodeProvides
+from .config import host, port
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,15 +17,16 @@ logging.basicConfig(
 logging.getLogger("koi_net").setLevel(logging.DEBUG)
 
 node = NodeInterface(
-    rid=this_node_rid,
+    rid=KoiNetNode("coordinator", "uuid"),
+    profile=NodeModel(
+        base_url=f"http://{host}:{port}/koi-net",
+        node_type=NodeType.FULL,
+        provides=NodeProvides(
+            event=[KoiNetNode, KoiNetEdge],
+            state=[KoiNetNode, KoiNetEdge]
+        )
+    ),
     cache=Cache("_cache-coordinator-node")
 )
 
 from . import handlers
-
-node.processor.handle_state(Bundle.generate(
-    rid=this_node_rid,
-    contents=this_node_profile.model_dump()
-))
-
-this_node_bundle = node.cache.read(this_node_rid)
