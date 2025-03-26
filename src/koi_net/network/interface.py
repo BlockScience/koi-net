@@ -2,12 +2,14 @@ import logging
 from queue import Queue
 from pydantic import BaseModel
 from rid_lib import RID
+from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..protocol.node import NodeModel, NodeType
 from ..protocol.event import Event
+from ..reference import NodeReference
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +25,11 @@ class NetworkInterface:
     poll_event_queue: dict[RID, Queue]
     webhook_event_queue: dict[RID, Queue]
     
-    def __init__(self, file_path, cache: Cache, me: RID):
-        self.me = me
+    def __init__(self, file_path, cache: Cache, my: NodeReference):
+        self.my = my
         self.cache = cache
         self.adapter = NetworkAdapter(cache)
-        self.graph = NetworkGraph(cache, me)
+        self.graph = NetworkGraph(cache, my)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
@@ -138,26 +140,51 @@ class NetworkInterface:
         for node in self.webhook_event_queue.keys():
             self.flush_webhook_queue(node)
             
-    def fetch_remote_bundle(self, rid: RID):
-        logger.info(f"Fetching remote bundle '{rid}'")
-        remote_bundle = None
+    def get_state_providers(self, rid_type: RIDType):
+        logger.info(f"Looking for state providers of '{rid_type}'")
+        provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
             node_bundle = self.cache.read(node_rid)
             node = node_bundle.validate_contents(NodeModel)
             
-            if node.node_type == NodeType.FULL and type(rid) in node.provides.state:
-                logger.info(f"Attempting to fetch from {node_rid}")
-                
-                payload = self.adapter.fetch_bundles(
-                    node=node_rid, rids=[rid])
-                
-                if payload.bundles:
-                    remote_bundle = payload.bundles[0]
-                    logger.info("Got bundle!")
-                    break
+            if node.node_type == NodeType.FULL and rid_type in node.provides.state:
+                logger.info(f"Found provider '{node_rid}'")
+                provider_nodes.append(node_rid)
+        
+        if not provider_nodes:
+            logger.info("Failed to find providers")
+        return provider_nodes
+            
+    def fetch_remote_bundle(self, rid: RID):
+        logger.info(f"Fetching remote bundle '{rid}'")
+        remote_bundle = None
+        for node_rid in self.get_state_providers(type(rid)):
+            payload = self.adapter.fetch_bundles(
+                node=node_rid, rids=[rid])
+            
+            if payload.manifests:
+                remote_bundle = payload.manifests[0]
+                logger.info(f"Got bundle from '{node_rid}'")
+                break
         
         if not remote_bundle:
             logger.warning("Failed to fetch remote bundle")
             
         return remote_bundle
+    
+    def fetch_remote_manifest(self, rid: RID):
+        logger.info(f"Fetching remote manifest '{rid}'")
+        remote_manifest = None
+        for node_rid in self.get_state_providers(type(rid)):
+            payload = self.adapter.fetch_manifests(
+                node=node_rid, rids=[rid])
+            
+            if payload.manifests:
+                remote_manifest = payload.manifests[0]
+                logger.info(f"Got bundle from '{node_rid}'")
+                break
         
+        if not remote_manifest:
+            logger.warning("Failed to fetch remote bundle")
+            
+        return remote_manifest

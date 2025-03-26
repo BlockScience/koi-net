@@ -4,16 +4,17 @@ import networkx as nx
 from rid_lib import RID, RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
+from ..reference import NodeReference
 from ..protocol.edge import EdgeModel
 
 logger = logging.getLogger(__name__)
 
 
 class NetworkGraph:
-    def __init__(self, cache: Cache, me: RID):
+    def __init__(self, cache: Cache, my: NodeReference):
         self.cache = cache
         self.dg = nx.DiGraph()
-        self.me = me
+        self.my = my
         self.generate()
         
     def generate(self):
@@ -42,9 +43,9 @@ class NetworkGraph:
         for edge in self.dg.edges:
             edge_rid = self.dg.edges[edge]["rid"]
             
-            if direction == "out" and edge[0] != self.me:
+            if direction == "out" and edge[0] != self.my.rid:
                 continue
-            if direction == "in" and edge[1] != self.me:
+            if direction == "in" and edge[1] != self.my.rid:
                 continue
             
             edge_bundle = self.cache.read(edge_rid)

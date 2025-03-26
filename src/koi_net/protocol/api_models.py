@@ -31,7 +31,7 @@ class ManifestsPayload(BaseModel):
     not_found: list[RID] = []
     
 class BundlesPayload(BaseModel):
-    bundles: list[Bundle]
+    manifests: list[Bundle]
     not_found: list[RID] = []
     deferred: list[RID] = []
     
