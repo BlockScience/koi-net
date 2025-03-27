@@ -27,7 +27,7 @@ def handshake_handler(proc: ProcessorInterface, ievent: InternalEvent):
     
     logger.info("Proposing new edge")
     edge_bundle = Bundle.generate(
-        KoiNetEdge("partial->coordinator"),
+        KoiNetEdge.generate(ievent.rid, proc.identity.rid),
         EdgeModel(
             source=ievent.rid,
             target=proc.identity.rid,
@@ -43,4 +43,4 @@ def handshake_handler(proc: ProcessorInterface, ievent: InternalEvent):
         flush=True
     )
     
-    proc.handle_bundle(edge_bundle)
+    proc.handle_bundle(edge_bundle, queue=True)

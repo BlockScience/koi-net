@@ -29,7 +29,7 @@ class NetworkGraph:
                 edge_bundle = self.cache.read(rid)
                 edge = EdgeModel(**edge_bundle.contents)
                 self.dg.add_edge(edge.source, edge.target, rid=rid)
-                logger.info(f"Added edge {edge.source} -> {edge.target}")
+                logger.info(f"Added edge {rid} ({edge.source} -> {edge.target})")
         logger.info("Done")
         
     def get_edges(

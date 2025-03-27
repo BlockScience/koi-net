@@ -67,7 +67,10 @@ class NetworkInterface:
                 if not queue.empty()
             }
         )
-                
+        
+        if len(events_model.poll) == 0 and len(events_model.webhook) == 0:
+            return
+        
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
                 

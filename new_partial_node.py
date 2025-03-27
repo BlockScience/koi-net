@@ -4,6 +4,8 @@ from rich.logging import RichHandler
 from rid_lib.ext import Cache, Bundle
 from rid_lib.types.slack_channel import SlackChannel
 from koi_net import NodeInterface, network
+from koi_net.processor.handler import HandlerType, InternalEvent
+from koi_net.processor.interface import ProcessorInterface
 from koi_net.protocol import (
     Event, 
     EventType, 
@@ -27,13 +29,52 @@ logger = logging.getLogger(__name__)
 COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
 
 node = NodeInterface(
-    rid=KoiNetNode("new_partial_node", "uuid"),
+    rid=KoiNetNode("partial_node", "uuid"),
     profile=NodeModel(
         node_type=NodeType.PARTIAL,
         provides=NodeProvides()
     ),
     cache=Cache("_cache-partial-node"),
 )
+
+@node.processor.register_handler(HandlerType.Cache, rid_types=[KoiNetNode])
+def coordinator_contact(processor: ProcessorInterface, ievent: InternalEvent):
+    if ievent.event_type != EventType.NEW: 
+        return
+    
+    node_profile = ievent.bundle.validate_contents(NodeModel)
+    if KoiNetNode not in node_profile.provides.event:
+        return
+    
+    logger.info("Identified a coordinator!")
+    logger.info("Proposing new edge")
+    bundle = Bundle.generate(
+        KoiNetEdge.generate(ievent.rid, processor.identity.rid),
+        EdgeModel(
+            source=ievent.rid,
+            target=node.identity.rid,
+            comm_type="poll",
+            rid_types=[KoiNetNode],
+            status="proposed"
+        ).model_dump()
+    )
+    
+    node.processor.handle_bundle(bundle, queue=True)
+    
+    # node.network.push_event_to(
+    #     node=ievent.rid,
+    #     event=Event.from_bundle(EventType.NEW, bundle),
+    #     flush=True)
+    
+    logger.info("Catching up on network state")
+    
+    payload = processor.network.adapter.fetch_rids(ievent.rid, rid_types=[KoiNetNode])
+    for rid in payload.rids:
+        if rid == processor.identity.rid:
+            # already know who I am!
+            continue
+        processor.handle_rid(rid, queue=True)
+    
 
 # if you don't know anybody
 if len(node.network.graph.dg.nodes) == 1:
@@ -43,7 +84,6 @@ if len(node.network.graph.dg.nodes) == 1:
         events=[Event.from_bundle(EventType.NEW, node.identity.bundle)]
     )
     
-attempted_subscription = False
 
 while True:
     resp = node.network.adapter.poll_events(url=COORDINATOR_URL, rid=node.identity.rid)
@@ -51,40 +91,5 @@ while True:
     for event in resp.events:
         node.processor.handle_event(event)
     
-    if len(resp.events) == 0:
-        break
-    
-    has_edges = False
-    for rid in node.cache.list_rids(rid_types=[KoiNetNode, KoiNetEdge]):
-        if type(rid) == KoiNetEdge:
-            has_edges = True
-        elif type(rid) == KoiNetNode:
-            if rid != node.identity.rid:
-                peer = rid
-    
-    
-    if len(node.network.graph.get_neighbors(direction="in")) == 0 and not attempted_subscription:
-        logger.info("I don't have any neighbors, subscribing to peer")
-        bundle = Bundle.generate(
-            KoiNetEdge("coordinator->partial_edge"),
-            EdgeModel(
-                source=peer,
-                target=node.identity.rid,
-                comm_type="poll",
-                rid_types=[
-                    SlackChannel
-                ],
-                status="proposed"
-            ).model_dump()
-        )
-        
-        node.processor.handle_bundle(bundle)
-        
-        node.network.push_event_to(
-            node=peer,
-            event=Event.from_bundle(EventType.NEW, bundle),
-            flush=True)
-        
-        attempted_subscription = True
-        
-    time.sleep(1)
+ 
+    time.sleep(3)
