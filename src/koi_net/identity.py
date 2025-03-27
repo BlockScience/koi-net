@@ -3,8 +3,7 @@ from rid_lib.ext.bundle import Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.types.koi_net_edge import KoiNetEdge
 from rid_lib.types.koi_net_node import KoiNetNode
-from koi_net.protocol import NodeModel
-from koi_net.protocol.node import NodeProvides, NodeType
+from .protocol.node import NodeModel, NodeProvides, NodeType
 
 
 class NodeIdentity:

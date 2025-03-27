@@ -5,7 +5,7 @@ from rid_lib import RID, RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..identity import NodeIdentity
-from ..protocol.edge import EdgeModel
+from ..protocol.edge import EdgeModel, EdgeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class NetworkGraph:
     def get_neighbors(
         self,
         direction: Literal["in", "out"] | None = None,
-        status: Literal["proposed", "approved"] | None = None,
+        status: EdgeStatus | None = None,
         allowed_type: RIDType | None = None
     ) -> list[KoiNetNode]:
         

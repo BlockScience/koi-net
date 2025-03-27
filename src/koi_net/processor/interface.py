@@ -5,9 +5,9 @@ from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
 from rid_lib.types.koi_net_edge import KoiNetEdge
 from rid_lib.types.koi_net_node import KoiNetNode
-from koi_net.identity import NodeIdentity
-from koi_net.protocol.edge import EdgeModel
+from ..identity import NodeIdentity
 from ..network import NetworkInterface
+from ..protocol.edge import EdgeModel
 from ..protocol.event import Event, EventType
 from .handler import (
     Handler, 

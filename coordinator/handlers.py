@@ -3,7 +3,7 @@ from rid_lib.types import KoiNetNode, KoiNetEdge
 from rid_lib.ext import Bundle
 from koi_net.processor import ProcessorInterface
 from koi_net.processor.handler import InternalEvent, HandlerType
-from koi_net.protocol.edge import EdgeModel
+from koi_net.protocol.edge import EdgeModel, EdgeStatus, EdgeType
 from koi_net.protocol.event import Event, EventType
 from .core import node
 
@@ -31,9 +31,9 @@ def handshake_handler(proc: ProcessorInterface, ievent: InternalEvent):
         EdgeModel(
             source=ievent.rid,
             target=proc.identity.rid,
-            comm_type="webhook",
+            edge_type=EdgeType.WEBHOOK,
             rid_types=[KoiNetNode, KoiNetEdge],
-            status="proposed"
+            status=EdgeStatus.PROPOSED
         ).model_dump()
     )
         

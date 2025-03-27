@@ -1,10 +1,9 @@
 import logging
-from multiprocessing import process
-from rid_lib.ext import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from .interface import ProcessorInterface
 from .handler import HandlerType, InternalEvent, STOP_CHAIN
-from ..protocol import Event, EventType, EdgeModel
+from ..protocol.event import Event, EventType
+from ..protocol.edge import EdgeModel,EdgeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, ievent: InternalEven
 
     # indicates peer subscriber
     if edge_profile.source == processor.identity.rid:                
-        if edge_profile.status != "proposed":
+        if edge_profile.status != EdgeStatus.PROPOSED:
             # TODO: handle other status
             return
         
@@ -70,7 +69,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, ievent: InternalEven
 
         else:
             # approve edge profile
-            edge_profile.status = "approved"
+            edge_profile.status = EdgeStatus.APPROVED
             logger.info("Approving proposed edge")
             
             ievent.update_contents(edge_profile.model_dump())
@@ -79,7 +78,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, ievent: InternalEven
             return ievent
         
     elif edge_profile.target == processor.identity.rid:
-        if edge_profile.status == "approved":
+        if edge_profile.status == EdgeStatus.APPROVED:
             logger.info("Edge approved by other node!")
 
 @ProcessorInterface.as_handler(HandlerType.Network)

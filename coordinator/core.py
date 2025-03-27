@@ -1,9 +1,9 @@
 import logging
 from rich.logging import RichHandler
-from rid_lib.ext import Bundle, Cache
+from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
-from koi_net.protocol import NodeModel, NodeType, NodeProvides
+from koi_net.protocol.node import NodeModel, NodeType, NodeProvides
 from .config import host, port
 
 

@@ -2,18 +2,12 @@ import time
 import logging
 from rich.logging import RichHandler
 from rid_lib.ext import Cache, Bundle
-from rid_lib.types.slack_channel import SlackChannel
-from koi_net import NodeInterface, network
+from koi_net import NodeInterface
 from koi_net.processor.handler import HandlerType, InternalEvent
 from koi_net.processor.interface import ProcessorInterface
-from koi_net.protocol import (
-    Event, 
-    EventType, 
-    EdgeModel, 
-    NodeModel, 
-    NodeType, 
-    NodeProvides
-)
+from koi_net.protocol.event import Event, EventType
+from koi_net.protocol.edge import EdgeModel, EdgeType, EdgeStatus
+from koi_net.protocol.node import NodeModel, NodeType, NodeProvides
 from rid_lib.types import KoiNetEdge, KoiNetNode
 
 logging.basicConfig(
@@ -53,9 +47,9 @@ def coordinator_contact(processor: ProcessorInterface, ievent: InternalEvent):
         EdgeModel(
             source=ievent.rid,
             target=node.identity.rid,
-            comm_type="poll",
+            edge_type=EdgeType.POLL,
             rid_types=[KoiNetNode],
-            status="proposed"
+            status=EdgeStatus.PROPOSED
         ).model_dump()
     )
     

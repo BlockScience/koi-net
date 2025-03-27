@@ -1,10 +1,11 @@
 from rid_lib.ext import Cache, Bundle
 from rid_lib.types.koi_net_node import KoiNetNode
-from koi_net.protocol import NodeModel
 from .network import NetworkInterface
 from .processor import ProcessorInterface, default_handlers
-from .processor.interface import Handler
+from .processor.handler import Handler
 from .identity import NodeIdentity
+from .protocol.event import Event, EventType
+from .protocol.node import NodeModel
 
 
 class NodeInterface:
@@ -30,3 +31,14 @@ class NodeInterface:
         
         self.processor.handle_bundle(Bundle.generate(
             rid, profile.model_dump()))
+        
+    def initialize(self, first_contact: str):
+        self.network.adapter.broadcast_events(
+            url=first_contact,
+            events=[
+                Event.from_bundle(
+                    EventType.NEW,
+                    self.identity.bundle
+                )
+            ]
+        )
