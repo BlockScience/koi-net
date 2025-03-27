@@ -9,7 +9,7 @@ from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..protocol.node import NodeModel, NodeType
 from ..protocol.event import Event
-from ..reference import NodeReference
+from ..identity import NodeIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,14 @@ class EventQueueModel(BaseModel):
 class NetworkInterface:
     graph: NetworkGraph
     adapter: NetworkAdapter
-    poll_event_queue: dict[RID, Queue]
-    webhook_event_queue: dict[RID, Queue]
+    poll_event_queue: dict[RID, Queue[Event]]
+    webhook_event_queue: dict[RID, Queue[Event]]
     
-    def __init__(self, file_path, cache: Cache, my: NodeReference):
-        self.my = my
+    def __init__(self, file_path: str, cache: Cache, identity: NodeIdentity):
+        self.identity = identity
         self.cache = cache
         self.adapter = NetworkAdapter(cache)
-        self.graph = NetworkGraph(cache, my)
+        self.graph = NetworkGraph(cache, identity)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
@@ -105,12 +105,13 @@ class NetworkInterface:
     def flush_poll_queue(self, node: RID) -> list[Event]:
         logger.info(f"Flushing poll queue for {node}")
         queue = self.poll_event_queue.get(node)
-        if not queue: return []
+        
         events = list()
-
         if queue:
             while not queue.empty():
-                events.append(queue.get())
+                event = queue.get()
+                logger.info(f"Dequeued {event.event_type} '{event.rid}'")
+                events.append(event)
         
         logger.info(f"Returning {len(events)} events")        
         return events
@@ -129,7 +130,9 @@ class NetworkInterface:
         
         events = list()
         while not queue.empty():
-            events.append(queue.get())
+            event = queue.get()
+            logger.info(f"Dequeued {event.event_type} '{event.rid}'")
+            events.append(event)
         
         logger.info(f"Broadcasting {len(events)} events")        
         self.adapter.broadcast_events(node, events=events)

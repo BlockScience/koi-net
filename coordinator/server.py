@@ -1,3 +1,4 @@
+import json
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
@@ -32,7 +33,12 @@ async def lifespan(app: FastAPI):
     
     node.network.save_queues()
 
-app = FastAPI(lifespan=lifespan, root_path=api_prefix)
+app = FastAPI(
+    lifespan=lifespan, 
+    root_path=api_prefix,
+    title="KOI-net Protocol API",
+    version="1.0.0"
+)
 
 @app.post(BROADCAST_EVENTS_PATH)
 def broadcast_events(req: EventsPayload, background: BackgroundTasks):
@@ -85,3 +91,8 @@ def fetch_bundles(req: FetchBundles) -> BundlesPayload:
             not_found.append(rid)
         
     return BundlesPayload(manifests=bundles, not_found=not_found)
+
+openapi_spec = app.openapi()
+
+with open("koi-net-protocol-openapi.json", "w") as f:
+    json.dump(openapi_spec, f, indent=2)

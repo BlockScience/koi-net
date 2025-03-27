@@ -4,17 +4,17 @@ import networkx as nx
 from rid_lib import RID, RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
-from ..reference import NodeReference
+from ..identity import NodeIdentity
 from ..protocol.edge import EdgeModel
 
 logger = logging.getLogger(__name__)
 
 
 class NetworkGraph:
-    def __init__(self, cache: Cache, my: NodeReference):
+    def __init__(self, cache: Cache, identity: NodeIdentity):
         self.cache = cache
         self.dg = nx.DiGraph()
-        self.my = my
+        self.identity = identity
         self.generate()
         
     def generate(self):
@@ -31,23 +31,40 @@ class NetworkGraph:
                 self.dg.add_edge(edge.source, edge.target, rid=rid)
                 logger.info(f"Added edge {edge.source} -> {edge.target}")
         logger.info("Done")
+        
+    def get_edges(
+        self,
+        direction: Literal["in", "out"] | None = None,
+    ) -> list[KoiNetEdge]:
+        
+        edges = []
+        if direction != "in":
+            out_edges = self.dg.out_edges(self.identity.rid)
+            edges.extend([e for e in out_edges])
+                
+        if direction != "out":
+            in_edges = self.dg.in_edges(self.identity.rid)
+            edges.extend([e for e in in_edges])
+                    
+        edge_rids = []
+        for edge in edges:
+            edge_data = self.dg.get_edge_data(*edge)
+            if not edge_data: continue
+            edge_rid = edge_data.get("rid")
+            if not edge_rid: continue
+            edge_rids.append(edge_rid)
+       
+        return edge_rids
     
     def get_neighbors(
         self,
         direction: Literal["in", "out"] | None = None,
         status: Literal["proposed", "approved"] | None = None,
         allowed_type: RIDType | None = None
-    ) -> list[RID]:
+    ) -> list[KoiNetNode]:
         
         neighbors = []
-        for edge in self.dg.edges:
-            edge_rid = self.dg.edges[edge]["rid"]
-            
-            if direction == "out" and edge[0] != self.my.rid:
-                continue
-            if direction == "in" and edge[1] != self.my.rid:
-                continue
-            
+        for edge_rid in self.get_edges(direction):
             edge_bundle = self.cache.read(edge_rid)
             if not edge_bundle: 
                 logger.warning(f"Failed to find edge {edge_rid} in cache")
@@ -61,7 +78,10 @@ class NetworkGraph:
             if allowed_type and allowed_type not in edge.rid_types:
                 continue
             
-            neighbors.append(edge.target)
+            if edge.target == self.identity.rid:
+                neighbors.append(edge.source)
+            elif edge.source == self.identity.rid:
+                neighbors.append(edge.target)
                 
-        return neighbors
+        return set(neighbors)
         

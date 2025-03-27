@@ -1,49 +1,21 @@
 import logging
-from dataclasses import dataclass
-from enum import StrEnum
 from typing import Callable
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
-
-from koi_net.reference import NodeReference
+from rid_lib.types.koi_net_edge import KoiNetEdge
+from rid_lib.types.koi_net_node import KoiNetNode
+from koi_net.identity import NodeIdentity
 from ..network import NetworkInterface
 from ..protocol.event import Event, EventType
+from .handler import (
+    Handler, 
+    HandlerType, 
+    InternalEvent, 
+    InternalEventType,
+    STOP_CHAIN
+)
 
 logger = logging.getLogger(__name__)
-
-type InternalEventType = EventType | None
-
-
-class InternalEvent(Event):
-    event_type: InternalEventType = None
-    normalized_event_type: InternalEventType = None
-   
-    def normalized_event(self) -> Event:
-        if self.normalized_event_type is None:
-            raise ValueError("InternalEvent with normalized_event_type set to 'None' cannot be converted to an event")
-        
-        return Event(
-            rid=self.rid,
-            event_type=self.normalized_event_type,
-            manifest=self.manifest,
-            contents=self.contents
-        )
-
-
-class HandlerType(StrEnum):
-    RID = "rid", # guaranteed RID - decides whether to delete from cache OR validate manifest
-    Manifest = "manifest", # guaranteed RID, Manifest - decides whether to validate bundle
-    Bundle = "bundle", # guaranteed RID, Manifest, contents - decides whether to write to cache
-    Network = "network", # occurs after cache action - decides whether to handle network
-    Final = "final" # occurs after network.push - final action
-
-type HandlerFunc = Callable[["ProcessorInterface", InternalEvent], InternalEvent | None]
-
-@dataclass
-class Handler:
-    func: HandlerFunc
-    handler_type: HandlerType
-    rid_types: list[RIDType] | None
 
 
 class ProcessorInterface:
@@ -51,12 +23,12 @@ class ProcessorInterface:
         self, 
         cache: Cache, 
         network: NetworkInterface,
-        my: NodeReference,
+        identity: NodeIdentity,
         default_handlers: list[Handler] = []
     ):
         self.cache = cache
         self.network = network
-        self.my = my
+        self.identity = identity
         self.handlers: list[Handler] = default_handlers
     
     @classmethod
@@ -66,7 +38,7 @@ class ProcessorInterface:
         rid_types: list[RIDType] | None = None
     ):
         """Special decorator that returns a Handler instead of a function."""
-        def decorator(func: HandlerFunc) -> Handler:
+        def decorator(func: Callable) -> Handler:
             handler = Handler(func, handler_type, rid_types, )
             return handler
         return decorator
@@ -77,7 +49,7 @@ class ProcessorInterface:
         rid_types: list[RIDType] | None = None
     ):
         """Assigns decorated function as handler for this Processor."""
-        def decorator(func: HandlerFunc) -> HandlerFunc:
+        def decorator(func: Callable) -> Callable:
             handler = Handler(func, handler_type, rid_types)
             self.handlers.append(handler)
             return func
@@ -88,7 +60,7 @@ class ProcessorInterface:
         handler_type: HandlerType,
         ievent: InternalEvent
     ):
-        for handler in reversed(self.handlers):
+        for handler in self.handlers:
             if handler_type != handler.handler_type: 
                 continue
             
@@ -96,23 +68,28 @@ class ProcessorInterface:
                 continue
             
             logger.info(f"Calling {handler_type} handler '{handler.func.__name__}'")
-            ievent = handler.func(self, ievent)
-            if not ievent: 
-                logger.info(f"Handler chain '{handler_type}' broken")
-                return
+            resp = handler.func(self, ievent.model_copy())
+            
+            if resp is STOP_CHAIN:
+                logger.info(f"Handler chain stopped by {handler.func.__name__}")
+                return STOP_CHAIN
+            elif resp is None:
+                continue
+            elif isinstance(resp, InternalEvent):
+                ievent = resp
+                logger.info(f"Internal event modified by {handler.func.__name__}")
+            else:
+                raise ValueError(f"Handler {handler.func.__name__} returned invalid response '{resp}'")
+                    
         return ievent
 
         
     def handle_ievent(self, ievent: InternalEvent):
         logger.info(f"Started handling internal event for '{ievent.rid}'")
         ievent = self.call_handler_chain(HandlerType.RID, ievent)
-        if not ievent: return
+        if ievent is STOP_CHAIN: return
         
-        if ievent.event_type == EventType.FORGET:
-            logger.info(f"Deleting '{ievent.rid}' from cache")
-            self.cache.delete(ievent.rid)
-                    
-        else:
+        if ievent.event_type != EventType.FORGET:
             # attempt to retrieve manifest
             if not ievent.manifest:
                 logger.info("Manifest not found, attempting to fetch")
@@ -121,7 +98,7 @@ class ProcessorInterface:
                 ievent.manifest = remote_manifest
             
             ievent = self.call_handler_chain(HandlerType.Manifest, ievent)
-            if not ievent: return
+            if ievent is STOP_CHAIN: return
             
             # attempt to retrieve bundle
             if not ievent.bundle:
@@ -133,16 +110,29 @@ class ProcessorInterface:
                 ievent.contents = remote_bundle.contents
                 
             ievent = self.call_handler_chain(HandlerType.Bundle, ievent)
-            if not ievent: return
+            if ievent is STOP_CHAIN: return
+            
+        if ievent.normalized_event_type in (EventType.UPDATE, EventType.NEW):
             # cache operation
             logger.info(f"Writing '{ievent.rid}' to cache")
             self.cache.write(ievent.bundle)
-            
+        elif ievent.normalized_event_type == EventType.FORGET:
+            logger.info(f"Deleting '{ievent.rid}' from cache")
+            self.cache.delete(ievent.rid)
+        elif ievent.normalized_event_type is None:
+            logger.info("Internal event's normalized event type was never set, cannot broadcast to network")
+            return
+        
+        if type(ievent.rid) in (KoiNetNode, KoiNetEdge):
+            logger.info("Change to node or edge, regenerating network graph")
+            self.network.graph.generate()
+        
         ievent = self.call_handler_chain(HandlerType.Network, ievent)
-        if not ievent: return
+        if ievent is STOP_CHAIN: return
 
         logger.info(f"Pushing event {ievent.normalized_event_type} '{ievent.rid}' to network")
-        self.network.push_event(ievent.normalized_event())
+                
+        self.network.push_event(ievent.to_normalized_event(), flush=True)
         ievent = self.call_handler_chain(HandlerType.Final, ievent)
         
     

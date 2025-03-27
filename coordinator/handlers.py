@@ -1,7 +1,8 @@
 import logging
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from rid_lib.ext import Bundle
-from koi_net.processor import ProcessorInterface, InternalEvent, HandlerType
+from koi_net.processor import ProcessorInterface
+from koi_net.processor.handler import InternalEvent, HandlerType
 from koi_net.protocol.edge import EdgeModel
 from koi_net.protocol.event import Event, EventType
 from .core import node
@@ -13,14 +14,13 @@ logger = logging.getLogger(__name__)
 def handshake_handler(proc: ProcessorInterface, ievent: InternalEvent):    
     logger.info("Handling node handshake")
 
-    # only respond if node is unknown to me
+    # only respond if node declares itself as NEW
     if ievent.event_type != EventType.NEW:
-        logger.info("Peer already know to this node, ignoring")
         return
         
     logger.info("Sharing this node's bundle with peer")
     proc.network.push_event_to(
-        event=Event.from_bundle(EventType.NEW, proc.my.bundle),
+        event=Event.from_bundle(EventType.NEW, proc.identity.bundle),
         node=ievent.rid,
         flush=True
     )
@@ -30,7 +30,7 @@ def handshake_handler(proc: ProcessorInterface, ievent: InternalEvent):
         KoiNetEdge("partial->coordinator"),
         EdgeModel(
             source=ievent.rid,
-            target=proc.my.rid,
+            target=proc.identity.rid,
             comm_type="webhook",
             rid_types=[KoiNetNode, KoiNetEdge],
             status="proposed"

@@ -14,4 +14,4 @@ class NodeProvides(BaseModel):
 class NodeModel(BaseModel):
     base_url: str | None = None
     node_type: NodeType
-    provides: NodeProvides
+    provides: NodeProvides = NodeProvides()
