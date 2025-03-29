@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Callable
+from typing import Callable, Literal
 from rid_lib import RIDType
 from rid_lib.ext import Manifest
+from rid_lib.types.koi_net_node import KoiNetNode
 from ..protocol.event import Event, EventType
 
 # sentinel
@@ -12,7 +13,6 @@ class HandlerType(StrEnum):
     RID = "rid", # guaranteed RID - decides whether to delete from cache OR validate manifest
     Manifest = "manifest", # guaranteed RID, Manifest - decides whether to validate bundle
     Bundle = "bundle", # guaranteed RID, Manifest, contents - decides whether to write to cache
-    Cache = "cache"
     Network = "network", # occurs after cache action - decides whether to handle network
     Final = "final" # occurs after network.push - final action
 
@@ -21,14 +21,19 @@ class HandlerType(StrEnum):
 class Handler:
     func: Callable
     handler_type: HandlerType
-    rid_types: list[RIDType] | None        
-    
+    rid_types: list[RIDType] | None
 
-type InternalEventType = EventType | None
+type KnowledgeEventType = EventType | None
 
-class InternalEvent(Event):
-    event_type: InternalEventType = None
-    normalized_event_type: InternalEventType = None      
+class KnowledgeSource(StrEnum):
+    Internal = "INTERNAL"
+    External = "EXTERNAL"
+
+class KnowledgeObject(Event):
+    source: KnowledgeSource
+    event_type: KnowledgeEventType = None
+    normalized_event_type: KnowledgeEventType = None
+    network_targets: set[KoiNetNode] = set()
     
     def update_contents(self, contents: dict):
         self.contents = contents

@@ -61,7 +61,7 @@ class NetworkGraph:
         direction: Literal["in", "out"] | None = None,
         status: EdgeStatus | None = None,
         allowed_type: RIDType | None = None
-    ) -> list[KoiNetNode]:
+    ) -> set[KoiNetNode]:
         
         neighbors = []
         for edge_rid in self.get_edges(direction):

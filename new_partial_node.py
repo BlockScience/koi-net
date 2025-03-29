@@ -3,7 +3,7 @@ import logging
 from rich.logging import RichHandler
 from rid_lib.ext import Cache, Bundle
 from koi_net import NodeInterface
-from koi_net.processor.handler import HandlerType, InternalEvent
+from koi_net.processor.handler import KnowledgeSource, HandlerType, KnowledgeObject
 from koi_net.processor.interface import ProcessorInterface
 from koi_net.protocol.event import Event, EventType
 from koi_net.protocol.edge import EdgeModel, EdgeType, EdgeStatus
@@ -31,21 +31,25 @@ node = NodeInterface(
     cache=Cache("_cache-partial-node"),
 )
 
-@node.processor.register_handler(HandlerType.Cache, rid_types=[KoiNetNode])
-def coordinator_contact(processor: ProcessorInterface, ievent: InternalEvent):
-    if ievent.event_type != EventType.NEW: 
+@node.processor.register_handler(HandlerType.Network, rid_types=[KoiNetNode])
+def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
+    # when I found out about a new node
+    if kobj.normalized_event_type != EventType.NEW: 
         return
     
-    node_profile = ievent.bundle.validate_contents(NodeModel)
+    node_profile = kobj.bundle.validate_contents(NodeModel)
+    
+    # looking for event provider of nodes
     if KoiNetNode not in node_profile.provides.event:
         return
     
     logger.info("Identified a coordinator!")
     logger.info("Proposing new edge")
+    
     bundle = Bundle.generate(
-        KoiNetEdge.generate(ievent.rid, processor.identity.rid),
+        KoiNetEdge.generate(kobj.rid, processor.identity.rid),
         EdgeModel(
-            source=ievent.rid,
+            source=kobj.rid,
             target=node.identity.rid,
             edge_type=EdgeType.POLL,
             rid_types=[KoiNetNode],
@@ -53,7 +57,7 @@ def coordinator_contact(processor: ProcessorInterface, ievent: InternalEvent):
         ).model_dump()
     )
     
-    node.processor.handle_bundle(bundle, queue=True)
+    processor.handle_bundle(bundle, queue=True)
     
     # node.network.push_event_to(
     #     node=ievent.rid,
@@ -62,13 +66,17 @@ def coordinator_contact(processor: ProcessorInterface, ievent: InternalEvent):
     
     logger.info("Catching up on network state")
     
-    payload = processor.network.adapter.fetch_rids(ievent.rid, rid_types=[KoiNetNode])
+    payload = processor.network.adapter.fetch_rids(kobj.rid, rid_types=[KoiNetNode])
     for rid in payload.rids:
         if rid == processor.identity.rid:
-            # already know who I am!
+            logger.info("Skipping myself")
             continue
+        if processor.cache.exists(rid):
+            logger.info(f"Skipping known RID '{rid}'")
+            continue
+        
         processor.handle_rid(rid, queue=True)
-    
+    logger.info("Done")
 
 # if you don't know anybody
 if len(node.network.graph.dg.nodes) == 1:
@@ -83,7 +91,9 @@ while True:
     resp = node.network.adapter.poll_events(url=COORDINATOR_URL, rid=node.identity.rid)
     logger.info(f"Received {len(resp.events)} event(s)")
     for event in resp.events:
-        node.processor.handle_event(event)
+        logger.info(f"{event.event_type} '{event.rid}'")
+    for event in resp.events:
+        node.processor.handle_event(event, source=KnowledgeSource.External)
     
  
     time.sleep(3)

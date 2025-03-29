@@ -113,7 +113,7 @@ class NetworkInterface:
         if queue:
             while not queue.empty():
                 event = queue.get()
-                logger.info(f"Dequeued {event.event_type} '{event.rid}'")
+                logger.info(f"Dequeued {event.event_type} '{event.rid}' from poll queue")
                 events.append(event)
         
         logger.info(f"Returning {len(events)} events")        
@@ -134,7 +134,7 @@ class NetworkInterface:
         events = list()
         while not queue.empty():
             event = queue.get()
-            logger.info(f"Dequeued {event.event_type} '{event.rid}'")
+            logger.info(f"Dequeued {event.event_type} '{event.rid}' from webhook queue")
             events.append(event)
         
         logger.info(f"Broadcasting {len(events)} events")        

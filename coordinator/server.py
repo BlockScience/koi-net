@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
 from rid_lib import RID
 from rid_lib.ext import Manifest, Bundle
+from koi_net.processor.handler import KnowledgeSource
 from koi_net.protocol.api_models import (
     PollEvents,
     FetchRids,
@@ -44,7 +45,7 @@ app = FastAPI(
 def broadcast_events(req: EventsPayload, background: BackgroundTasks):
     logger.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.events)} event(s)")
     for event in req.events:
-        background.add_task(node.processor.handle_event, event)
+        background.add_task(node.processor.handle_event, event, source=KnowledgeSource.External)
 
 
 @app.post(POLL_EVENTS_PATH)
