@@ -1,9 +1,11 @@
 import time
 import logging
 from rich.logging import RichHandler
+from rid_lib.core import RID
 from rid_lib.ext import Cache, Bundle
 from koi_net import NodeInterface
-from koi_net.processor.handler import KnowledgeSource, HandlerType, KnowledgeObject
+from koi_net.processor.handler import HandlerType
+from koi_net.processor.knowledge_object import KnowledgeSource, KnowledgeObject
 from koi_net.processor.interface import ProcessorInterface
 from koi_net.protocol.event import Event, EventType
 from koi_net.protocol.edge import EdgeModel, EdgeType, EdgeStatus
@@ -57,7 +59,7 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
         ).model_dump()
     )
     
-    processor.handle_bundle(bundle, queue=True)
+    processor.handle(bundle=bundle)
     
     # node.network.push_event_to(
     #     node=ievent.rid,
@@ -75,7 +77,7 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
             logger.info(f"Skipping known RID '{rid}'")
             continue
         
-        processor.handle_rid(rid, queue=True)
+        processor.handle(rid=rid)
     logger.info("Done")
 
 # if you don't know anybody
@@ -87,13 +89,21 @@ if len(node.network.graph.dg.nodes) == 1:
     )
     
 
+# node.processor.handle(
+#     rid=RID.from_string("orn:koi-net.edge:c7e6d382b01eec0f0630925e8bd6fda0825436b6aab3d1445506a80e53273e28"),
+#     event_type=EventType.FORGET,
+#     flush=True)
+
+
 while True:
     resp = node.network.adapter.poll_events(url=COORDINATOR_URL, rid=node.identity.rid)
     logger.info(f"Received {len(resp.events)} event(s)")
     for event in resp.events:
         logger.info(f"{event.event_type} '{event.rid}'")
     for event in resp.events:
-        node.processor.handle_event(event, source=KnowledgeSource.External)
+        node.processor.handle(event=event, source=KnowledgeSource.External)
+    
+    node.processor.flush_kobj_queue()
     
  
-    time.sleep(3)
+    time.sleep(0.5)

@@ -29,8 +29,10 @@ class NodeInterface:
         
         self.processor = processor or ProcessorInterface(self.cache, self.network, self.identity, handlers)
         
-        self.processor.handle_bundle(Bundle.generate(
-            rid, profile.model_dump()))
+        self.processor.handle(
+            bundle=Bundle.generate(rid, profile.model_dump()),
+            flush=True
+        )
         
     def initialize(self, first_contact: str):
         self.network.adapter.broadcast_events(

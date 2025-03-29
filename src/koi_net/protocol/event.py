@@ -9,7 +9,6 @@ class EventType(StrEnum):
     UPDATE = "UPDATE"
     FORGET = "FORGET"
 
-
 class Event(BaseModel):
     rid: RID
     event_type: EventType

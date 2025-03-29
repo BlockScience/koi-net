@@ -1,5 +1,7 @@
 import logging
+from multiprocessing import process
 from queue import Queue
+from threading import local
 from typing import Callable
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
@@ -12,10 +14,12 @@ from ..protocol.event import Event, EventType
 from .handler import (
     Handler, 
     HandlerType, 
+    STOP_CHAIN
+)
+from .knowledge_object import (
     KnowledgeObject,
     KnowledgeSource, 
-    KnowledgeEventType,
-    STOP_CHAIN
+    KnowledgeEventType
 )
 
 logger = logging.getLogger(__name__)
@@ -80,165 +84,140 @@ class ProcessorInterface:
             logger.info(f"Calling {handler_type} handler '{handler.func.__name__}'")
             resp = handler.func(self, kobj.model_copy())
             
+            # stops handler chain execution
             if resp is STOP_CHAIN:
                 logger.info(f"Handler chain stopped by {handler.func.__name__}")
                 return STOP_CHAIN
+            # kobj unmodified
             elif resp is None:
                 continue
+            # kobj modified by handler
             elif isinstance(resp, KnowledgeObject):
                 kobj = resp
-                logger.info(f"Internal event modified by {handler.func.__name__}")
+                logger.info(f"Knowledge object modified by {handler.func.__name__}")
             else:
                 raise ValueError(f"Handler {handler.func.__name__} returned invalid response '{resp}'")
                     
         return kobj
 
         
-    def handle_kobj(self, kobj: KnowledgeObject, queue: bool = False):
-        if queue:
-            logger.info(f"Queued internal event for '{kobj.rid}'")
-            self.kobj_queue.put(kobj)
-            return
-        
-        logger.info(f"Started handling internal event for '{kobj.rid}'")
+    def handle_kobj(self, kobj: KnowledgeObject):
+        logger.info(f"Started handling knowledge object '{kobj.rid}' ({kobj.event_type})")
         kobj = self.call_handler_chain(HandlerType.RID, kobj)
         if kobj is STOP_CHAIN: return
         
-        if kobj.event_type != EventType.FORGET:
+        if kobj.event_type == EventType.FORGET:
+            bundle = self.cache.read(kobj.rid)
+            if not bundle: return
+            
+            # the bundle (to be deleted) attached to kobj for downstream analysis
+            logger.info("Adding local bundle (to be deleted) to knowledge object")
+            kobj.manifest = bundle.manifest
+            kobj.contents = bundle.contents
+            
+        else:
             # attempt to retrieve manifest
             if not kobj.manifest:
-                logger.info("Manifest not found, attempting to fetch")
-                remote_manifest = self.network.fetch_remote_manifest(kobj.rid)
-                if not remote_manifest: return
-                kobj.manifest = remote_manifest
-            
+                if kobj.source == KnowledgeSource.External:
+                    logger.info("Manifest not found, attempting to fetch remotely")
+                    manifest = self.network.fetch_remote_manifest(kobj.rid)
+                    if not manifest: return
+                    
+                elif kobj.source == KnowledgeSource.Internal:
+                    logger.info("Manifest not found, attempting to read cache")
+                    bundle = self.cache.read(kobj.rid)
+                    if not bundle: return
+                    manifest = bundle.manifest
+                
+                kobj.manifest = manifest
+                
             kobj = self.call_handler_chain(HandlerType.Manifest, kobj)
             if kobj is STOP_CHAIN: return
             
             # attempt to retrieve bundle
             if not kobj.bundle:
-                logger.info("Bundle not found, attempting to fetch")
-                remote_bundle = self.network.fetch_remote_bundle(kobj.rid)
-                if not remote_bundle: return
-                # TODO: WARNING MANIFEST MAY BE DIFFERENT
-                kobj.manifest = remote_bundle.manifest
-                kobj.contents = remote_bundle.contents
+                if kobj.source == KnowledgeSource.External:
+                    logger.info("Bundle not found, attempting to fetch")
+                    bundle = self.network.fetch_remote_bundle(kobj.rid)
+                    # TODO: WARNING MANIFEST MAY BE DIFFERENT
+                    
+                elif kobj.source == KnowledgeSource.Internal:
+                    logger.info("Bundle not found, attempting to read cache")
+                    bundle = self.cache.read(kobj.rid)
+                
+                if kobj.manifest != bundle.manifest:
+                    logger.warning("Retrieved bundle contains a different manifest")
+                
+                if not bundle: return
+                kobj.manifest = bundle.manifest
+                kobj.contents = bundle.contents                
                 
             kobj = self.call_handler_chain(HandlerType.Bundle, kobj)
             if kobj is STOP_CHAIN: return
             
+            
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
-            # cache operation
             logger.info(f"Writing '{kobj.rid}' to cache")
             self.cache.write(kobj.bundle)
+            
         elif kobj.normalized_event_type == EventType.FORGET:
             logger.info(f"Deleting '{kobj.rid}' from cache")
             self.cache.delete(kobj.rid)
-        elif kobj.normalized_event_type is None:
-            logger.info("Internal event's normalized event type was never set, cannot broadcast to network")
+            
+        else:
+            logger.info("Knowledge object's normalized event type was never set, no cache or network operations will occur")
             return
         
         if type(kobj.rid) in (KoiNetNode, KoiNetEdge):
             logger.info("Change to node or edge, regenerating network graph")
             self.network.graph.generate()
         
-        # kobj = self.call_handler_chain(HandlerType.Cache, kobj)
-        # if kobj is STOP_CHAIN: return
-        
         kobj = self.call_handler_chain(HandlerType.Network, kobj)
         if kobj is STOP_CHAIN: return
-        
-        normalized_event = kobj.to_normalized_event()
-        
-        # push edges to relevant parties in addition to subscribers
-        # if type(kobj.rid) == KoiNetEdge:
-        #     edge_profile = kobj.bundle.validate_contents(EdgeModel)
-        #     if edge_profile.target == self.identity.rid:
-        #         logger.info(f"Pushing event to edge source '{edge_profile.source}'")
-        #         self.network.push_event_to(normalized_event, edge_profile.source)
-        #     elif edge_profile.source == self.identity.rid:
-        #         logger.info(f"Pushing event to edge target '{edge_profile.target}'")
-        #         self.network.push_event_to(normalized_event, edge_profile.target)
-            
-        # self.network.push_event(normalized_event, flush=True)
         
         if kobj.network_targets:
             logger.info(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
         else:
             logger.info("No network targets set")
+            
         for node in kobj.network_targets:
-            self.network.push_event_to(normalized_event, node)
-        
+            self.network.push_event_to(kobj.normalized_event, node)
         self.network.flush_all_webhook_queues()
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
+            
+    def queue_kobj(self, kobj: KnowledgeObject, flush: bool = False):
+        self.kobj_queue.put(kobj)
+        logger.info(f"Queued knowledge object '{kobj.rid}'")
         
+        if flush:
+            self.flush_kobj_queue()
+                
+    def flush_kobj_queue(self):
+        logger.info("Flushing knowledge object queue")
         while not self.kobj_queue.empty():
-            logger.info(f"Dequeued internal event for '{kobj.rid}'")
             kobj = self.kobj_queue.get()
             self.handle_kobj(kobj)
         
-    
-    def handle_rid(
-        self, 
-        rid: RID, 
+    def handle(
+        self,
+        rid: RID | None = None,
+        manifest: Manifest | None = None,
+        bundle: Bundle | None = None,
+        event: Event | None = None,
+        event_type: KnowledgeEventType = None,
         source: KnowledgeSource = KnowledgeSource.Internal,
-        event_type: KnowledgeEventType = None, 
-        queue: bool = False
+        flush: bool = False
     ):
-        logger.info(f"Handling RID '{rid}', event type: {event_type}")
-        kobj = KnowledgeObject(
-            rid=rid, 
-            event_type=event_type,
-            event_source=source
-        )
-        self.handle_kobj(kobj, queue)
-    
-    def handle_manifest(
-        self, 
-        manifest: Manifest, 
-        source: KnowledgeSource = KnowledgeSource.Internal,
-        event_type: KnowledgeEventType = None, 
-        queue: bool = False
-    ):
-        logger.info(f"Handling Manifest '{manifest.rid}', event type: {event_type}")
-        kobj = KnowledgeObject(
-            rid=manifest.rid, 
-            manifest=manifest, 
-            event_type=event_type,
-            event_source=source
-        )
-        self.handle_kobj(kobj, queue)
-    
-    def handle_bundle(
-        self, 
-        bundle: Bundle, 
-        source: KnowledgeSource = KnowledgeSource.Internal,
-        event_type: KnowledgeEventType = None, 
-        queue: bool = False
-    ):
-        logger.info(f"Handling Bundle '{bundle.rid}', event type: {event_type}")
-        kobj = KnowledgeObject(
-            rid=bundle.rid, 
-            manifest=bundle.manifest, 
-            contents=bundle.contents, 
-            event_type=event_type,
-            event_source=source
-        )
-        self.handle_kobj(kobj, queue)
-        
-    def handle_event(
-        self, 
-        event: Event, 
-        source: KnowledgeSource = KnowledgeSource.Internal,
-        queue: bool = False
-    ):
-        logger.info(f"Handling Event '{event.rid}, event type: {event.event_type}")
-        kobj = KnowledgeObject(
-            rid=event.rid,
-            manifest=event.manifest,
-            contents=event.contents,
-            event_type=event.event_type,
-            event_source=source
-        )
-        self.handle_kobj(kobj, queue)
+        if rid:
+            kobj = KnowledgeObject.from_rid(rid, event_type, source)
+        elif manifest:
+            kobj = KnowledgeObject.from_manifest(manifest, event_type, source)
+        elif bundle:
+            kobj = KnowledgeObject.from_bundle(bundle, event_type, source)
+        elif event:
+            kobj = KnowledgeObject.from_event(event, source)
+        else:
+            raise ValueError("One of 'rid', 'manifest', 'bundle', or 'event' must be provided")
+          
+        self.queue_kobj(kobj, flush)

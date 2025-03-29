@@ -1,19 +1,35 @@
 import logging
+from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from .interface import ProcessorInterface
-from .handler import KnowledgeSource, HandlerType, KnowledgeObject, STOP_CHAIN
+from .handler import HandlerType, STOP_CHAIN
+from .knowledge_object import KnowledgeObject, KnowledgeSource
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeModel,EdgeStatus
 
 logger = logging.getLogger(__name__)
 
+# RID handlers
+
 @ProcessorInterface.as_handler(handler_type=HandlerType.RID)
 def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
-    if kobj.event_type == EventType.FORGET:
-        logger.info("Allowing cache forget")
-        kobj.normalized_event_type = EventType.FORGET
-        return kobj
+    if (kobj.rid == processor.identity.rid and 
+        kobj.source == KnowledgeSource.External):
+        logger.info("Don't let anyone else tell me who I am!")
+        return STOP_CHAIN
+    
+    if kobj.event_type == EventType.FORGET:        
+        if processor.cache.exists(kobj.rid):
+            logger.info("Allowing cache forget")
+            kobj.normalized_event_type = EventType.FORGET
+            return kobj
+        
+        else:
+            # can't forget something I don't know about
+            return STOP_CHAIN
 
+
+# Manifest handlers
 
 @ProcessorInterface.as_handler(handler_type=HandlerType.Manifest)
 def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
@@ -22,10 +38,10 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     if prev_bundle:
         if kobj.manifest.sha256_hash == prev_bundle.manifest.sha256_hash:
             logger.info("Hash of incoming manifest is same as existing knowledge, ignoring")
-            return STOP_CHAIN # same knowledge
+            return STOP_CHAIN
         if kobj.manifest.timestamp <= prev_bundle.manifest.timestamp:
-            logger.info("Timestamp of incoming manifest is older than existing knowledge, ignoring")
-            return STOP_CHAIN # incoming state is older
+            logger.info("Timestamp of incoming manifest is the same or older than existing knowledge, ignoring")
+            return STOP_CHAIN
         
         logger.info("RID previously known to me, labeling as 'UPDATE'")
         kobj.normalized_event_type = EventType.UPDATE
@@ -34,24 +50,25 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
         logger.info("RID previously unknown to me, labeling as 'NEW'")
         kobj.normalized_event_type = EventType.NEW
         
-    return kobj # must return kobj
+    return kobj
 
+
+# Bundle handlers
 
 @ProcessorInterface.as_handler(HandlerType.Bundle, rid_types=[KoiNetEdge])
 def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     edge_profile = EdgeModel.model_validate(kobj.contents)
-
-    logger.info("Handling edge negotiation")
     
-    # only want to handle external knowledge events
+    # only want to handle external knowledge events (not edges this node created)
     if kobj.source != KnowledgeSource.External:
         return
 
-    # indicates peer subscriber
-    if edge_profile.source == processor.identity.rid:                
+    # indicates peer subscribing to me
+    if edge_profile.source == processor.identity.rid:     
         if edge_profile.status != EdgeStatus.PROPOSED:
-            # TODO: handle other status
             return
+        
+        logger.info("Handling edge negotiation")
         
         peer_rid = edge_profile.target
         
@@ -59,13 +76,14 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
             logger.warning(f"Peer {peer_rid} unknown to this node")
             return STOP_CHAIN
         
-        if not set(edge_profile.rid_types).issubset(
-            processor.identity.profile.provides.event +
-            processor.identity.implicitly_provides.event
-        ):
-            # indicates node subscribing to unsupported event
-            # TODO: either reject or repropose agreement
-            logger.info("Requested RID types not provided by this node")            
+        # explicitly provided event RID types and (self) node + edge objects
+        provided_events = (
+            *processor.identity.profile.provides.event,
+            KoiNetNode, KoiNetEdge
+        )
+        
+        if not set(edge_profile.rid_types).issubset(provided_events):
+            logger.info("Requested RID types not provided by this node")
             event = Event.from_rid(EventType.FORGET, kobj.rid)
             processor.network.push_event_to(event, peer_rid, flush=True)
             
@@ -73,62 +91,53 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
         else:
             # approve edge profile
-            edge_profile.status = EdgeStatus.APPROVED
             logger.info("Approving proposed edge")
-            
-            kobj.update_contents(edge_profile.model_dump())
-            event = Event.from_bundle(EventType.UPDATE, kobj.bundle)
-            
-            # queue UPDATE separate from NEW
-            processor.handle_bundle(kobj.bundle, queue=True)
+            edge_profile.status = EdgeStatus.APPROVED
+            updated_bundle = Bundle.generate(kobj.rid, edge_profile.model_dump())
+      
+            processor.handle(bundle=updated_bundle)
             return
-            
-            # process NEW -> UPDATE
-            # return kobj
-            
-            # processor.network.push_event_to(event, peer_rid, flush=True)
-            # return kobj
-        
+              
     elif edge_profile.target == processor.identity.rid:
         if edge_profile.status == EdgeStatus.APPROVED:
             logger.info("Edge approved by other node!")
 
+
+# Network handlers
+
 @ProcessorInterface.as_handler(HandlerType.Network)
-def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):
+def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):    
+    if type(kobj.rid) not in processor.identity.profile.provides.event:
+        if kobj.source == KnowledgeSource.External:
+            logger.info("I don't provide events for this RID type")
+            return
+    
+        if type(kobj.rid) == KoiNetNode:
+            if kobj.rid != processor.identity.rid:
+                logger.info("I only share my own node profile")
+                return
+            
+        elif type(kobj.rid) == KoiNetEdge:
+            if kobj.bundle:
+                edge_profile = kobj.bundle.validate_contents(EdgeModel)
+                if processor.identity.rid not in (edge_profile.source, edge_profile.target):            
+                    logger.info("I only share edges I am a part of")
+                    
+        else:
+            logger.info("I don't provide events for this RID type")
+            return
+    
     subscribers = processor.network.graph.get_neighbors(
         direction="out",
         allowed_type=type(kobj.rid)
     )
     
-    rid_type = type(kobj.rid)
-    
-    # add subscribers to RID type to network targets
-    if rid_type not in processor.identity.profile.provides.event:
-        if rid_type not in processor.identity.implicitly_provides.event:
-            logger.info(f"I don't provide events for '{type(kobj.rid)}', blocking broadcast")
-            return
-
-        elif rid_type == KoiNetNode:
-            if kobj.rid != processor.identity.rid:
-                logger.info("Blocking broadcast of another node")
-                return
-            
-        elif rid_type == KoiNetEdge:
-            # TODO: how to deal with FORGET events where we can't check the edge bundle
-            
-            # edge_profile = kobj.bundle.validate_contents(EdgeModel)
-            # if processor.identity.rid not in (edge_profile.source, edge_profile.target):
-            
-            if kobj.rid not in processor.network.graph.get_edges():
-                logger.info("Blocking broadcast of edge I don't belong to")
-                return
-    
-    logger.info(f"Updating network targets with '{rid_type}' subscribers: {subscribers}")
+    logger.info(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
     kobj.network_targets.update(subscribers)
     
     # add peer node in edge to network targets
-    if rid_type == KoiNetEdge and kobj.event_type != EventType.FORGET:
-        if kobj.source == KnowledgeSource.Internal:    
+    if type(kobj.rid) == KoiNetEdge and kobj.source == KnowledgeSource.Internal:
+        if kobj.bundle:
             edge_profile = kobj.bundle.validate_contents(EdgeModel)
             
             if edge_profile.source == processor.identity.rid:
@@ -137,8 +146,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
                 
             elif edge_profile.target == processor.identity.rid:
                 kobj.network_targets.update([edge_profile.source])
-                logger.info(f"Adding to edge source '{edge_profile.source}' to network targets")
-        else:
-            logger.info("Ignoring external edge event")
+                logger.info(f"Adding edge source '{edge_profile.source}' to network targets")
+        
     return kobj
             

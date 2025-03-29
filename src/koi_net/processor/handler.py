@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Callable, Literal
+from typing import Callable
 from rid_lib import RIDType
-from rid_lib.ext import Manifest
-from rid_lib.types.koi_net_node import KoiNetNode
-from ..protocol.event import Event, EventType
+
 
 # sentinel
 STOP_CHAIN = object()
@@ -23,30 +21,3 @@ class Handler:
     handler_type: HandlerType
     rid_types: list[RIDType] | None
 
-type KnowledgeEventType = EventType | None
-
-class KnowledgeSource(StrEnum):
-    Internal = "INTERNAL"
-    External = "EXTERNAL"
-
-class KnowledgeObject(Event):
-    source: KnowledgeSource
-    event_type: KnowledgeEventType = None
-    normalized_event_type: KnowledgeEventType = None
-    network_targets: set[KoiNetNode] = set()
-    
-    def update_contents(self, contents: dict):
-        self.contents = contents
-        self.manifest = Manifest.generate(self.rid, contents)
-        
-    def to_normalized_event(self):
-        if not self.normalized_event_type:
-            raise ValueError("Internal event's normalized event type is None, cannot convert to Event")
-        
-        return Event(
-            rid=self.rid,
-            event_type=self.normalized_event_type,
-            manifest=self.manifest,
-            contents=self.contents
-        )
-  

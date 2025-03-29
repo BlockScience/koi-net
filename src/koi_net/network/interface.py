@@ -74,20 +74,7 @@ class NetworkInterface:
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
                 
-    
-    def push_event(self, event: Event, flush=False):
-        subscribers = self.graph.get_neighbors(
-            direction="out", 
-            allowed_type=type(event.rid)
-        )
-        logger.info(f"Pushing event to {len(subscribers)} subscribers")
-        for node in subscribers:
-            self.push_event_to(event, node, flush)
-                
-    def push_event_to(self, event: Event, node: RID, flush=False):
-        if not isinstance(node, RID):
-            raise Exception("node must be of type RID")
-        
+    def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
       
         bundle = self.cache.read(node)

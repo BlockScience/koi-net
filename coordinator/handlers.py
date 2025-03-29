@@ -2,7 +2,8 @@ import logging
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from rid_lib.ext import Bundle
 from koi_net.processor import ProcessorInterface
-from koi_net.processor.handler import KnowledgeObject, HandlerType
+from koi_net.processor.handler import HandlerType
+from koi_net.processor.knowledge_object import KnowledgeObject
 from koi_net.protocol.edge import EdgeModel, EdgeStatus, EdgeType
 from koi_net.protocol.event import Event, EventType
 from .core import node
@@ -43,4 +44,4 @@ def handshake_handler(proc: ProcessorInterface, kobj: KnowledgeObject):
     #     flush=True
     # )
     
-    proc.handle_bundle(edge_bundle, queue=True)
+    proc.handle(bundle=edge_bundle)
