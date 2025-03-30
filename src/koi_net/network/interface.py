@@ -84,35 +84,16 @@ class NetworkInterface:
         
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
-                
-    def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None:
-        bundle = self.cache.read(rid)
-        if bundle:
-            return bundle.validate_contents(NodeProfile)
-        
-    def get_edge_profile(self, source: KoiNetNode, target: KoiNetNode) -> EdgeProfile | None:
-        edge_pair = (source, target)
-        if edge_pair not in self.graph.dg.edges:
-            return
-        
-        edge_data = self.graph.dg.get_edge_data(*edge_pair)
-        if not edge_data: return
-        edge_rid = edge_data.get("rid")
-        if not edge_rid: return
-        
-        bundle = self.cache.read(edge_rid)
-        if bundle:
-            return bundle.validate_contents(EdgeProfile)
     
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
       
-        node_profile = self.get_node_profile(node)
+        node_profile = self.graph.get_node_profile(node)
         if not node_profile:
             logger.warning(f"Node {node!r} unknown to me")
         
         # if there's an edge from me to the target node, override broadcast type
-        edge_profile = self.get_edge_profile(
+        edge_profile = self.graph.get_edge_profile(
             source=self.identity.rid,
             target=node
         )
@@ -183,7 +164,7 @@ class NetworkInterface:
         logger.info(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
-            node = self.get_node_profile(node_rid)
+            node = self.graph.get_node_profile(node_rid)
                         
             if node.node_type == NodeType.FULL and rid_type in node.provides.state:
                 logger.info(f"Found provider '{node_rid}'")
@@ -245,7 +226,7 @@ class NetworkInterface:
         
         events = []
         for node_rid in neighbors:
-            node = self.get_node_profile(node_rid)
+            node = self.graph.get_node_profile(node_rid)
             if not node: continue
             if node.node_type != NodeType.FULL: continue
             

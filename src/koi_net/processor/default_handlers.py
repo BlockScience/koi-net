@@ -73,7 +73,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         logger.info("Handling edge negotiation")
         
         peer_rid = edge_profile.target
-        peer_profile = processor.network.get_node_profile(peer_rid)
+        peer_profile = processor.network.graph.get_node_profile(peer_rid)
         
         if not peer_profile:
             logger.warning(f"Peer {peer_rid} unknown to me")
