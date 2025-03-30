@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["twine>=6.0"]
+dev = ["twine>=6.0", "build"]
 examples = [
     "rich",
     "fastapi",
