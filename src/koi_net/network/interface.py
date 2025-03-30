@@ -6,6 +6,8 @@ from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
+
+from koi_net.protocol.edge import EdgeProfile, EdgeType
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
 from ..protocol.node import NodeProfile, NodeType
@@ -83,27 +85,53 @@ class NetworkInterface:
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
                 
-    def get_node(self, rid: KoiNetNode) -> NodeProfile | None:
+    def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None:
         bundle = self.cache.read(rid)
-        if not bundle: return
-        return bundle.validate_contents(NodeProfile)
+        if bundle:
+            return bundle.validate_contents(NodeProfile)
+        
+    def get_edge_profile(self, source: KoiNetNode, target: KoiNetNode) -> EdgeProfile | None:
+        edge_pair = (source, target)
+        if edge_pair not in self.graph.dg.edges:
+            return
+        
+        edge_data = self.graph.dg.get_edge_data(*edge_pair)
+        if not edge_data: return
+        edge_rid = edge_data.get("rid")
+        if not edge_rid: return
+        
+        bundle = self.cache.read(edge_rid)
+        if bundle:
+            return bundle.validate_contents(EdgeProfile)
     
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
       
-        bundle = self.cache.read(node)
-        node_profile = NodeProfile.model_validate(bundle.contents)
+        node_profile = self.get_node_profile(node)
+        if not node_profile:
+            logger.warning(f"Node {node!r} unknown to me")
         
-        # select queue from node type
-        if node_profile.node_type == NodeType.FULL:
-            event_queue = self.webhook_event_queue
-        elif node_profile.node_type == NodeType.PARTIAL:
-            event_queue = self.poll_event_queue
+        # if there's an edge from me to the target node, override broadcast type
+        edge_profile = self.get_edge_profile(
+            source=self.identity.rid,
+            target=node
+        )
+        
+        if edge_profile:
+            if edge_profile.edge_type == EdgeType.WEBHOOK:
+                event_queue = self.webhook_event_queue
+            elif edge_profile.edge_type == EdgeType.POLL:
+                event_queue = self.poll_event_queue
+        else:
+            if node_profile.node_type == NodeType.FULL:
+                event_queue = self.webhook_event_queue
+            elif node_profile.node_type == NodeType.PARTIAL:
+                event_queue = self.poll_event_queue
         
         queue = event_queue.setdefault(node, Queue())
         queue.put(event)
                 
-        if flush and node_profile.node_type == NodeType.FULL:
+        if flush and event_queue is self.webhook_event_queue:
             self.flush_webhook_queue(node)
     
     def flush_poll_queue(self, node: RID) -> list[Event]:
@@ -155,7 +183,7 @@ class NetworkInterface:
         logger.info(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
-            node = self.get_node(node_rid)
+            node = self.get_node_profile(node_rid)
                         
             if node.node_type == NodeType.FULL and rid_type in node.provides.state:
                 logger.info(f"Found provider '{node_rid}'")
@@ -217,7 +245,7 @@ class NetworkInterface:
         
         events = []
         for node_rid in neighbors:
-            node = self.get_node(node_rid)
+            node = self.get_node_profile(node_rid)
             if not node: continue
             if node.node_type != NodeType.FULL: continue
             

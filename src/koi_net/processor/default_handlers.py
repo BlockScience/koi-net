@@ -1,11 +1,13 @@
 import logging
 from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
+
+from koi_net.protocol.node import NodeType
 from .interface import ProcessorInterface
 from .handler import HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject, KnowledgeSource
 from ..protocol.event import Event, EventType
-from ..protocol.edge import EdgeProfile,EdgeStatus
+from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +73,10 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         logger.info("Handling edge negotiation")
         
         peer_rid = edge_profile.target
+        peer_profile = processor.network.get_node_profile(peer_rid)
         
-        if not processor.cache.exists(peer_rid):
-            logger.warning(f"Peer {peer_rid} unknown to this node")
+        if not peer_profile:
+            logger.warning(f"Peer {peer_rid} unknown to me")
             return STOP_CHAIN
         
         # explicitly provided event RID types and (self) node + edge objects
@@ -82,11 +85,20 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
             KoiNetNode, KoiNetEdge
         )
         
+        
+        abort = False
+        if (edge_profile.edge_type == EdgeType.WEBHOOK and 
+            peer_profile.node_type == NodeType.PARTIAL):
+            logger.info("Partial nodes cannot use webhooks")
+            abort = True
+        
         if not set(edge_profile.rid_types).issubset(provided_events):
             logger.info("Requested RID types not provided by this node")
+            abort = True
+        
+        if abort:
             event = Event.from_rid(EventType.FORGET, kobj.rid)
             processor.network.push_event_to(event, peer_rid, flush=True)
-            
             return STOP_CHAIN
 
         else:

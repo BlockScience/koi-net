@@ -3,13 +3,12 @@ import httpx
 from rid_lib.ext import Cache, Bundle
 from rid_lib.types.koi_net_node import KoiNetNode
 
-from koi_net.processor.knowledge_object import KnowledgeSource
 from .network import NetworkInterface
 from .processor import ProcessorInterface, default_handlers
 from .processor.handler import Handler
 from .identity import NodeIdentity
 from .protocol.event import Event, EventType
-from .protocol.node import NodeProfile, NodeType
+from .protocol.node import NodeProfile
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,10 @@ class NodeInterface:
         if not self.network.graph.get_neighbors() and self.first_contact:
             logger.info(f"I don't have any neighbors, reaching out to first contact {self.first_contact}")
             
-            events = [Event.from_bundle(EventType.NEW, self.identity.bundle)]
+            events = [
+                Event.from_rid(EventType.FORGET, self.identity.rid),
+                Event.from_bundle(EventType.NEW, self.identity.bundle)
+            ]
             
             try:
                 self.network.adapter.broadcast_events(
