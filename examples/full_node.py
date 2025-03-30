@@ -115,17 +115,14 @@ def poll_events(req: PollEvents) -> EventsPayload:
 
 @app.post(FETCH_RIDS_PATH)
 def fetch_rids(req: FetchRids) -> RidsPayload:
-    logger.info(f"Request to {FETCH_RIDS_PATH}, allowed types {req.rid_types}")
     return node.network.response_handler.fetch_rids(req)
 
 @app.post(FETCH_MANIFESTS_PATH)
 def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
-    logger.info(f"Request to {FETCH_MANIFESTS_PATH}, allowed types {req.rid_types}, rids {req.rids}")
     return node.network.response_handler.fetch_manifests(req)
 
 @app.post(FETCH_BUNDLES_PATH)
 def fetch_bundles(req: FetchBundles) -> BundlesPayload:
-    logger.info(f"Request to {FETCH_BUNDLES_PATH}, requested rids {req.rids}")
     return node.network.response_handler.fetch_bundles(req)
 
 openapi_spec = app.openapi()

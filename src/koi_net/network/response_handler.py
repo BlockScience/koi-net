@@ -1,3 +1,4 @@
+import logging
 from rid_lib import RID
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
@@ -10,6 +11,9 @@ from ..protocol.api_models import (
     FetchBundles,
 )
 
+logger = logging.getLogger(__name__)
+
+
 class ResponseHandler:
     cache: Cache
     
@@ -17,11 +21,14 @@ class ResponseHandler:
         self.cache = cache
         
     def fetch_rids(self, req: FetchRids) -> RidsPayload:
+        logger.info(f"Request to fetch rids, allowed types {req.rid_types}")
         rids = self.cache.list_rids(req.rid_types)
         
         return RidsPayload(rids=rids)
         
     def fetch_manifests(self, req: FetchManifests) -> ManifestsPayload:
+        logger.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}")
+        
         manifests: list[Manifest] = []
         not_found: list[RID] = []
         
@@ -35,6 +42,8 @@ class ResponseHandler:
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
     def fetch_bundles(self, req: FetchBundles) -> BundlesPayload:
+        logger.info(f"Request to fetch bundles, requested rids {req.rids}")
+        
         bundles: list[Bundle] = []
         not_found: list[RID] = []
 
