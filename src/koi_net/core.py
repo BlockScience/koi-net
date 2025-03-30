@@ -1,51 +1,57 @@
 import logging
 import httpx
 from rid_lib.ext import Cache, Bundle
-from rid_lib.types.koi_net_node import KoiNetNode
-
 from .network import NetworkInterface
-from .processor import ProcessorInterface, default_handlers
-from .processor.handler import Handler
+from .processor import ProcessorInterface
+from .processor import default_handlers as _default_handlers
+from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
-from .protocol.event import Event, EventType
 from .protocol.node import NodeProfile
+from .protocol.event import Event, EventType
 
 logger = logging.getLogger(__name__)
-
 
 class NodeInterface:
     def __init__(
         self, 
-        rid: KoiNetNode,
+        name: str,
         profile: NodeProfile,
+        identity_file_path: str = "identity.json",
         first_contact: str | None = None,
+        default_handlers: list[KnowledgeHandler] | None = None,
         cache: Cache | None = None,
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
     ):
-        self.cache = cache or Cache(directory_path="cache")
+        self.cache = cache or Cache(directory_path=f"{name}_cache")
         self.identity = NodeIdentity(
-            rid=rid, 
-            profile=profile, 
-            cache=cache
+            name=name,
+            profile=profile,
+            cache=self.cache,
+            file_path=identity_file_path
         )
         self.first_contact = first_contact
         self.network = network or NetworkInterface(
-            file_path="event_queues.json", 
+            file_path=f"{self.identity.rid.name}_event_queues.json", 
             first_contact=self.first_contact,
             cache=self.cache, 
             identity=self.identity
         )
         
         # pull all handlers defined in default_handlers module
-        handlers = [
-            obj for obj in vars(default_handlers).values() 
-            if isinstance(obj, Handler)
-        ]
+        if not default_handlers:
+            default_handlers = [
+                obj for obj in vars(_default_handlers).values() 
+                if isinstance(obj, KnowledgeHandler)
+            ]
         
-        self.processor = processor or ProcessorInterface(self.cache, self.network, self.identity, handlers)
-        
-        
+        self.processor = processor or ProcessorInterface(
+            cache=self.cache, 
+            network=self.network, 
+            identity=self.identity, 
+            default_handlers=default_handlers
+        )
+    
     def initialize(self):
         self.network.graph.generate()
         
@@ -66,7 +72,7 @@ class NodeInterface:
             ]
             
             try:
-                self.network.adapter.broadcast_events(
+                self.network.request_handler.broadcast_events(
                     url=self.first_contact,
                     events=events
                 )
@@ -74,7 +80,6 @@ class NodeInterface:
             except httpx.ConnectError:
                 logger.info("Failed to reach first contact")
                 return
-            
             
                         
     def finalize(self):

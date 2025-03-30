@@ -1,15 +1,17 @@
 import time
 import logging
 from rich.logging import RichHandler
-from rid_lib.ext import Cache, Bundle
+from rid_lib.ext import Cache
 from koi_net import NodeInterface
+from koi_net.identity import NodeIdentity
 from koi_net.processor.handler import HandlerType
 from koi_net.processor.knowledge_object import KnowledgeSource, KnowledgeObject
 from koi_net.processor.interface import ProcessorInterface
 from koi_net.protocol.event import EventType
-from koi_net.protocol.edge import EdgeProfile, EdgeType, EdgeStatus
+from koi_net.protocol.edge import EdgeType
 from koi_net.protocol.node import NodeProfile, NodeType, NodeProvides
-from rid_lib.types import KoiNetEdge, KoiNetNode
+from koi_net.protocol.helpers import generate_edge_bundle
+from rid_lib.types import KoiNetNode
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,12 +27,11 @@ COORDINATOR_URL = "http://127.0.0.1:8000/koi-net"
 
 
 node = NodeInterface(
-    rid=KoiNetNode("partial_node", "uuid"),
+    name="partial",
     profile=NodeProfile(
-        node_type=NodeType.PARTIAL,
-        provides=NodeProvides()
+        node_type=NodeType.PARTIAL
     ),
-    cache=Cache("_cache-partial-node"),
+    identity_file_path="partial_identity.json",
     first_contact=COORDINATOR_URL
 )
 
@@ -49,23 +50,17 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
     logger.info("Identified a coordinator!")
     logger.info("Proposing new edge")
     
-    bundle = Bundle.generate(
-        KoiNetEdge.generate(kobj.rid, processor.identity.rid),
-        EdgeProfile(
-            source=kobj.rid,
-            target=node.identity.rid,
-            edge_type=EdgeType.POLL,
-            rid_types=[KoiNetNode],
-            status=EdgeStatus.PROPOSED
-        ).model_dump()
-    )
-    
     # queued for processing
-    processor.handle(bundle=bundle)
+    processor.handle(bundle=generate_edge_bundle(
+        source=kobj.rid,
+        target=node.identity.rid,
+        edge_type=EdgeType.POLL,
+        rid_types=[KoiNetNode]
+    ))
     
     logger.info("Catching up on network state")
     
-    payload = processor.network.adapter.fetch_rids(kobj.rid, rid_types=[KoiNetNode])
+    payload = processor.network.request_handler.fetch_rids(kobj.rid, rid_types=[KoiNetNode])
     for rid in payload.rids:
         if rid == processor.identity.rid:
             logger.info("Skipping myself")

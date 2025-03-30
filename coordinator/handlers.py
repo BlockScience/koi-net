@@ -1,11 +1,11 @@
 import logging
 from rid_lib.types import KoiNetNode, KoiNetEdge
-from rid_lib.ext import Bundle
 from koi_net.processor import ProcessorInterface
 from koi_net.processor.handler import HandlerType
 from koi_net.processor.knowledge_object import KnowledgeObject
-from koi_net.protocol.edge import EdgeProfile, EdgeStatus, EdgeType
+from koi_net.protocol.edge import EdgeType
 from koi_net.protocol.event import Event, EventType
+from koi_net.protocol.helpers import generate_edge_bundle
 from .core import node
 
 logger = logging.getLogger(__name__)
@@ -26,17 +26,11 @@ def handshake_handler(proc: ProcessorInterface, kobj: KnowledgeObject):
         flush=True
     )
     
-    logger.info("Proposing new edge")
-    edge_bundle = Bundle.generate(
-        KoiNetEdge.generate(kobj.rid, proc.identity.rid),
-        EdgeProfile(
-            source=kobj.rid,
-            target=proc.identity.rid,
-            edge_type=EdgeType.WEBHOOK,
-            rid_types=[KoiNetNode, KoiNetEdge],
-            status=EdgeStatus.PROPOSED
-        ).model_dump()
-    )
-    
+    logger.info("Proposing new edge")    
     # defer handling of proposed edge
-    proc.handle(bundle=edge_bundle)
+    proc.handle(bundle=generate_edge_bundle(
+        source=kobj.rid,
+        target=proc.identity.rid,
+        edge_type=EdgeType.WEBHOOK,
+        rid_types=[KoiNetNode, KoiNetEdge]
+    ))

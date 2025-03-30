@@ -8,15 +8,14 @@ from rid_lib import RIDType
 STOP_CHAIN = object()
 
 class HandlerType(StrEnum):
-    RID = "rid", # guaranteed RID - decides whether to delete from cache OR validate manifest
-    Manifest = "manifest", # guaranteed RID, Manifest - decides whether to validate bundle
-    Bundle = "bundle", # guaranteed RID, Manifest, contents - decides whether to write to cache
-    Network = "network", # occurs after cache action - decides whether to handle network
-    Final = "final" # occurs after network.push - final action
-
+    RID = "rid", # guaranteed RID - decides whether validate manifest OR cache delete
+    Manifest = "manifest", # guaranteed Manifest - decides whether to validate bundle
+    Bundle = "bundle", # guaranteed Bundle - decides whether to write to cache
+    Network = "network", # guaranteed Bundle, after cache write/delete  - decides network targets
+    Final = "final" # guaranteed Bundle, after network push - final action
 
 @dataclass
-class Handler:
+class KnowledgeHandler:
     func: Callable
     handler_type: HandlerType
     rid_types: list[RIDType] | None

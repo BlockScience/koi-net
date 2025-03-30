@@ -1,7 +1,6 @@
 import logging
 from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
-
 from koi_net.protocol.node import NodeType
 from .interface import ProcessorInterface
 from .handler import HandlerType, STOP_CHAIN

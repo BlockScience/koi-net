@@ -7,10 +7,9 @@ from rid_lib.types.koi_net_edge import KoiNetEdge
 from rid_lib.types.koi_net_node import KoiNetNode
 from ..identity import NodeIdentity
 from ..network import NetworkInterface
-from ..protocol.edge import EdgeProfile
 from ..protocol.event import Event, EventType
 from .handler import (
-    Handler, 
+    KnowledgeHandler, 
     HandlerType, 
     STOP_CHAIN
 )
@@ -27,7 +26,7 @@ class ProcessorInterface:
     cache: Cache
     network: NetworkInterface
     identity: NodeIdentity
-    handlers: list[Handler]
+    handlers: list[KnowledgeHandler]
     kobj_queue: Queue[KnowledgeObject]
     
     def __init__(
@@ -35,12 +34,12 @@ class ProcessorInterface:
         cache: Cache, 
         network: NetworkInterface,
         identity: NodeIdentity,
-        default_handlers: list[Handler] = []
+        default_handlers: list[KnowledgeHandler] = []
     ):
         self.cache = cache
         self.network = network
         self.identity = identity
-        self.handlers: list[Handler] = default_handlers
+        self.handlers: list[KnowledgeHandler] = default_handlers
         self.kobj_queue = Queue()
     
     @classmethod
@@ -50,8 +49,8 @@ class ProcessorInterface:
         rid_types: list[RIDType] | None = None
     ):
         """Special decorator that returns a Handler instead of a function."""
-        def decorator(func: Callable) -> Handler:
-            handler = Handler(func, handler_type, rid_types, )
+        def decorator(func: Callable) -> KnowledgeHandler:
+            handler = KnowledgeHandler(func, handler_type, rid_types, )
             return handler
         return decorator
             
@@ -62,7 +61,7 @@ class ProcessorInterface:
     ):
         """Assigns decorated function as handler for this Processor."""
         def decorator(func: Callable) -> Callable:
-            handler = Handler(func, handler_type, rid_types)
+            handler = KnowledgeHandler(func, handler_type, rid_types)
             self.handlers.append(handler)
             return func
         return decorator
@@ -106,7 +105,9 @@ class ProcessorInterface:
         
         if kobj.event_type == EventType.FORGET:
             bundle = self.cache.read(kobj.rid)
-            if not bundle: return
+            if not bundle: 
+                logger.info("Local bundle not found")
+                return
             
             # the bundle (to be deleted) attached to kobj for downstream analysis
             logger.info("Adding local bundle (to be deleted) to knowledge object")
@@ -153,7 +154,6 @@ class ProcessorInterface:
             kobj = self.call_handler_chain(HandlerType.Bundle, kobj)
             if kobj is STOP_CHAIN: return
             
-            
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
             logger.info(f"Writing {kobj!r} to cache")
             self.cache.write(kobj.bundle)
@@ -163,7 +163,7 @@ class ProcessorInterface:
             self.cache.delete(kobj.rid)
             
         else:
-            logger.info("Knowledge object's normalized event type was never set, no cache or network operations will occur")
+            logger.info("Normalized event type was never set, no cache or network operations will occur")
             return
         
         if type(kobj.rid) in (KoiNetNode, KoiNetEdge):
@@ -196,6 +196,7 @@ class ProcessorInterface:
             kobj = self.kobj_queue.get()
             logger.info(f"Dequeued {kobj!r}")
             self.handle_kobj(kobj)
+            logger.info("Done handling")
         
     def handle(
         self,

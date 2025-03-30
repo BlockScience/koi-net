@@ -7,7 +7,8 @@ from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from .graph import NetworkGraph
-from .adapter import NetworkAdapter
+from .request_handler import RequestHandler
+from .response_handler import ResponseHandler
 from ..protocol.node import NodeType
 from ..protocol.edge import EdgeType
 from ..protocol.event import Event
@@ -20,13 +21,18 @@ class EventQueueModel(BaseModel):
     webhook: dict[KoiNetNode, list[Event]]
     poll: dict[KoiNetNode, list[Event]]
 
+type EventQueue = dict[RID, Queue[Event]]
 
 class NetworkInterface:
-    graph: NetworkGraph
-    adapter: NetworkAdapter
+    identity: NodeIdentity
+    cache: Cache
     first_contact: str | None
-    poll_event_queue: dict[RID, Queue[Event]]
-    webhook_event_queue: dict[RID, Queue[Event]]
+    graph: NetworkGraph
+    request_handler: RequestHandler
+    response_handler: ResponseHandler
+    poll_event_queue: EventQueue
+    webhook_event_queue: EventQueue
+    event_queues_file_path: str
     
     def __init__(
         self, 
@@ -38,8 +44,9 @@ class NetworkInterface:
         self.identity = identity
         self.cache = cache
         self.first_contact = first_contact
-        self.adapter = NetworkAdapter(cache)
         self.graph = NetworkGraph(cache, identity)
+        self.request_handler = RequestHandler(cache)
+        self.response_handler = ResponseHandler(cache)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
@@ -113,20 +120,21 @@ class NetworkInterface:
                 
         if flush and event_queue is self.webhook_event_queue:
             self.flush_webhook_queue(node)
-    
-    def flush_poll_queue(self, node: RID) -> list[Event]:
-        logger.info(f"Flushing poll queue for {node}")
-        queue = self.poll_event_queue.get(node)
-        
+            
+    def flush_queue(self, event_queue: EventQueue, node: KoiNetNode) -> list[Event]:
+        queue = event_queue.get(node)
         events = list()
         if queue:
             while not queue.empty():
                 event = queue.get()
-                logger.info(f"Dequeued {event.event_type} '{event.rid}' from poll queue")
+                logger.info(f"Dequeued {event.event_type} '{event.rid}'")
                 events.append(event)
         
-        logger.info(f"Returning {len(events)} events")        
         return events
+    
+    def flush_poll_queue(self, node: KoiNetNode) -> list[Event]:
+        logger.info(f"Flushing poll queue for {node}")
+        return self.flush_queue(self.poll_event_queue, node)
     
     def flush_webhook_queue(self, node: RID):
         logger.info(f"Flushing webhook queue for {node}")
@@ -140,23 +148,15 @@ class NetworkInterface:
             logger.warning(f"{node!r} is a partial node!")
             return
         
-        queue = self.webhook_event_queue.get(node)
-        if not queue: return
-        
-        events = list()
-        while not queue.empty():
-            event = queue.get()
-            logger.info(f"Dequeued {event.event_type} '{event.rid}' from webhook queue")
-            events.append(event)
-        
+        events = self.flush_queue(self.webhook_event_queue, node)
         logger.info(f"Broadcasting {len(events)} events")
         
         try:  
-            self.adapter.broadcast_events(node, events=events)
+            self.request_handler.broadcast_events(node, events=events)
         except httpx.ConnectError:
             logger.warning("Broadcast failed, requeuing events")
             for event in events:
-                queue.put(event)
+                self.push_event_to(event, node)
     
     def flush_all_webhook_queues(self):
         for node in self.webhook_event_queue.keys():
@@ -180,7 +180,7 @@ class NetworkInterface:
         logger.info(f"Fetching remote bundle '{rid}'")
         remote_bundle = None
         for node_rid in self.get_state_providers(type(rid)):
-            payload = self.adapter.fetch_bundles(
+            payload = self.request_handler.fetch_bundles(
                 node=node_rid, rids=[rid])
             
             if payload.manifests:
@@ -197,7 +197,7 @@ class NetworkInterface:
         logger.info(f"Fetching remote manifest '{rid}'")
         remote_manifest = None
         for node_rid in self.get_state_providers(type(rid)):
-            payload = self.adapter.fetch_manifests(
+            payload = self.request_handler.fetch_manifests(
                 node=node_rid, rids=[rid])
             
             if payload.manifests:
@@ -216,7 +216,7 @@ class NetworkInterface:
         if not neighbors:
             logger.info("No neighbors found, polling first contact")
             try:
-                payload = self.adapter.poll_events(
+                payload = self.request_handler.poll_events(
                     url=self.first_contact, 
                     rid=self.identity.rid
                 )
@@ -233,7 +233,7 @@ class NetworkInterface:
             if node.node_type != NodeType.FULL: continue
             
             try:
-                payload = self.adapter.poll_events(
+                payload = self.request_handler.poll_events(
                     node=node_rid, 
                     rid=self.identity.rid
                 )

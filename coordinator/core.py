@@ -3,6 +3,7 @@ from rich.logging import RichHandler
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
+from koi_net.identity import NodeIdentity
 from koi_net.protocol.node import NodeProfile, NodeType, NodeProvides
 from .config import host, port
 
@@ -17,7 +18,7 @@ logging.basicConfig(
 logging.getLogger("koi_net").setLevel(logging.DEBUG)
 
 node = NodeInterface(
-    rid=KoiNetNode("coordinator", "uuid"),
+    name="coordinator",
     profile=NodeProfile(
         base_url=f"http://{host}:{port}/koi-net",
         node_type=NodeType.FULL,
@@ -26,7 +27,7 @@ node = NodeInterface(
             state=[KoiNetNode, KoiNetEdge]
         )
     ),
-    cache=Cache("_cache-coordinator-node")
+    identity_file_path="coordinator_identity.json"
 )
 
 from . import handlers

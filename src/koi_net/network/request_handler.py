@@ -27,12 +27,12 @@ from ..protocol.node import NodeProfile, NodeType
 logger = logging.getLogger(__name__)
 
 
-class NetworkAdapter:
+class RequestHandler:
     cache: Cache
     
     def __init__(self, cache: Cache):
         self.cache = cache
-        
+                
     def make_request(self, url, request: BaseModel) -> httpx.Response:
         logger.info(f"Making request to {url}")
         resp = httpx.post(
@@ -103,4 +103,3 @@ class NetworkAdapter:
         )
         
         return BundlesPayload.model_validate_json(resp.text)
-        
