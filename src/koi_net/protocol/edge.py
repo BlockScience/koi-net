@@ -12,7 +12,7 @@ class EdgeType(StrEnum):
     WEBHOOK = "WEBHOOK"
     POLL = "POLL"
 
-class EdgeModel(BaseModel):
+class EdgeProfile(BaseModel):
     source: KoiNetNode
     target: KoiNetNode
     edge_type: EdgeType

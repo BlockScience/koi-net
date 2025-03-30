@@ -29,10 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):    
+async def lifespan(app: FastAPI):
+    node.initialize()
     yield
-    
-    node.network.save_queues()
+    node.finalize()
 
 app = FastAPI(
     lifespan=lifespan, 

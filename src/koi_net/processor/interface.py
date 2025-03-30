@@ -1,7 +1,5 @@
 import logging
-from multiprocessing import process
 from queue import Queue
-from threading import local
 from typing import Callable
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
@@ -9,7 +7,7 @@ from rid_lib.types.koi_net_edge import KoiNetEdge
 from rid_lib.types.koi_net_node import KoiNetNode
 from ..identity import NodeIdentity
 from ..network import NetworkInterface
-from ..protocol.edge import EdgeModel
+from ..protocol.edge import EdgeProfile
 from ..protocol.event import Event, EventType
 from .handler import (
     Handler, 
@@ -102,7 +100,7 @@ class ProcessorInterface:
 
         
     def handle_kobj(self, kobj: KnowledgeObject):
-        logger.info(f"Started handling knowledge object '{kobj.rid}' ({kobj.event_type})")
+        logger.info(f"Handling {kobj!r}")
         kobj = self.call_handler_chain(HandlerType.RID, kobj)
         if kobj is STOP_CHAIN: return
         
@@ -157,11 +155,11 @@ class ProcessorInterface:
             
             
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
-            logger.info(f"Writing '{kobj.rid}' to cache")
+            logger.info(f"Writing {kobj!r} to cache")
             self.cache.write(kobj.bundle)
             
         elif kobj.normalized_event_type == EventType.FORGET:
-            logger.info(f"Deleting '{kobj.rid}' from cache")
+            logger.info(f"Deleting {kobj!r} from cache")
             self.cache.delete(kobj.rid)
             
         else:
@@ -188,15 +186,15 @@ class ProcessorInterface:
             
     def queue_kobj(self, kobj: KnowledgeObject, flush: bool = False):
         self.kobj_queue.put(kobj)
-        logger.info(f"Queued knowledge object '{kobj.rid}'")
+        logger.info(f"Queued {kobj!r}")
         
         if flush:
             self.flush_kobj_queue()
                 
     def flush_kobj_queue(self):
-        logger.info("Flushing knowledge object queue")
         while not self.kobj_queue.empty():
             kobj = self.kobj_queue.get()
+            logger.info(f"Dequeued {kobj!r}")
             self.handle_kobj(kobj)
         
     def handle(

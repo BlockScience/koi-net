@@ -1,5 +1,6 @@
 import logging
 from queue import Queue
+import httpx
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.core import RIDType
@@ -7,7 +8,7 @@ from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
-from ..protocol.node import NodeModel, NodeType
+from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
 
@@ -22,21 +23,29 @@ class EventQueueModel(BaseModel):
 class NetworkInterface:
     graph: NetworkGraph
     adapter: NetworkAdapter
+    first_contact: str | None
     poll_event_queue: dict[RID, Queue[Event]]
     webhook_event_queue: dict[RID, Queue[Event]]
     
-    def __init__(self, file_path: str, cache: Cache, identity: NodeIdentity):
+    def __init__(
+        self, 
+        file_path: str,
+        first_contact: str | None,
+        cache: Cache, 
+        identity: NodeIdentity
+    ):
         self.identity = identity
         self.cache = cache
+        self.first_contact = first_contact
         self.adapter = NetworkAdapter(cache)
         self.graph = NetworkGraph(cache, identity)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
-        self.load_queues()
+        self.load_event_queues()
     
-    def load_queues(self):
+    def load_event_queues(self):
         try:
             with open(self.event_queues_file_path, "r") as f:
                 queues = EventQueueModel.model_validate_json(f.read())
@@ -54,7 +63,7 @@ class NetworkInterface:
         except FileNotFoundError:
             return
         
-    def save_queues(self):
+    def save_event_queues(self):
         events_model = EventQueueModel(
             poll={
                 node: list(queue.queue) 
@@ -74,11 +83,16 @@ class NetworkInterface:
         with open(self.event_queues_file_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
                 
+    def get_node(self, rid: KoiNetNode) -> NodeProfile | None:
+        bundle = self.cache.read(rid)
+        if not bundle: return
+        return bundle.validate_contents(NodeProfile)
+    
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
       
         bundle = self.cache.read(node)
-        node_profile = NodeModel.model_validate(bundle.contents)
+        node_profile = NodeProfile.model_validate(bundle.contents)
         
         # select queue from node type
         if node_profile.node_type == NodeType.FULL:
@@ -109,7 +123,7 @@ class NetworkInterface:
     def flush_webhook_queue(self, node: RID):
         logger.info(f"Flushing webhook queue for {node}")
         bundle = self.cache.read(node)
-        node_profile = NodeModel.model_validate(bundle.contents)
+        node_profile = NodeProfile.model_validate(bundle.contents)
         
         if node_profile.node_type != NodeType.FULL:
             logger.warning(f"{node} is a partial node!")
@@ -124,10 +138,14 @@ class NetworkInterface:
             logger.info(f"Dequeued {event.event_type} '{event.rid}' from webhook queue")
             events.append(event)
         
-        logger.info(f"Broadcasting {len(events)} events")        
-        self.adapter.broadcast_events(node, events=events)
+        logger.info(f"Broadcasting {len(events)} events")
         
-        # TODO: retry if request failed
+        try:  
+            self.adapter.broadcast_events(node, events=events)
+        except httpx.ConnectError:
+            logger.warning("Broadcast failed, requeuing events")
+            for event in events:
+                queue.put(event)
     
     def flush_all_webhook_queues(self):
         for node in self.webhook_event_queue.keys():
@@ -137,9 +155,8 @@ class NetworkInterface:
         logger.info(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
-            node_bundle = self.cache.read(node_rid)
-            node = node_bundle.validate_contents(NodeModel)
-            
+            node = self.get_node(node_rid)
+                        
             if node.node_type == NodeType.FULL and rid_type in node.provides.state:
                 logger.info(f"Found provider '{node_rid}'")
                 provider_nodes.append(node_rid)
@@ -181,3 +198,41 @@ class NetworkInterface:
             logger.warning("Failed to fetch remote bundle")
             
         return remote_manifest
+    
+    def poll_neighbors(self) -> list[Event]:
+        neighbors = self.graph.get_neighbors()
+        
+        if not neighbors:
+            logger.info("No neighbors found, polling first contact")
+            try:
+                payload = self.adapter.poll_events(
+                    url=self.first_contact, 
+                    rid=self.identity.rid
+                )
+                if payload.events:
+                    logger.info(f"Received {len(payload.events)} events from '{self.first_contact}'")
+                return payload.events
+            except httpx.ConnectError:
+                logger.info(f"Failed to reach first contact '{self.first_contact}'")
+        
+        events = []
+        for node_rid in neighbors:
+            node = self.get_node(node_rid)
+            if not node: continue
+            if node.node_type != NodeType.FULL: continue
+            
+            try:
+                payload = self.adapter.poll_events(
+                    node=node_rid, 
+                    rid=self.identity.rid
+                )
+                if payload.events:
+                    logger.info(f"Received {len(payload.events)} events from {node_rid!r}")
+                events.extend(payload.events)
+            except httpx.ConnectError:
+                logger.info(f"Failed to reach node '{node_rid}'")
+                continue
+            
+        return events                
+        
+        

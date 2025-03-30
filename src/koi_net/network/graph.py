@@ -5,7 +5,7 @@ from rid_lib import RID, RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..identity import NodeIdentity
-from ..protocol.edge import EdgeModel, EdgeStatus
+from ..protocol.edge import EdgeProfile, EdgeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,6 @@ class NetworkGraph:
         self.cache = cache
         self.dg = nx.DiGraph()
         self.identity = identity
-        self.generate()
         
     def generate(self):
         logger.info("Generating network graph")
@@ -27,7 +26,7 @@ class NetworkGraph:
                 
             elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
-                edge = EdgeModel(**edge_bundle.contents)
+                edge = EdgeProfile(**edge_bundle.contents)
                 self.dg.add_edge(edge.source, edge.target, rid=rid)
                 logger.info(f"Added edge {rid} ({edge.source} -> {edge.target})")
         logger.info("Done")
@@ -61,7 +60,7 @@ class NetworkGraph:
         direction: Literal["in", "out"] | None = None,
         status: EdgeStatus | None = None,
         allowed_type: RIDType | None = None
-    ) -> set[KoiNetNode]:
+    ) -> list[KoiNetNode]:
         
         neighbors = []
         for edge_rid in self.get_edges(direction):
@@ -70,7 +69,7 @@ class NetworkGraph:
                 logger.warning(f"Failed to find edge {edge_rid} in cache")
                 continue
             
-            edge = EdgeModel.model_validate(edge_bundle.contents)
+            edge = EdgeProfile.model_validate(edge_bundle.contents)
             
             if status and edge.status != status:
                 continue
@@ -83,5 +82,5 @@ class NetworkGraph:
             elif edge.source == self.identity.rid:
                 neighbors.append(edge.target)
                 
-        return set(neighbors)
+        return list(neighbors)
         

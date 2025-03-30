@@ -11,7 +11,7 @@ class NodeProvides(BaseModel):
     event: list[RIDType] = []
     state: list[RIDType] = []
 
-class NodeModel(BaseModel):
+class NodeProfile(BaseModel):
     base_url: str | None = None
     node_type: NodeType
     provides: NodeProvides = NodeProvides()

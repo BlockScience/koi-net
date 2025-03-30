@@ -4,7 +4,7 @@ from rid_lib.ext import Bundle
 from koi_net.processor import ProcessorInterface
 from koi_net.processor.handler import HandlerType
 from koi_net.processor.knowledge_object import KnowledgeObject
-from koi_net.protocol.edge import EdgeModel, EdgeStatus, EdgeType
+from koi_net.protocol.edge import EdgeProfile, EdgeStatus, EdgeType
 from koi_net.protocol.event import Event, EventType
 from .core import node
 
@@ -29,7 +29,7 @@ def handshake_handler(proc: ProcessorInterface, kobj: KnowledgeObject):
     logger.info("Proposing new edge")
     edge_bundle = Bundle.generate(
         KoiNetEdge.generate(kobj.rid, proc.identity.rid),
-        EdgeModel(
+        EdgeProfile(
             source=kobj.rid,
             target=proc.identity.rid,
             edge_type=EdgeType.WEBHOOK,

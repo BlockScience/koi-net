@@ -5,7 +5,7 @@ from .interface import ProcessorInterface
 from .handler import HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject, KnowledgeSource
 from ..protocol.event import Event, EventType
-from ..protocol.edge import EdgeModel,EdgeStatus
+from ..protocol.edge import EdgeProfile,EdgeStatus
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 @ProcessorInterface.as_handler(HandlerType.Bundle, rid_types=[KoiNetEdge])
 def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
-    edge_profile = EdgeModel.model_validate(kobj.contents)
+    edge_profile = EdgeProfile.model_validate(kobj.contents)
     
     # only want to handle external knowledge events (not edges this node created)
     if kobj.source != KnowledgeSource.External:
@@ -119,7 +119,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
             
         elif type(kobj.rid) == KoiNetEdge:
             if kobj.bundle:
-                edge_profile = kobj.bundle.validate_contents(EdgeModel)
+                edge_profile = kobj.bundle.validate_contents(EdgeProfile)
                 if processor.identity.rid not in (edge_profile.source, edge_profile.target):            
                     logger.info("I only share edges I am a part of")
                     
@@ -138,7 +138,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
     # add peer node in edge to network targets
     if type(kobj.rid) == KoiNetEdge and kobj.source == KnowledgeSource.Internal:
         if kobj.bundle:
-            edge_profile = kobj.bundle.validate_contents(EdgeModel)
+            edge_profile = kobj.bundle.validate_contents(EdgeProfile)
             
             if edge_profile.source == processor.identity.rid:
                 logger.info(f"Adding edge target '{edge_profile.target}' to network targets")

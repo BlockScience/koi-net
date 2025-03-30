@@ -22,6 +22,9 @@ class KnowledgeObject(BaseModel):
     source: KnowledgeSource
     network_targets: set[KoiNetNode] = set()
     
+    def __repr__(self):
+        return f"<Knowledge Object '{self.rid}' ({self.event_type}) -> ({self.normalized_event_type})>"
+    
     @classmethod
     def from_rid(
         cls, 
