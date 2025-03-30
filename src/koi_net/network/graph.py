@@ -26,8 +26,10 @@ class NetworkGraph:
                 logger.info(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
-                edge_bundle = self.cache.read(rid)
-                edge_profile = edge_bundle.validate_contents(EdgeProfile)
+                edge_profile = self.get_edge_profile(rid)
+                if not edge_profile:
+                    logger.warning(f"Failed to load {rid!r}")
+                    continue
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
                 logger.info(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
         logger.info("Done")

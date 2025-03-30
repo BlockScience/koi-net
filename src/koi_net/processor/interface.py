@@ -177,7 +177,7 @@ class ProcessorInterface:
             logger.info(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
         else:
             logger.info("No network targets set")
-            
+        
         for node in kobj.network_targets:
             self.network.push_event_to(kobj.normalized_event, node)
         self.network.flush_all_webhook_queues()

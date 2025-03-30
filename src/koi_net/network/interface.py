@@ -6,11 +6,10 @@ from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
-
-from koi_net.protocol.edge import EdgeProfile, EdgeType
 from .graph import NetworkGraph
 from .adapter import NetworkAdapter
-from ..protocol.node import NodeProfile, NodeType
+from ..protocol.node import NodeType
+from ..protocol.edge import EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
 
@@ -87,7 +86,7 @@ class NetworkInterface:
     
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
-      
+            
         node_profile = self.graph.get_node_profile(node)
         if not node_profile:
             logger.warning(f"Node {node!r} unknown to me")
@@ -131,11 +130,14 @@ class NetworkInterface:
     
     def flush_webhook_queue(self, node: RID):
         logger.info(f"Flushing webhook queue for {node}")
-        bundle = self.cache.read(node)
-        node_profile = NodeProfile.model_validate(bundle.contents)
+        
+        node_profile = self.graph.get_node_profile(node)
+        
+        if not node_profile:
+            logger.warning(f"{node!r} not found")
         
         if node_profile.node_type != NodeType.FULL:
-            logger.warning(f"{node} is a partial node!")
+            logger.warning(f"{node!r} is a partial node!")
             return
         
         queue = self.webhook_event_queue.get(node)

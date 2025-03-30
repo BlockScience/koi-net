@@ -37,11 +37,6 @@ def handshake_handler(proc: ProcessorInterface, kobj: KnowledgeObject):
             status=EdgeStatus.PROPOSED
         ).model_dump()
     )
-        
-    # proc.network.push_event_to(
-    #     event=Event.from_bundle(EventType.NEW, edge_bundle),
-    #     node=ievent.rid,
-    #     flush=True
-    # )
     
+    # defer handling of proposed edge
     proc.handle(bundle=edge_bundle)

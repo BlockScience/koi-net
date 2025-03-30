@@ -118,47 +118,35 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 # Network handlers
 
 @ProcessorInterface.as_handler(HandlerType.Network)
-def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):    
-    if type(kobj.rid) not in processor.identity.profile.provides.event:
-        if kobj.source == KnowledgeSource.External:
-            logger.info("I don't provide events for this RID type")
-            return
-    
-        if type(kobj.rid) == KoiNetNode:
-            if kobj.rid != processor.identity.rid:
-                logger.info("I only share my own node profile")
-                return
-            
+def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):
+    involves_me = False
+    if kobj.source == KnowledgeSource.Internal:
+        if (type(kobj.rid) == KoiNetNode):
+            if (kobj.rid == processor.identity.rid):
+                involves_me = True
+        
         elif type(kobj.rid) == KoiNetEdge:
-            if kobj.bundle:
-                edge_profile = kobj.bundle.validate_contents(EdgeProfile)
-                if processor.identity.rid not in (edge_profile.source, edge_profile.target):            
-                    logger.info("I only share edges I am a part of")
-                    
-        else:
-            logger.info("I don't provide events for this RID type")
-            return
-    
-    subscribers = processor.network.graph.get_neighbors(
-        direction="out",
-        allowed_type=type(kobj.rid)
-    )
-    
-    logger.info(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
-    kobj.network_targets.update(subscribers)
-    
-    # add peer node in edge to network targets
-    if type(kobj.rid) == KoiNetEdge and kobj.source == KnowledgeSource.Internal:
-        if kobj.bundle:
             edge_profile = kobj.bundle.validate_contents(EdgeProfile)
             
             if edge_profile.source == processor.identity.rid:
-                logger.info(f"Adding edge target '{edge_profile.target}' to network targets")
+                logger.info(f"Adding edge target '{edge_profile.target!r}' to network targets")
                 kobj.network_targets.update([edge_profile.target])
+                involves_me = True
                 
             elif edge_profile.target == processor.identity.rid:
+                logger.info(f"Adding edge source '{edge_profile.source!r}' to network targets")
                 kobj.network_targets.update([edge_profile.source])
-                logger.info(f"Adding edge source '{edge_profile.source}' to network targets")
+                involves_me = True
+    
+    if (type(kobj.rid) in processor.identity.profile.provides.event or involves_me):
+        # broadcasts to subscribers if I'm an event provider of this RID type OR it involves me
+        subscribers = processor.network.graph.get_neighbors(
+            direction="out",
+            allowed_type=type(kobj.rid)
+        )
+        
+        logger.info(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
+        kobj.network_targets.update(subscribers)
         
     return kobj
             

@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkAdapter:
+    cache: Cache
+    
     def __init__(self, cache: Cache):
         self.cache = cache
         
@@ -81,7 +83,6 @@ class NetworkAdapter:
         )
         
         return RidsPayload.model_validate_json(resp.text)
-        
         
     def fetch_manifests(
         self, node: RID = None, url: str = None, **kwargs
