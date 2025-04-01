@@ -1,0 +1,521 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KOI-net Protocol API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/events/broadcast": {
+      "post": {
+        "summary": "Broadcast Events",
+        "operationId": "broadcast_events_events_broadcast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventsPayload-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/poll": {
+      "post": {
+        "summary": "Poll Events",
+        "operationId": "poll_events_events_poll_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollEvents"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsPayload-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rids/fetch": {
+      "post": {
+        "summary": "Fetch Rids",
+        "operationId": "fetch_rids_rids_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchRids"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RidsPayload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/manifests/fetch": {
+      "post": {
+        "summary": "Fetch Manifests",
+        "operationId": "fetch_manifests_manifests_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchManifests"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestsPayload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bundles/fetch": {
+      "post": {
+        "summary": "Fetch Bundles",
+        "operationId": "fetch_bundles_bundles_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchBundles"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BundlesPayload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Bundle": {
+        "properties": {
+          "manifest": {
+            "$ref": "#/components/schemas/Manifest"
+          },
+          "contents": {
+            "type": "object",
+            "title": "Contents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifest",
+          "contents"
+        ],
+        "title": "Bundle",
+        "description": "A Knowledge Bundle composed of a manifest and optional contents associated with an RIDed object.\n\nA container object for the cached data associated with an RID. It is \nreturned by the read function of Cache."
+      },
+      "BundlesPayload": {
+        "properties": {
+          "manifests": {
+            "items": {
+              "$ref": "#/components/schemas/Bundle"
+            },
+            "type": "array",
+            "title": "Manifests"
+          },
+          "not_found": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Not Found",
+            "default": []
+          },
+          "deferred": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Deferred",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifests"
+        ],
+        "title": "BundlesPayload"
+      },
+      "Event": {
+        "properties": {
+          "rid": {
+            "type": "string",
+            "format": "rid",
+            "title": "Rid"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Manifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contents": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rid",
+          "event_type"
+        ],
+        "title": "Event"
+      },
+      "EventType": {
+        "type": "string",
+        "enum": [
+          "NEW",
+          "UPDATE",
+          "FORGET"
+        ],
+        "title": "EventType"
+      },
+      "EventsPayload-Input": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "EventsPayload"
+      },
+      "EventsPayload-Output": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "EventsPayload"
+      },
+      "FetchBundles": {
+        "properties": {
+          "rids": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Rids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rids"
+        ],
+        "title": "FetchBundles"
+      },
+      "FetchManifests": {
+        "properties": {
+          "rid_types": {
+            "items": {
+              "type": "string",
+              "format": "rid-type"
+            },
+            "type": "array",
+            "title": "Rid Types",
+            "default": []
+          },
+          "rids": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Rids",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "FetchManifests"
+      },
+      "FetchRids": {
+        "properties": {
+          "rid_types": {
+            "items": {
+              "type": "string",
+              "format": "rid-type"
+            },
+            "type": "array",
+            "title": "Rid Types",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "FetchRids"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Manifest": {
+        "properties": {
+          "rid": {
+            "type": "string",
+            "format": "rid",
+            "title": "Rid"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "sha256_hash": {
+            "type": "string",
+            "title": "Sha256 Hash"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rid",
+          "timestamp",
+          "sha256_hash"
+        ],
+        "title": "Manifest"
+      },
+      "ManifestsPayload": {
+        "properties": {
+          "manifests": {
+            "items": {
+              "$ref": "#/components/schemas/Manifest"
+            },
+            "type": "array",
+            "title": "Manifests"
+          },
+          "not_found": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Not Found",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifests"
+        ],
+        "title": "ManifestsPayload"
+      },
+      "PollEvents": {
+        "properties": {
+          "rid": {
+            "type": "string",
+            "format": "rid",
+            "title": "Rid"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "rid"
+        ],
+        "title": "PollEvents"
+      },
+      "RidsPayload": {
+        "properties": {
+          "rids": {
+            "items": {
+              "type": "string",
+              "format": "rid"
+            },
+            "type": "array",
+            "title": "Rids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rids"
+        ],
+        "title": "RidsPayload"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
