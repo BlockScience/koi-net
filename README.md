@@ -9,7 +9,7 @@
 
 This protocol defines the standard communication patterns and coordination norms needed to establish and maintain Knowledge Organization Infrastructure (KOI) networks. KOI-nets are heterogenous compositions of KOI nodes, each of which is capable of autonomously inputting, processing, and outputting knowledge. The behavior of each node and configuration of each network can vary greatly, thus the protocol is designed to be a simple and flexible but interoperable foundation for future projects to build on. The protocol only governs communication between nodes, not how they operate internally. As a result we consider KOI-nets to be fractal-like, in that a network of nodes may act like a single node from an outside perspective.
 
-Generated OpenAPI documentation is provided in this repository, and can be [viewed interactively with Swagger](https://generator.swagger.io/?url=https://raw.githubusercontent.com/BlockScience/koi/refs/heads/main/koi_v3_node_api.yaml).
+Generated OpenAPI documentation is provided in this repository, and can be [viewed interactively with Swagger](https://generator.swagger.io/?url=https://raw.githubusercontent.com/BlockScience/koi-net/refs/heads/main/koi-net-protocol-openapi.json).
 
 ## Communication Methods
 
