@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "koi-net"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
