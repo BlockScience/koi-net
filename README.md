@@ -127,7 +127,7 @@ As you can see, only a name and profile are required. The other fields allow for
 
 ## Node Identity
 The `NodeIdentity` class provides easy access to a node's own RID, profile, and bundle. It provides access to the following properties after initialization, accessed with `node.identity`.
-```
+```python
 class NodeIdentity:
     rid: KoiNetNode # an RID type
     profile: NodeProfile
