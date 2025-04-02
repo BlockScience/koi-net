@@ -124,11 +124,11 @@ def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
 @app.post(FETCH_BUNDLES_PATH)
 def fetch_bundles(req: FetchBundles) -> BundlesPayload:
     return node.network.response_handler.fetch_bundles(req)
-
-openapi_spec = app.openapi()
-
-with open("koi-net-protocol-openapi.json", "w") as f:
-    json.dump(openapi_spec, f, indent=2)
     
 if __name__ == "__main__":
+    openapi_spec = app.openapi()
+
+    with open("koi-net-protocol-openapi.json", "w") as f:
+        json.dump(openapi_spec, f, indent=2)
+    
     uvicorn.run("examples.full_node:app", port=port)
