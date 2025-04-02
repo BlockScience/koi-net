@@ -1,3 +1,5 @@
+"""Pydantic models for request and response/payload objects in the KOI-net API."""
+
 from pydantic import BaseModel
 from rid_lib import RID, RIDType
 from rid_lib.ext import Bundle, Manifest

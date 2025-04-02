@@ -12,12 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkGraph:
+    """Graph functions for this node's view of its network."""
+    
     def __init__(self, cache: Cache, identity: NodeIdentity):
         self.cache = cache
         self.dg = nx.DiGraph()
         self.identity = identity
         
     def generate(self):
+        """Generates directed graph from cached KOI nodes and edges."""
         logger.info("Generating network graph")
         self.dg.clear()
         for rid in self.cache.list_rids():
@@ -35,6 +38,7 @@ class NetworkGraph:
         logger.info("Done")
         
     def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None:
+        """Returns node profile given its RID."""
         bundle = self.cache.read(rid)
         if bundle:
             return bundle.validate_contents(NodeProfile)
@@ -45,6 +49,7 @@ class NetworkGraph:
         source: KoiNetNode | None = None, 
         target: KoiNetNode | None = None,
     ) -> EdgeProfile | None:
+        """Returns edge profile given its RID, or source and target node RIDs."""
         if source and target:
             if (source, target) not in self.dg.edges: return
             edge_data = self.dg.get_edge_data(source, target)
@@ -62,6 +67,9 @@ class NetworkGraph:
         self,
         direction: Literal["in", "out"] | None = None,
     ) -> list[KoiNetEdge]:
+        """Returns edges this node belongs to.
+        
+        All edges returned by default, specify `direction` to restrict to incoming or outgoing edges only."""
         
         edges = []
         if direction != "in":
@@ -88,6 +96,9 @@ class NetworkGraph:
         status: EdgeStatus | None = None,
         allowed_type: RIDType | None = None
     ) -> list[KoiNetNode]:
+        """Returns neighboring nodes this node shares an edge with.
+        
+        All neighboring nodes returned by default, specify `direction` to restrict to neighbors connected by incoming or outgoing edges only."""
         
         neighbors = []
         for edge_rid in self.get_edges(direction):

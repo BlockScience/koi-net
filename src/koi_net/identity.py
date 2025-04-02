@@ -13,6 +13,8 @@ class NodeIdentityModel(BaseModel):
     profile: NodeProfile
     
 class NodeIdentity:
+    """Represents a node's identity (RID, profile, bundle)."""
+    
     _identity: NodeIdentityModel
     file_path: str
     cache: Cache
@@ -24,6 +26,12 @@ class NodeIdentity:
         cache: Cache,
         file_path: str = "identity.json"
     ):
+        """Initializes node identity from a name and profile.
+        
+        Attempts to read identity from storage. If it doesn't already exist, a new RID is generated from the provided name, and that RID and profile are written to storage. Changes to the name or profile will update the stored identity.
+        
+        WARNING: If the name is changed, the RID will be overwritten which will have consequences for the rest of the network.
+        """
         self.cache = cache
         self.file_path = file_path
         

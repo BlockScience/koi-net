@@ -1,3 +1,5 @@
+"""Provides implementations of default knowledge handlers."""
+
 import logging
 from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
@@ -14,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 @ProcessorInterface.as_handler(handler_type=HandlerType.RID)
 def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    """Default RID handler.
+    
+    Blocks external events about this node. Allows `FORGET` events if RID is known to this node.
+    """
     if (kobj.rid == processor.identity.rid and 
         kobj.source == KnowledgeSource.External):
         logger.info("Don't let anyone else tell me who I am!")
@@ -34,6 +40,10 @@ def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 @ProcessorInterface.as_handler(handler_type=HandlerType.Manifest)
 def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    """Default manifest handler.
+    
+    Blocks manifests with the same hash, or aren't newer than the cached version. Sets the normalized event type to `NEW` or `UPDATE` depending on whether the RID was previously known to this node.
+    """
     prev_bundle = processor.cache.read(kobj.rid)
 
     if prev_bundle:
@@ -58,6 +68,11 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 @ProcessorInterface.as_handler(HandlerType.Bundle, rid_types=[KoiNetEdge])
 def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    """Handles basic edge negotiation process.
+    
+    Automatically approves proposed edges if they request RID types this node can provide (or KOI nodes/edges). Validates the edge type is allowed for the node type (partial nodes cannot use webhooks). If edge is invalid, a `FORGET` event is sent to the other node.
+    """
+    
     edge_profile = EdgeProfile.model_validate(kobj.contents)
     
     # only want to handle external knowledge events (not edges this node created)
@@ -118,6 +133,10 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
 @ProcessorInterface.as_handler(HandlerType.Network)
 def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):
+    """Default network handler.
+    
+    Allows broadcasting of all RID types this node is an event provider for (set in node profile), and other nodes have subscribed to. All nodes will also broadcast about their own (internally sourced) KOI node, and KOI edges that they are part of, regardless of their node profile configuration. Finally, nodes will also broadcast about edges to the other node involved (regardless of if they are subscribed)."""
+    
     involves_me = False
     if kobj.source == KnowledgeSource.Internal:
         if (type(kobj.rid) == KoiNetNode):

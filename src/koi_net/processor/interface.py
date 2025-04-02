@@ -11,7 +11,8 @@ from ..protocol.event import Event, EventType
 from .handler import (
     KnowledgeHandler, 
     HandlerType, 
-    STOP_CHAIN
+    STOP_CHAIN,
+    StopChain
 )
 from .knowledge_object import (
     KnowledgeObject,
@@ -23,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessorInterface:
+    """Provides access to this node's knowledge processing pipeline."""
+    
     cache: Cache
     network: NetworkInterface
     identity: NodeIdentity
@@ -48,7 +51,10 @@ class ProcessorInterface:
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None
     ):
-        """Special decorator that returns a Handler instead of a function."""
+        """Special decorator that returns a handler instead of a function.
+        
+        The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register the default handlers.
+        """
         def decorator(func: Callable) -> KnowledgeHandler:
             handler = KnowledgeHandler(func, handler_type, rid_types, )
             return handler
@@ -59,7 +65,7 @@ class ProcessorInterface:
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None
     ):
-        """Assigns decorated function as handler for this Processor."""
+        """Assigns decorated function as handler for this processor."""
         def decorator(func: Callable) -> Callable:
             handler = KnowledgeHandler(func, handler_type, rid_types)
             self.handlers.append(handler)
@@ -70,7 +76,17 @@ class ProcessorInterface:
         self, 
         handler_type: HandlerType,
         kobj: KnowledgeObject
-    ):
+    ) -> KnowledgeObject | StopChain:
+        """Calls handlers of provided type, chaining their inputs and outputs together.
+        
+        The knowledge object provided when this function is called will be passed to the first handler. A handler may return one of three types: 
+        - `KnowledgeObject` - to modify the knowledge object for the next handler in the chain
+        - `None` - to keep the same knowledge object for the next handler in the chain
+        - `STOP_CHAIN` - to stop the handler chain and immediately exit the processing pipeline
+        
+        Handlers will only be called in the chain if their handler and RID type match that of the inputted knowledge object. 
+        """
+        
         for handler in self.handlers:
             if handler_type != handler.handler_type: 
                 continue
@@ -98,7 +114,19 @@ class ProcessorInterface:
         return kobj
 
         
-    def handle_kobj(self, kobj: KnowledgeObject):
+    def handle_kobj(self, kobj: KnowledgeObject) -> None:
+        """Sends provided knowledge obejct through knowledge processing pipeline.
+        
+        Handler chains are called in between major events in the pipeline, indicated by their handler type. Each handler type is guaranteed to have access to certain knowledge, and may affect a subsequent action in the pipeline. The five handler types are as follows:
+        - RID - provided RID; if event type is `FORGET`, this handler decides whether to delete the knowledge from the cache by setting the normalized event type to `FORGET`, otherwise this handler decides whether to validate the manifest (and fetch it if not provided).
+        - Manifest - provided RID, manifest; decides whether to validate the bundle (and fetch it if not provided).
+        - Bundle - provided RID, manifest, contents (bundle); decides whether to write knowledge to the cache by setting the normalized event type to `NEW` or `UPDATE`.
+        - Network - provided RID, manifest, contents (bundle); decides which nodes (if any) to broadcast an event about this knowledge to. (Note, if event type is `FORGET`, the manifest and contents will be retrieved from the local cache, and indicate the last state of the knowledge before it was deleted.)
+        - Final - provided RID, manifests, contents (bundle); final action taken after network broadcast.
+        
+        The pipeline may be stopped by any point by a single handler returning the `STOP_CHAIN` sentinel. In that case, the process will exit immediately. Further handlers of that type and later handler chains will not be called.
+        """
+        
         logger.info(f"Handling {kobj!r}")
         kobj = self.call_handler_chain(HandlerType.RID, kobj)
         if kobj is STOP_CHAIN: return
@@ -185,6 +213,7 @@ class ProcessorInterface:
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
             
     def queue_kobj(self, kobj: KnowledgeObject, flush: bool = False):
+        """Queues a knowledge object to be put processed in the pipeline."""
         self.kobj_queue.put(kobj)
         logger.info(f"Queued {kobj!r}")
         
@@ -192,6 +221,7 @@ class ProcessorInterface:
             self.flush_kobj_queue()
                 
     def flush_kobj_queue(self):
+        """Flushes all knowledge objects from queue and processes them."""
         while not self.kobj_queue.empty():
             kobj = self.kobj_queue.get()
             logger.info(f"Dequeued {kobj!r}")
@@ -208,6 +238,10 @@ class ProcessorInterface:
         source: KnowledgeSource = KnowledgeSource.Internal,
         flush: bool = False
     ):
+        """Queues provided knowledge to be handled by processing pipeline.
+        
+        Knowledge may take the form of an RID, manifest, bundle, or event (with an optional event type for non event objects). All objects will be normalized into knowledge objects and queued. If `flush` is `True`, the queue will be flushed immediately after adding the new knowledge.
+        """
         if rid:
             kobj = KnowledgeObject.from_rid(rid, event_type, source)
         elif manifest:

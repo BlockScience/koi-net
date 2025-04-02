@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class ResponseHandler:
+    """Handles generating responses to requests from other KOI nodes."""
+    
     cache: Cache
     
     def __init__(self, cache: Cache):

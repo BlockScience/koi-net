@@ -3,7 +3,7 @@ import httpx
 from rid_lib.ext import Cache, Bundle
 from .network import NetworkInterface
 from .processor import ProcessorInterface
-from .processor import default_handlers as _default_handlers
+from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
 from .protocol.node import NodeProfile
@@ -12,13 +12,19 @@ from .protocol.event import Event, EventType
 logger = logging.getLogger(__name__)
 
 class NodeInterface:
+    cache: Cache
+    identity: NodeIdentity
+    network: NetworkInterface
+    processor: ProcessorInterface
+    first_contact: str
+    
     def __init__(
         self, 
         name: str,
         profile: NodeProfile,
         identity_file_path: str = "identity.json",
         first_contact: str | None = None,
-        default_handlers: list[KnowledgeHandler] | None = None,
+        handlers: list[KnowledgeHandler] | None = None,
         cache: Cache | None = None,
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
@@ -39,9 +45,9 @@ class NodeInterface:
         )
         
         # pull all handlers defined in default_handlers module
-        if not default_handlers:
-            default_handlers = [
-                obj for obj in vars(_default_handlers).values() 
+        if not handlers:
+            handlers = [
+                obj for obj in vars(default_handlers).values() 
                 if isinstance(obj, KnowledgeHandler)
             ]
         
@@ -49,10 +55,16 @@ class NodeInterface:
             cache=self.cache, 
             network=self.network, 
             identity=self.identity, 
-            default_handlers=default_handlers
+            default_handlers=handlers
         )
     
-    def initialize(self):
+    def initialize(self) -> None:
+        """Initializes node, call on startup.
+        
+        Loads event queues into memory. Generates network graph from nodes and edges in cache. Processes any state changes of node bundle. Initiates handshake with first contact (if provided) if node doesn't have any neighbors.
+        """
+        self.network._load_event_queues()
+        
         self.network.graph.generate()
         
         self.processor.handle(
@@ -83,4 +95,8 @@ class NodeInterface:
             
                         
     def finalize(self):
-        self.network.save_event_queues()
+        """Finalizes node, call on shutdown.
+        
+        Saves event queues to storage.
+        """
+        self.network._save_event_queues()

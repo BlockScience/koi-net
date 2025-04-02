@@ -4,18 +4,33 @@ from typing import Callable
 from rid_lib import RIDType
 
 
-# sentinel
-STOP_CHAIN = object()
+class StopChain:
+    """Class for a sentinel value by knowledge handlers."""
+    pass
+
+STOP_CHAIN = StopChain()
+
 
 class HandlerType(StrEnum):
-    RID = "rid", # guaranteed RID - decides whether validate manifest OR cache delete
-    Manifest = "manifest", # guaranteed Manifest - decides whether to validate bundle
-    Bundle = "bundle", # guaranteed Bundle - decides whether to write to cache
-    Network = "network", # guaranteed Bundle, after cache write/delete  - decides network targets
-    Final = "final" # guaranteed Bundle, after network push - final action
+    """Types of handlers used in knowledge processing pipeline.
+    
+    - RID - provided RID; if event type is `FORGET`, this handler decides whether to delete the knowledge from the cache by setting the normalized event type to `FORGET`, otherwise this handler decides whether to validate the manifest (and fetch it if not provided).
+    - Manifest - provided RID, manifest; decides whether to validate the bundle (and fetch it if not provided).
+    - Bundle - provided RID, manifest, contents (bundle); decides whether to write knowledge to the cache by setting the normalized event type to `NEW` or `UPDATE`.
+    - Network - provided RID, manifest, contents (bundle); decides which nodes (if any) to broadcast an event about this knowledge to. (Note, if event type is `FORGET`, the manifest and contents will be retrieved from the local cache, and indicate the last state of the knowledge before it was deleted.)
+    - Final - provided RID, manifests, contents (bundle); final action taken after network broadcast.
+    """
+    
+    RID = "rid", 
+    Manifest = "manifest", 
+    Bundle = "bundle", 
+    Network = "network", 
+    Final = "final"
 
 @dataclass
 class KnowledgeHandler:
+    """Handles knowledge processing events of the provided types."""
+    
     func: Callable
     handler_type: HandlerType
     rid_types: list[RIDType] | None

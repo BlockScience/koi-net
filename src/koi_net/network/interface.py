@@ -24,6 +24,8 @@ class EventQueueModel(BaseModel):
 type EventQueue = dict[RID, Queue[Event]]
 
 class NetworkInterface:
+    """A collection of functions and classes to interact with the KOI network."""
+    
     identity: NodeIdentity
     cache: Cache
     first_contact: str | None
@@ -45,15 +47,16 @@ class NetworkInterface:
         self.cache = cache
         self.first_contact = first_contact
         self.graph = NetworkGraph(cache, identity)
-        self.request_handler = RequestHandler(cache)
+        self.request_handler = RequestHandler(cache, self.graph)
         self.response_handler = ResponseHandler(cache)
         self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
-        self.load_event_queues()
+        self._load_event_queues()
     
-    def load_event_queues(self):
+    def _load_event_queues(self):
+        """Loads event queues from storage."""
         try:
             with open(self.event_queues_file_path, "r") as f:
                 queues = EventQueueModel.model_validate_json(f.read())
@@ -71,7 +74,8 @@ class NetworkInterface:
         except FileNotFoundError:
             return
         
-    def save_event_queues(self):
+    def _save_event_queues(self):
+        """Writes event queues to storage."""
         events_model = EventQueueModel(
             poll={
                 node: list(queue.queue) 
@@ -92,6 +96,10 @@ class NetworkInterface:
             f.write(events_model.model_dump_json(indent=2))
     
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
+        """Pushes event to queue of specified node.
+        
+        Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
+        """
         logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
             
         node_profile = self.graph.get_node_profile(node)
@@ -121,7 +129,8 @@ class NetworkInterface:
         if flush and event_queue is self.webhook_event_queue:
             self.flush_webhook_queue(node)
             
-    def flush_queue(self, event_queue: EventQueue, node: KoiNetNode) -> list[Event]:
+    def _flush_queue(self, event_queue: EventQueue, node: KoiNetNode) -> list[Event]:
+        """Flushes a node's queue, returning list of events."""
         queue = event_queue.get(node)
         events = list()
         if queue:
@@ -133,22 +142,29 @@ class NetworkInterface:
         return events
     
     def flush_poll_queue(self, node: KoiNetNode) -> list[Event]:
+        """Flushes a node's poll queue, returning list of events."""
         logger.info(f"Flushing poll queue for {node}")
-        return self.flush_queue(self.poll_event_queue, node)
+        return self._flush_queue(self.poll_event_queue, node)
     
-    def flush_webhook_queue(self, node: RID):
+    def flush_webhook_queue(self, node: KoiNetNode):
+        """Flushes a node's webhook queue, and broadcasts events.
+        
+        If node profile is unknown, or node type is not `FULL`, this operation will fail silently. If the remote node cannot be reached, all events will be requeued.
+        """
+        
         logger.info(f"Flushing webhook queue for {node}")
         
         node_profile = self.graph.get_node_profile(node)
         
         if not node_profile:
             logger.warning(f"{node!r} not found")
+            return
         
         if node_profile.node_type != NodeType.FULL:
             logger.warning(f"{node!r} is a partial node!")
             return
         
-        events = self.flush_queue(self.webhook_event_queue, node)
+        events = self._flush_queue(self.webhook_event_queue, node)
         logger.info(f"Broadcasting {len(events)} events")
         
         try:  
@@ -159,10 +175,13 @@ class NetworkInterface:
                 self.push_event_to(event, node)
     
     def flush_all_webhook_queues(self):
+        """Flushes all nodes' webhook queues and broadcasts events."""
         for node in self.webhook_event_queue.keys():
             self.flush_webhook_queue(node)
             
-    def get_state_providers(self, rid_type: RIDType):
+    def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
+        """Returns list of node RIDs which provide state for the specified RID type."""
+        
         logger.info(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
@@ -177,6 +196,8 @@ class NetworkInterface:
         return provider_nodes
             
     def fetch_remote_bundle(self, rid: RID):
+        """Attempts to fetch a bundle by RID from known peer nodes."""
+        
         logger.info(f"Fetching remote bundle '{rid}'")
         remote_bundle = None
         for node_rid in self.get_state_providers(type(rid)):
@@ -194,6 +215,8 @@ class NetworkInterface:
         return remote_bundle
     
     def fetch_remote_manifest(self, rid: RID):
+        """Attempts to fetch a manifest by RID from known peer nodes."""
+        
         logger.info(f"Fetching remote manifest '{rid}'")
         remote_manifest = None
         for node_rid in self.get_state_providers(type(rid)):
@@ -211,9 +234,14 @@ class NetworkInterface:
         return remote_manifest
     
     def poll_neighbors(self) -> list[Event]:
+        """Polls all neighboring nodes and returns compiled list of events.
+        
+        If this node has no neighbors, it will instead attempt to poll the provided first contact URL.
+        """
+        
         neighbors = self.graph.get_neighbors()
         
-        if not neighbors:
+        if not neighbors and self.first_contact:
             logger.info("No neighbors found, polling first contact")
             try:
                 payload = self.request_handler.poll_events(

@@ -21,17 +21,22 @@ from ..protocol.consts import (
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH
 )
-from ..protocol.node import NodeProfile, NodeType
+from ..protocol.node import NodeType
+from .graph import NetworkGraph
 
 
 logger = logging.getLogger(__name__)
 
 
 class RequestHandler:
-    cache: Cache
+    """Handles making requests to other KOI nodes."""
     
-    def __init__(self, cache: Cache):
+    cache: Cache
+    graph: NetworkGraph
+    
+    def __init__(self, cache: Cache, graph: NetworkGraph):
         self.cache = cache
+        self.graph = graph
                 
     def make_request(self, url, request: BaseModel) -> httpx.Response:
         logger.info(f"Making request to {url}")
@@ -42,23 +47,26 @@ class RequestHandler:
         return resp
             
     def get_url(self, node_rid: KoiNetNode, url: str) -> str:
+        """Retrieves URL of a node, or returns provided URL."""
+        
         if not node_rid and not url:
             raise ValueError("One of 'node_rid' and 'url' must be provided")
         
         if node_rid:
-            # can't access get_node rn
-            bundle = self.cache.read(node_rid)
-            node = NodeProfile.model_validate(bundle.contents)
-            if node.node_type != NodeType.FULL:
+            node_profile = self.graph.get_node_profile(node_rid)
+            if not node_profile:
+                raise Exception("Node not found")
+            if node_profile.node_type != NodeType.FULL:
                 raise Exception("Can't query partial node")
-            logger.info(f"Resolved {node_rid!r} to {node.base_url}")
-            return node.base_url
+            logger.info(f"Resolved {node_rid!r} to {node_profile.base_url}")
+            return node_profile.base_url
         else:
             return url
     
     def broadcast_events(
         self, node: RID = None, url: str = None, **kwargs
     ) -> None:
+        """See protocol.api_models.EventsPayload for available kwargs."""
         self.make_request(
             self.get_url(node, url) + BROADCAST_EVENTS_PATH,
             EventsPayload.model_validate(kwargs)
@@ -66,7 +74,8 @@ class RequestHandler:
         
     def poll_events(
         self, node: RID = None, url: str = None, **kwargs
-    ) -> EventsPayload:      
+    ) -> EventsPayload:
+        """See protocol.api_models.PollEvents for available kwargs."""
         resp = self.make_request(
             self.get_url(node, url) + POLL_EVENTS_PATH,
             PollEvents.model_validate(kwargs)
@@ -76,7 +85,8 @@ class RequestHandler:
     
     def fetch_rids(
         self, node: RID = None, url: str = None, **kwargs
-    ) -> RidsPayload:      
+    ) -> RidsPayload:
+        """See protocol.api_models.FetchRids for available kwargs."""
         resp = self.make_request(
             self.get_url(node, url) + FETCH_RIDS_PATH,
             FetchRids.model_validate(kwargs)
@@ -86,7 +96,8 @@ class RequestHandler:
         
     def fetch_manifests(
         self, node: RID = None, url: str = None, **kwargs
-    ) -> ManifestsPayload:    
+    ) -> ManifestsPayload:
+        """See protocol.api_models.FetchManifests for available kwargs."""
         resp = self.make_request(
             self.get_url(node, url) + FETCH_MANIFESTS_PATH,
             FetchManifests.model_validate(kwargs)
@@ -96,7 +107,8 @@ class RequestHandler:
         
     def fetch_bundles(
         self, node: RID = None, url: str = None, **kwargs
-    ) -> BundlesPayload:        
+    ) -> BundlesPayload:
+        """See protocol.api_models.FetchBundles for available kwargs."""
         resp = self.make_request(
             self.get_url(node, url) + FETCH_BUNDLES_PATH,
             FetchBundles.model_validate(kwargs)
