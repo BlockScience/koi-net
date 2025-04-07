@@ -133,7 +133,7 @@ class NodeIdentity:
     profile: NodeProfile
     bundle: Bundle
 ```
-This it what is initialized from the required `name` and `profile` fields in the `NodeInterface` constructor.
+This it what is initialized from the required `name` and `profile` fields in the `NodeInterface` constructor. Node RIDs take the form of `orn:koi-net.node:<name>+<uuid>`, and are generated on first use to the identity JSON file along with a the node profile.
 
 ## Network Interface
 The `NetworkInterface` class provides access to high level network actions, and contains several other network related classes. It is accessed with `node.network`.
@@ -157,11 +157,92 @@ class NetworkInterface:
     def flush_webhook_queue(self, node: RID): ...
     def flush_all_webhook_queues(self): ...
 
-    def get_state_providers(self, rid_type: RIDType): ...
-
     def fetch_remote_bundle(self, rid: RID): ...
-
     def fetch_remote_manifest(self, rid: RID): ...
 
+    def get_state_providers(self, rid_type: RIDType): ...
     def poll_neighbors(self) -> list[Event]: ...
+```
 
+Most of the provided functions are abstractions for KOI-net protocol actions. It also contains three lower level classes: `NetworkGraph`, `RequestHandler`, and `ResponseHandler`.
+
+### Network Graph
+```python
+class NetworkGraph:
+    dg: nx.DiGraph
+
+    def __init__(
+        self,
+        cache: Cache,
+        identity: NodeIdentity
+    ): ...
+
+    def generate(self): ...
+    def get_edges(
+        self, 
+        direction: Literal["in", "out"] | None = None
+    ) -> list[KoiNetEdge]: ...
+    def get_neighbors(
+        self,
+        direction: Literal["in", "out"] | None = None,
+        status: EdgeStatus | None = None,
+        allowed_type: RIDType | None = None
+    ) -> list[KoiNetNode]: ...
+    
+    def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None: ...
+    def get_edge_profile(
+        self,
+        rid: KoiNetEdge | None = None,
+        source: KoiNetNode | None = None,
+        target: KoiNetNode | None = None
+    ) -> EdgeProfile | None: ...
+```
+
+### Request Handler
+Handles raw API requests to other nodes through the KOI-net protocol. Accepts a node RID or direct URL as the target. Each function's `kwargs` are defined by their corresponding request model in `koi_net.protocol.api_models`.
+```python
+class RequestHandler:
+    def __init__(self, cache: Cache, graph: NetworkGraph): ...
+
+    def broadcast_events(
+        self, node: RID = None, url: str = None, **kwargs
+    ) -> None:
+
+    def poll_events(
+        self, node: RID = None, url: str = None, **kwargs
+    ) -> EventsPayload:
+
+    def fetch_rids(
+        self, node: RID = None, url: str = None, **kwargs
+    ) -> RidsPayload:
+
+    def fetch_manifests(
+        self, node: RID = None, url: str = None, **kwargs
+    ) -> ManifestsPayload:
+
+    def fetch_bundles(
+        self, node: RID = None, url: str = None, **kwargs
+    ) -> BundlesPayload:
+```
+
+### Response Handler
+Handles raw API responses to requests from other nodes through the KOI-net protocol.
+```python
+class ResponseHandler:
+    def __init__(self, cache: Cache): ...
+
+    def fetch_rids(self, req: FetchRids) -> RidsPayload:
+    def fetch_manifests(self, req: FetchManifests) -> ManifestsPayload:
+    def fetch_bundles(self, req: FetchBundles) -> BundlesPayload:
+```
+Only fetch methods are provided right now, event polling and broadcasting can be handled like this:
+```python
+def broadcast_events(req: EventsPayload) -> None:
+    for event in req.events:
+        node.processor.handle(event=event, source=KnowledgeSource.External)
+    node.processor.flush_kobj_queue()
+
+def poll_events(req: PollEvents) -> EventsPayload:
+    events = node.network.flush_poll_queue(req.rid)
+    return EventsPayload(events=events)
+```

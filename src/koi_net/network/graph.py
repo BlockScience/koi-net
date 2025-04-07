@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 class NetworkGraph:
     """Graph functions for this node's view of its network."""
     
+    cache: Cache
+    identity: NodeIdentity
+    dg: nx.DiGraph
+    
     def __init__(self, cache: Cache, identity: NodeIdentity):
         self.cache = cache
         self.dg = nx.DiGraph()

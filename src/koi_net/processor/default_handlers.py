@@ -25,7 +25,7 @@ def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
         logger.info("Don't let anyone else tell me who I am!")
         return STOP_CHAIN
     
-    if kobj.event_type == EventType.FORGET:        
+    if kobj.event_type == EventType.FORGET:
         if processor.cache.exists(kobj.rid):
             logger.info("Allowing cache forget")
             kobj.normalized_event_type = EventType.FORGET
