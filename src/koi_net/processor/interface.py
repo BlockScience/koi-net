@@ -102,7 +102,7 @@ class ProcessorInterface:
         return kobj
 
         
-    def handle_kobj(self, kobj: KnowledgeObject) -> None:
+    def process_kobj(self, kobj: KnowledgeObject) -> None:
         """Sends provided knowledge obejct through knowledge processing pipeline.
         
         Handler chains are called in between major events in the pipeline, indicated by their handler type. Each handler type is guaranteed to have access to certain knowledge, and may affect a subsequent action in the pipeline. The five handler types are as follows:
@@ -199,21 +199,13 @@ class ProcessorInterface:
         self.network.flush_all_webhook_queues()
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
-            
-    def queue_kobj(self, kobj: KnowledgeObject, flush: bool = False):
-        """Queues a knowledge object to be put processed in the pipeline."""
-        self.kobj_queue.put(kobj)
-        logger.info(f"Queued {kobj!r}")
-        
-        if flush:
-            self.flush_kobj_queue()
                 
     def flush_kobj_queue(self):
         """Flushes all knowledge objects from queue and processes them."""
         while not self.kobj_queue.empty():
             kobj = self.kobj_queue.get()
             logger.info(f"Dequeued {kobj!r}")
-            self.handle_kobj(kobj)
+            self.process_kobj(kobj)
             logger.info("Done handling")
         
     def handle(
@@ -222,23 +214,30 @@ class ProcessorInterface:
         manifest: Manifest | None = None,
         bundle: Bundle | None = None,
         event: Event | None = None,
+        kobj: KnowledgeObject | None = None,
         event_type: KnowledgeEventType = None,
         source: KnowledgeSource = KnowledgeSource.Internal,
         flush: bool = False
     ):
         """Queues provided knowledge to be handled by processing pipeline.
         
-        Knowledge may take the form of an RID, manifest, bundle, or event (with an optional event type for non event objects). All objects will be normalized into knowledge objects and queued. If `flush` is `True`, the queue will be flushed immediately after adding the new knowledge.
+        Knowledge may take the form of an RID, manifest, bundle, event, or knowledge object (with an optional event type for RID, manifest, or bundle objects). All objects will be normalized into knowledge objects and queued. If `flush` is `True`, the queue will be flushed immediately after adding the new knowledge.
         """
         if rid:
-            kobj = KnowledgeObject.from_rid(rid, event_type, source)
+            _kobj = KnowledgeObject.from_rid(rid, event_type, source)
         elif manifest:
-            kobj = KnowledgeObject.from_manifest(manifest, event_type, source)
+            _kobj = KnowledgeObject.from_manifest(manifest, event_type, source)
         elif bundle:
-            kobj = KnowledgeObject.from_bundle(bundle, event_type, source)
+            _kobj = KnowledgeObject.from_bundle(bundle, event_type, source)
         elif event:
-            kobj = KnowledgeObject.from_event(event, source)
+            _kobj = KnowledgeObject.from_event(event, source)
+        elif _kobj:
+            _kobj = kobj
         else:
-            raise ValueError("One of 'rid', 'manifest', 'bundle', or 'event' must be provided")
-          
-        self.queue_kobj(kobj, flush)
+            raise ValueError("One of 'rid', 'manifest', 'bundle', 'event', or 'kobj' must be provided")
+        
+        self.kobj_queue.put(kobj)
+        logger.info(f"Queued {kobj!r}")
+        
+        if flush:
+            self.flush_kobj_queue()

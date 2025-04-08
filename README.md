@@ -167,6 +167,7 @@ class NetworkInterface:
 Most of the provided functions are abstractions for KOI-net protocol actions. It also contains three lower level classes: `NetworkGraph`, `RequestHandler`, and `ResponseHandler`.
 
 ### Network Graph
+The `NetworkGraph` class provides access to a graph view of the node's KOI network: all of the KOI-net node and edge objects it knows about (stored in local cache). This view allows us to query nodes that we have edges with to make networking decisions.
 ```python
 class NetworkGraph:
     dg: nx.DiGraph
@@ -178,10 +179,12 @@ class NetworkGraph:
     ): ...
 
     def generate(self): ...
+
     def get_edges(
         self, 
         direction: Literal["in", "out"] | None = None
     ) -> list[KoiNetEdge]: ...
+
     def get_neighbors(
         self,
         direction: Literal["in", "out"] | None = None,
@@ -199,30 +202,50 @@ class NetworkGraph:
 ```
 
 ### Request Handler
-Handles raw API requests to other nodes through the KOI-net protocol. Accepts a node RID or direct URL as the target. Each function's `kwargs` are defined by their corresponding request model in `koi_net.protocol.api_models`.
+Handles raw API requests to other nodes through the KOI-net protocol. Accepts a node RID or direct URL as the target. Each method requires either a valid request model, or `kwargs` which will be converted to the correct model in `koi_net.protocol.api_models`.
 ```python
 class RequestHandler:
     def __init__(self, cache: Cache, graph: NetworkGraph): ...
 
     def broadcast_events(
-        self, node: RID = None, url: str = None, **kwargs
-    ) -> None:
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: EventsPayload | None = None,
+        **kwargs
+    ) -> None: ...
 
     def poll_events(
-        self, node: RID = None, url: str = None, **kwargs
-    ) -> EventsPayload:
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: PollEvents | None = None,
+        **kwargs
+    ) -> EventsPayload: ...
 
     def fetch_rids(
-        self, node: RID = None, url: str = None, **kwargs
-    ) -> RidsPayload:
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchRids | None = None,
+        **kwargs
+    ) -> RidsPayload: ...
 
     def fetch_manifests(
-        self, node: RID = None, url: str = None, **kwargs
-    ) -> ManifestsPayload:
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchManifests | None = None,
+        **kwargs
+    ) -> ManifestsPayload: ...
 
     def fetch_bundles(
-        self, node: RID = None, url: str = None, **kwargs
-    ) -> BundlesPayload:
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchBundles | None = None,
+        **kwargs
+    ) -> BundlesPayload: ...
 ```
 
 ### Response Handler
@@ -245,4 +268,51 @@ def broadcast_events(req: EventsPayload) -> None:
 def poll_events(req: PollEvents) -> EventsPayload:
     events = node.network.flush_poll_queue(req.rid)
     return EventsPayload(events=events)
+```
+
+## Processor Interface
+The `ProcessorInterface` class provides access to a node's internal knowledge processing pipeline.
+```python
+class ProcessorInterface:
+    def __init__(
+        self, 
+        cache: Cache, 
+        network: NetworkInterface,
+        identity: NodeIdentity,
+        default_handlers: list[KnowledgeHandler] = []
+    ): ...
+
+    def add_handler(self, handler: KnowledgeHandler): ...
+    
+    def register_handler(
+        self,
+        handler_type: HandlerType,
+        rid_types: list[RIDType] | None = None
+    ): ...
+
+    def process_kobj(self, kobj: KnowledgeObject) -> None:
+    def flush_kobj_queue(self): ...
+
+    def handle(
+        self,
+        rid: RID | None = None,
+        manifest: Manifest | None = None,
+        bundle: Bundle | None = None,
+        event: Event | None = None,
+        kobj: KnowledgeObject | None = None,
+        event_type: KnowledgeEventType = None,
+        source: KnowledgeSource = KnowledgeSource.Internal,
+        flush: bool = False
+    ): ...
+```
+
+The `register_handler` method is a decorator which can wrap a function to create a new `KnowledgeHandler` and add it to the processing pipeline in a single step. The `add_handler` method adds an existing `KnowledgeHandler` to the processining pipeline.
+
+The most commonly used functions in this class are `handle` and `flush_kobj_queue`. The `handle` method can be called on RIDs, manifests, bundles, and events to convert them to normalized to `KnowledgeObject` instances which are then added to the processing queue. The `flush` flag can be set to `True` to immediately start processing, or `flush_kobj_queue` can be called after queueing multiple knowledge objects. When calling the `handle` method, knowledge objects are marked as internally source by default. If you are handling RIDs, manifests, bundles, or events sourced from other nodes, `source` should be set to `KnowledgeSource.External`.
+
+Here is an example of how an event polling loop would be implemented using the knowledge processing pipeline:
+```python
+for event in node.network.poll_neighbors():
+    node.processor.handle(event=event, source=KnowledgeSource.External)
+node.processor.flush_kobj_queue()
 ```
