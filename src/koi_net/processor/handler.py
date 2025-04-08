@@ -34,4 +34,19 @@ class KnowledgeHandler:
     func: Callable
     handler_type: HandlerType
     rid_types: list[RIDType] | None
+    
+    @classmethod
+    def create(
+        cls,
+        handler_type: HandlerType,
+        rid_types: list[RIDType] | None = None
+    ):
+        """Special decorator that returns a KnowledgeHandler instead of a function.
+        
+        The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register default handlers.
+        """
+        def decorator(func: Callable) -> KnowledgeHandler:
+            handler = cls(func, handler_type, rid_types)
+            return handler
+        return decorator
 

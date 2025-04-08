@@ -5,7 +5,7 @@ from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.protocol.node import NodeType
 from .interface import ProcessorInterface
-from .handler import HandlerType, STOP_CHAIN
+from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject, KnowledgeSource
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # RID handlers
 
-@ProcessorInterface.as_handler(handler_type=HandlerType.RID)
+@KnowledgeHandler.create(HandlerType.RID)
 def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Default RID handler.
     
@@ -38,7 +38,7 @@ def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 # Manifest handlers
 
-@ProcessorInterface.as_handler(handler_type=HandlerType.Manifest)
+@KnowledgeHandler.create(HandlerType.Manifest)
 def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Default manifest handler.
     
@@ -66,7 +66,7 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 # Bundle handlers
 
-@ProcessorInterface.as_handler(HandlerType.Bundle, rid_types=[KoiNetEdge])
+@KnowledgeHandler.create(HandlerType.Bundle, rid_types=[KoiNetEdge])
 def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Handles basic edge negotiation process.
     
@@ -131,7 +131,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
 # Network handlers
 
-@ProcessorInterface.as_handler(HandlerType.Network)
+@KnowledgeHandler.create(HandlerType.Network)
 def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Default network handler.
     

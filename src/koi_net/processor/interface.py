@@ -44,21 +44,9 @@ class ProcessorInterface:
         self.identity = identity
         self.handlers: list[KnowledgeHandler] = default_handlers
         self.kobj_queue = Queue()
-    
-    @classmethod
-    def as_handler(
-        cls,
-        handler_type: HandlerType,
-        rid_types: list[RIDType] | None = None
-    ):
-        """Special decorator that returns a handler instead of a function.
         
-        The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register the default handlers.
-        """
-        def decorator(func: Callable) -> KnowledgeHandler:
-            handler = KnowledgeHandler(func, handler_type, rid_types, )
-            return handler
-        return decorator
+    def add_handler(self, handler: KnowledgeHandler):
+        self.handlers.append(handler)
             
     def register_handler(
         self,
@@ -68,7 +56,7 @@ class ProcessorInterface:
         """Assigns decorated function as handler for this processor."""
         def decorator(func: Callable) -> Callable:
             handler = KnowledgeHandler(func, handler_type, rid_types)
-            self.handlers.append(handler)
+            self.add_handler(handler)
             return func
         return decorator
             
