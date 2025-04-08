@@ -39,3 +39,9 @@ class BundlesPayload(BaseModel):
     
 class EventsPayload(BaseModel):
     events: list[Event]
+    
+
+# TYPES
+
+type RequestModels = EventsPayload | PollEvents | FetchRids | FetchManifests | FetchBundles
+type ResponseModels = RidsPayload | ManifestsPayload | BundlesPayload | EventsPayload

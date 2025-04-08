@@ -12,7 +12,9 @@ from ..protocol.api_models import (
     FetchRids,
     FetchManifests,
     FetchBundles,
-    PollEvents
+    PollEvents,
+    RequestModels,
+    ResponseModels
 )
 from ..protocol.consts import (
     BROADCAST_EVENTS_PATH,
@@ -38,13 +40,19 @@ class RequestHandler:
         self.cache = cache
         self.graph = graph
                 
-    def make_request(self, url, request: BaseModel) -> httpx.Response:
+    def make_request(
+        self, 
+        url: str, 
+        request: RequestModels,
+        response_model: type[ResponseModels] | None = None
+    ) -> ResponseModels | None:
         logger.info(f"Making request to {url}")
         resp = httpx.post(
             url=url,
             data=request.model_dump_json()
         )
-        return resp
+        if response_model:
+            return response_model.model_validate_json(resp.text)
             
     def get_url(self, node_rid: KoiNetNode, url: str) -> str:
         """Retrieves URL of a node, or returns provided URL."""
@@ -64,54 +72,70 @@ class RequestHandler:
             return url
     
     def broadcast_events(
-        self, node: RID = None, url: str = None, **kwargs
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: EventsPayload | None = None,
+        **kwargs
     ) -> None:
         """See protocol.api_models.EventsPayload for available kwargs."""
         self.make_request(
             self.get_url(node, url) + BROADCAST_EVENTS_PATH,
-            EventsPayload.model_validate(kwargs)
+            req or EventsPayload.model_validate(kwargs)
         )
         
     def poll_events(
-        self, node: RID = None, url: str = None, **kwargs
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: PollEvents | None = None,
+        **kwargs
     ) -> EventsPayload:
         """See protocol.api_models.PollEvents for available kwargs."""
-        resp = self.make_request(
+        return self.make_request(
             self.get_url(node, url) + POLL_EVENTS_PATH,
-            PollEvents.model_validate(kwargs)
+            req or PollEvents.model_validate(kwargs),
+            response_model=EventsPayload
         )
-        
-        return EventsPayload.model_validate_json(resp.text)
-    
+            
     def fetch_rids(
-        self, node: RID = None, url: str = None, **kwargs
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchRids | None = None,
+        **kwargs
     ) -> RidsPayload:
         """See protocol.api_models.FetchRids for available kwargs."""
-        resp = self.make_request(
+        return self.make_request(
             self.get_url(node, url) + FETCH_RIDS_PATH,
-            FetchRids.model_validate(kwargs)
+            req or FetchRids.model_validate(kwargs),
+            response_model=RidsPayload
         )
-        
-        return RidsPayload.model_validate_json(resp.text)
-        
+                
     def fetch_manifests(
-        self, node: RID = None, url: str = None, **kwargs
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchManifests | None = None,
+        **kwargs
     ) -> ManifestsPayload:
         """See protocol.api_models.FetchManifests for available kwargs."""
-        resp = self.make_request(
+        return self.make_request(
             self.get_url(node, url) + FETCH_MANIFESTS_PATH,
-            FetchManifests.model_validate(kwargs)
+            req or FetchManifests.model_validate(kwargs),
+            response_model=ManifestsPayload
         )
-        
-        return ManifestsPayload.model_validate_json(resp.text)
-        
+                
     def fetch_bundles(
-        self, node: RID = None, url: str = None, **kwargs
+        self, 
+        node: RID = None, 
+        url: str = None, 
+        req: FetchBundles | None = None,
+        **kwargs
     ) -> BundlesPayload:
         """See protocol.api_models.FetchBundles for available kwargs."""
-        resp = self.make_request(
+        return self.make_request(
             self.get_url(node, url) + FETCH_BUNDLES_PATH,
-            FetchBundles.model_validate(kwargs)
+            req or FetchBundles.model_validate(kwargs),
+            response_model=BundlesPayload
         )
-        
-        return BundlesPayload.model_validate_json(resp.text)
