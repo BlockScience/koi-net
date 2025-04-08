@@ -231,13 +231,13 @@ class ProcessorInterface:
             _kobj = KnowledgeObject.from_bundle(bundle, event_type, source)
         elif event:
             _kobj = KnowledgeObject.from_event(event, source)
-        elif _kobj:
+        elif kobj:
             _kobj = kobj
         else:
             raise ValueError("One of 'rid', 'manifest', 'bundle', 'event', or 'kobj' must be provided")
         
-        self.kobj_queue.put(kobj)
-        logger.info(f"Queued {kobj!r}")
+        self.kobj_queue.put(_kobj)
+        logger.info(f"Queued {_kobj!r}")
         
         if flush:
             self.flush_kobj_queue()
