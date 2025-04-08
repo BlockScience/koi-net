@@ -59,7 +59,7 @@ Nodes may broadcast events to other nodes to indicate their internal state chang
 The bulk of the code in this repo is taken up by the Python reference implementation, which can be used in other projects to easily set up and configure your own KOI-net node.
 
 This package can be installed with pip:
-```
+```shell
 pip install koi-net
 ```
 
@@ -200,14 +200,14 @@ if __name__ == "__main__":
 ## Try It Out!
 
 In addition to the partial and full node templates, there's also example implementations that showcase a coordinator + partial node setup. You can run both of them locally after cloning this repository. First, install the koi-net library with the optional examples requirements from the root directory in the repo:
-```
+```shell
 pip install .[examples]
 ```
 Then you can start each node in a separate terminal:
-```
+```shell
 python -m examples.basic_coordinator_node
 ```
-```
+```shell
 python -m examples.basic_partial_node
 ```
 
@@ -431,4 +431,36 @@ Here is an example of how an event polling loop would be implemented using the k
 for event in node.network.poll_neighbors():
     node.processor.handle(event=event, source=KnowledgeSource.External)
 node.processor.flush_kobj_queue()
+```
+
+# Development
+## Setup
+Clone this repository:
+```console
+git clone https://github.com/BlockScience/koi-net
+```
+Set up and activate virtual environment:
+```shell
+python -m venv venv
+```
+Windows:
+```shell
+.\venv\Scripts\activate
+```
+Linux:
+```shell
+source venv/bin/activate
+```
+Install koi-net with dev dependencies:
+```shell
+pip install -e .[dev]
+```
+## Distribution
+Build package:
+```shell
+python -m build
+```
+Push new package build to PyPI:
+```shell
+python -m twine upload -r pypi dist/*
 ```
