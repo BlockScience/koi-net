@@ -50,31 +50,35 @@ This means that events are essentially just an RID, manifest, or bundle with an 
 - `UPDATE` - indicates a previously known RID was cached
 - `FORGET` - indicates a previously known RID was deleted
 
-Nodes may broadcast events to other nodes to indicate its internal state changed. Conversely, nodes may also listen to events from other nodes and decide to change their internal state, take some other action, or do nothing.
+Nodes may broadcast events to other nodes to indicate their internal state changed. Conversely, nodes may also listen to events from other nodes and as a result decide to change their internal state, take some other action, or do nothing.
 
 
-# Implementation
+# Quickstart
 ## Setup
 
-The bulk of the code in this repo is taken up by the Python reference implementation, which can be used in other projects to easily set up and configure your own KOI node.
+The bulk of the code in this repo is taken up by the Python reference implementation, which can be used in other projects to easily set up and configure your own KOI-net node.
 
 This package can be installed with pip:
 ```
 pip install koi-net
 ```
 
-## Node Interface
-All of the KOI-net functionality comes from the `NodeInterface` class which provides methods to interact with the protocol API, a local RID cache, a view of the network, and an internal processing pipeline. To create a new node, you will need to give it a name and a profile. The name will be used to generate its unique node RID, and the profile stores basic configuration data which will be shared with other nodes you communciate with (it will be stored in the bundle associated with your node's RID). 
+## Creating a Node
+
+*Check out the `examples/` folder to follow along!*
+
+All of the KOI-net functionality comes from the `NodeInterface` class which provides methods to interact with the protocol API, a local RID cache, a view of the network, and an internal processing pipeline. To create a new node, you will need to give it a name and a profile. The name will be used to generate its unique node RID, and the profile stores basic configuration data which will be shared with the other nodes that you communciate with.
+
+Your first decision will be whether to setup a partial or full node:
 - Partial nodes only need to indicate their type, and optionally the RID types of events they provide.
 - Full nodes need to indicate their type, the base URL for their KOI-net API, and optionally the RID types of events and state they provide.
 
+### Partial Node
 ```python
 from koi_net import NodeInterface
 from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
 
-# partial node configuration
-
-partial_node = NodeInterface(
+node = NodeInterface(
     name="mypartialnode",
     profile=NodeProfile(
         node_type=NodeType.PARTIAL,
@@ -83,10 +87,13 @@ partial_node = NodeInterface(
         )
     )
 )
+```
+### Full Node
+```python
+from koi_net import NodeInterface
+from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
 
-# full node configuration
-
-full_node = NodeInterface(
+node = NodeInterface(
     name="myfullnode",
     profile=NodeProfile(
         base_url="http://127.0.0.1:8000",
@@ -99,6 +106,115 @@ full_node = NodeInterface(
 )
 ```
 
+## Knowledge Processing
+
+Next we'll set up the knowledge processing flow for our node. This is where most of the node's logic and behavior will come into play. For partial nodes this will be an event loop, and for full nodes we will use webhooks. Make sure to call `node.initialize()` and `node.finalize()` at the beginning and end of your node's life cycle.
+
+### Partial Node
+Make sure to set `source=KnowledgeSource.External`, this indicates to the knowledge processing pipeline that the incoming knowledge was received from an external source. Where the knowledge is sourced from will impact decisions in the node's knowledge handlers.
+```python
+import time
+from koi_net.processor.knowledge_object import KnowledgeSource
+
+if __name__ == "__main__":
+    node.initialize()
+
+    try:
+        while True:
+            for event in node.network.poll_neighbors():
+                node.processor.handle(event=event, source=KnowledgeSource.External)
+            node.processor.flush_kobj_queue()
+            
+            time.sleep(5)
+            
+    finally:
+        node.finalize()
+```
+
+### Full Node
+Setting up a full node is slightly more complex as we'll need a webserver. For this example, we'll use FastAPI and uvicorn. First we need to setup the "lifespan" of the server, to initialize and finalize the node before and after execution, as well as the FastAPI app which will be our web server.
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    node.initialize()
+    yield
+    node.finalize()
+
+
+app = FastAPI(lifespan=lifespan, root_path="/koi-net")
+```
+
+Next we'll add our event handling webhook endpoint, which will allow other nodes to broadcast events to us. You'll notice that we have a similar loop to our partial node, but instead of polling periodicially, we handle events asynchronously as we receive them from other nodes.
+
+```python
+from koi_net.protocol.api_models import *
+from koi_net.protocol.consts import *
+
+@app.post(BROADCAST_EVENTS_PATH)
+def broadcast_events(req: EventsPayload, background: BackgroundTasks):
+    for event in req.events:
+        node.processor.handle(event=event, source=KnowledgeSource.External)
+    
+    background.add_task(node.processor.flush_kobj_queue)
+```
+
+Next we can add the event polling endpoint, this allows partial nodes to receive events from us.
+
+```python
+@app.post(POLL_EVENTS_PATH)
+def poll_events(req: PollEvents) -> EventsPayload:
+    events = node.network.flush_poll_queue(req.rid)
+    return EventsPayload(events=events)
+```
+
+Now for the state transfer "fetch" endpoints:
+```python
+@app.post(FETCH_RIDS_PATH)
+def fetch_rids(req: FetchRids) -> RidsPayload:
+    return node.network.response_handler.fetch_rids(req)
+
+@app.post(FETCH_MANIFESTS_PATH)
+def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
+    return node.network.response_handler.fetch_manifests(req)
+
+@app.post(FETCH_BUNDLES_PATH)
+def fetch_bundles(req: FetchBundles) -> BundlesPayload:
+    return node.network.response_handler.fetch_bundles(req)
+```
+
+Finally we can run the server!
+
+```python
+import uvicorn
+
+if __name__ == "__main__":
+    # update this path to the Python module that defines "app"
+    uvicorn.run("examples.full_node_template:app", port=8000)
+```
+
+*Note: If your node is not the first node in the network, you'll also want to set up a "first contact" in the `NodeInterface`. This is the URL of another full node that can be used to make your first connection and find out about other nodes in the network.*
+
+## Try It Out!
+
+In addition to the partial and full node templates, there's also example implementations that showcase a coordinator + partial node setup. You can run both of them locally after cloning this repository. First, install the koi-net library with the optional examples requirements from the root directory in the repo:
+```
+pip install .[examples]
+```
+Then you can start each node in a separate terminal:
+```
+python -m examples.basic_coordinator_node
+```
+```
+python -m examples.basic_partial_node
+```
+
+# Implementation Reference
+This section provides high level explanations of the Python implementation. More detailed explanations of methods can be found in the docstrings within the codebase itself.
+
+## Node Interface
 The node class mostly acts as a container for other classes with more specialized behavior, with special functions that should be called to start up and shut down a node. We'll take a look at each of these components in turn, but here is the class stub:
 ```python
 class NodeInterface:

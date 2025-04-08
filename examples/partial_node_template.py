@@ -26,16 +26,16 @@ node = NodeInterface(
     first_contact=coordinator_url
 )
 
+if __name__ == "__main__":
+    node.initialize()
 
-node.initialize()
-
-try:
-    while True:
-        for event in node.network.poll_neighbors():
-            node.processor.handle(event=event, source=KnowledgeSource.External)
-        node.processor.flush_kobj_queue()
-        
-        time.sleep(5)
-        
-finally:
-    node.finalize()
+    try:
+        while True:
+            for event in node.network.poll_neighbors():
+                node.processor.handle(event=event, source=KnowledgeSource.External)
+            node.processor.flush_kobj_queue()
+            
+            time.sleep(5)
+            
+    finally:
+        node.finalize()
