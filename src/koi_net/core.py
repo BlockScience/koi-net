@@ -29,7 +29,7 @@ class NodeInterface:
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
     ):
-        self.cache = cache or Cache(directory_path=f"{name}_cache")
+        self.cache = cache or Cache(directory_path=f".cache")
         self.identity = NodeIdentity(
             name=name,
             profile=profile,
@@ -38,7 +38,7 @@ class NodeInterface:
         )
         self.first_contact = first_contact
         self.network = network or NetworkInterface(
-            file_path=f"{self.identity.rid.name}_event_queues.json", 
+            file_path="event_queues.json", 
             first_contact=self.first_contact,
             cache=self.cache, 
             identity=self.identity

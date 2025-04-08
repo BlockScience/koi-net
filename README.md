@@ -464,5 +464,5 @@ python -m build
 ```
 Push new package build to PyPI:
 ```shell
-python -m twine upload -r pypi dist/*
+python -m twine upload dist/*
 ```
