@@ -456,6 +456,8 @@ Install koi-net with dev dependencies:
 pip install -e .[dev]
 ```
 ## Distribution
+*Be careful! All files not in `.gitignore` will be included in the distribution, even if they aren't tracked by git! Double check the `.tar.gz` after building to make sure you didn't accidently include other files.*
+
 Build package:
 ```shell
 python -m build
