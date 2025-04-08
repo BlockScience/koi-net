@@ -131,4 +131,4 @@ if __name__ == "__main__":
     with open("koi-net-protocol-openapi.json", "w") as f:
         json.dump(openapi_spec, f, indent=2)
     
-    uvicorn.run("examples.full_node:app", port=port)
+    uvicorn.run("examples.basic_coordinator_node:app", port=port)
