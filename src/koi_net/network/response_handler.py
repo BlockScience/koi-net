@@ -56,4 +56,4 @@ class ResponseHandler:
             else:
                 not_found.append(rid)
             
-        return BundlesPayload(manifests=bundles, not_found=not_found)
+        return BundlesPayload(bundles=bundles, not_found=not_found)

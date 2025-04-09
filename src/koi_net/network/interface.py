@@ -201,8 +201,8 @@ class NetworkInterface:
             payload = self.request_handler.fetch_bundles(
                 node=node_rid, rids=[rid])
             
-            if payload.manifests:
-                remote_bundle = payload.manifests[0]
+            if payload.bundles:
+                remote_bundle = payload.bundles[0]
                 logger.info(f"Got bundle from '{node_rid}'")
                 break
         
