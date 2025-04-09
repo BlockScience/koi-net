@@ -195,8 +195,7 @@ class ProcessorInterface:
             logger.info("No network targets set")
         
         for node in kobj.network_targets:
-            self.network.push_event_to(kobj.normalized_event, node)
-        self.network.flush_all_webhook_queues()
+            self.network.push_event_to(kobj.normalized_event, node, flush=True)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
                 

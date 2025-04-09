@@ -165,6 +165,8 @@ class NetworkInterface:
             return
         
         events = self._flush_queue(self.webhook_event_queue, node)
+        if not events: return
+        
         logger.info(f"Broadcasting {len(events)} events")
         
         try:  
@@ -173,11 +175,6 @@ class NetworkInterface:
             logger.warning("Broadcast failed, requeuing events")
             for event in events:
                 self.push_event_to(event, node)
-    
-    def flush_all_webhook_queues(self):
-        """Flushes all nodes' webhook queues and broadcasts events."""
-        for node in self.webhook_event_queue.keys():
-            self.flush_webhook_queue(node)
             
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for the specified RID type."""
