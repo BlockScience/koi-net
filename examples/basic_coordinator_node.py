@@ -3,7 +3,7 @@ import logging
 import uvicorn
 from contextlib import asynccontextmanager
 from rich.logging import RichHandler
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
 from koi_net.processor.handler import HandlerType
@@ -103,7 +103,7 @@ app = FastAPI(
 )
 
 @app.post(BROADCAST_EVENTS_PATH)
-def broadcast_events(req: EventsPayload, background: BackgroundTasks):
+def broadcast_events(req: EventsPayload):
     logger.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.events)} event(s)")
     for event in req.events:
         node.processor.handle(event=event, source=KnowledgeSource.External)

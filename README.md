@@ -102,7 +102,8 @@ node = NodeInterface(
             event=[],
             state=[]
         )
-    )
+    ),
+    use_kobj_processor_thread=True
 )
 ```
 
@@ -154,11 +155,9 @@ from koi_net.protocol.api_models import *
 from koi_net.protocol.consts import *
 
 @app.post(BROADCAST_EVENTS_PATH)
-def broadcast_events(req: EventsPayload, background: BackgroundTasks):
+def broadcast_events(req: EventsPayload):
     for event in req.events:
         node.processor.handle(event=event, source=KnowledgeSource.External)
-    
-    background.add_task(node.processor.flush_kobj_queue)
 ```
 
 Next we can add the event polling endpoint, this allows partial nodes to receive events from us.
