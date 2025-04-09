@@ -1,5 +1,6 @@
 import logging
-from queue import Queue
+import queue
+import threading
 from typing import Callable
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
@@ -30,20 +31,30 @@ class ProcessorInterface:
     network: NetworkInterface
     identity: NodeIdentity
     handlers: list[KnowledgeHandler]
-    kobj_queue: Queue[KnowledgeObject]
+    kobj_queue: queue.Queue[KnowledgeObject]
+    use_kobj_processor_thread: bool
+    worker_thread: threading.Thread | None = None
     
     def __init__(
         self, 
         cache: Cache, 
         network: NetworkInterface,
         identity: NodeIdentity,
+        use_kobj_processor_thread: bool,
         default_handlers: list[KnowledgeHandler] = []
     ):
         self.cache = cache
         self.network = network
         self.identity = identity
+        self.use_kobj_processor_thread = use_kobj_processor_thread
         self.handlers: list[KnowledgeHandler] = default_handlers
-        self.kobj_queue = Queue()
+        self.kobj_queue = queue.Queue()
+        
+        if self.use_kobj_processor_thread:
+            self.worker_thread = threading.Thread(
+                target=self.kobj_processor_worker,
+                daemon=True
+            )
         
     def add_handler(self, handler: KnowledgeHandler):
         self.handlers.append(handler)
@@ -198,14 +209,35 @@ class ProcessorInterface:
             self.network.push_event_to(kobj.normalized_event, node, flush=True)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
-                
+
     def flush_kobj_queue(self):
-        """Flushes all knowledge objects from queue and processes them."""
+        """Flushes all knowledge objects from queue and processes them.
+        
+        NOTE: ONLY CALL THIS METHOD IN SINGLE THREADED NODES, OTHERWISE THIS WILL CAUSE RACE CONDITIONS.
+        """
+        if self.use_kobj_processor_thread:
+            logger.warning("You are using a worker thread, calling this method can cause race conditions!")
+        
         while not self.kobj_queue.empty():
             kobj = self.kobj_queue.get()
             logger.info(f"Dequeued {kobj!r}")
             self.process_kobj(kobj)
+            self.kobj_queue.task_done()
             logger.info("Done handling")
+    
+    def kobj_processor_worker(self, timeout=0.1):
+        while True:
+            try:
+                kobj = self.kobj_queue.get(timeout=timeout)
+                logger.info(f"Dequeued {kobj!r}")
+                self.process_kobj(kobj)
+                self.kobj_queue.task_done()
+            
+            except queue.Empty:
+                pass
+            
+            except Exception as e:
+                logger.warning(f"Error processing kobj: {e}")
         
     def handle(
         self,
@@ -215,8 +247,7 @@ class ProcessorInterface:
         event: Event | None = None,
         kobj: KnowledgeObject | None = None,
         event_type: KnowledgeEventType = None,
-        source: KnowledgeSource = KnowledgeSource.Internal,
-        flush: bool = False
+        source: KnowledgeSource = KnowledgeSource.Internal
     ):
         """Queues provided knowledge to be handled by processing pipeline.
         
@@ -237,6 +268,3 @@ class ProcessorInterface:
         
         self.kobj_queue.put(_kobj)
         logger.info(f"Queued {_kobj!r}")
-        
-        if flush:
-            self.flush_kobj_queue()

@@ -108,7 +108,7 @@ node = NodeInterface(
 
 ## Knowledge Processing
 
-Next we'll set up the knowledge processing flow for our node. This is where most of the node's logic and behavior will come into play. For partial nodes this will be an event loop, and for full nodes we will use webhooks. Make sure to call `node.initialize()` and `node.finalize()` at the beginning and end of your node's life cycle.
+Next we'll set up the knowledge processing flow for our node. This is where most of the node's logic and behavior will come into play. For partial nodes this will be an event loop, and for full nodes we will use webhooks. Make sure to call `node.start()` and `node.stop()` at the beginning and end of your node's life cycle.
 
 ### Partial Node
 Make sure to set `source=KnowledgeSource.External`, this indicates to the knowledge processing pipeline that the incoming knowledge was received from an external source. Where the knowledge is sourced from will impact decisions in the node's knowledge handlers.
@@ -117,7 +117,7 @@ import time
 from koi_net.processor.knowledge_object import KnowledgeSource
 
 if __name__ == "__main__":
-    node.initialize()
+    node.start()
 
     try:
         while True:
@@ -128,20 +128,20 @@ if __name__ == "__main__":
             time.sleep(5)
             
     finally:
-        node.finalize()
+        node.stop()
 ```
 
 ### Full Node
-Setting up a full node is slightly more complex as we'll need a webserver. For this example, we'll use FastAPI and uvicorn. First we need to setup the "lifespan" of the server, to initialize and finalize the node before and after execution, as well as the FastAPI app which will be our web server.
+Setting up a full node is slightly more complex as we'll need a webserver. For this example, we'll use FastAPI and uvicorn. First we need to setup the "lifespan" of the server, to start and stop the node before and after execution, as well as the FastAPI app which will be our web server.
 ```python
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    node.initialize()
+    node.start()
     yield
-    node.finalize()
+    node.stop()
 
 
 app = FastAPI(lifespan=lifespan, root_path="/koi-net")
@@ -223,12 +223,16 @@ class NodeInterface:
     network: NetworkInterface
     processor: ProcessorInterface
     first_contact: str
+    use_kobj_processor_thread: bool
 
     def __init__(
         self, 
         name: str,
         profile: NodeProfile,
         identity_file_path: str = "identity.json",
+        event_queues_file_path: str = "event_queues.json",
+        cache_directory_path: str = "rid_cache",
+        use_kobj_processor_thread: bool = False,
         first_contact: str | None = None,
         handlers: list[KnowledgeHandler] | None = None,
         cache: Cache | None = None,
@@ -236,8 +240,8 @@ class NodeInterface:
         processor: ProcessorInterface | None = None
     ): ...
 
-    def initialize(self): ...
-    def finalize(self): ...
+    def start(self): ...
+    def stop(self): ...
 ```
 As you can see, only a name and profile are required. The other fields allow for additional customization if needed.
 
@@ -271,7 +275,6 @@ class NetworkInterface:
     
     def flush_poll_queue(self, node: KoiNetNode) -> list[Event]: ...
     def flush_webhook_queue(self, node: RID): ...
-    def flush_all_webhook_queues(self): ...
 
     def fetch_remote_bundle(self, rid: RID): ...
     def fetch_remote_manifest(self, rid: RID): ...
@@ -390,11 +393,14 @@ def poll_events(req: PollEvents) -> EventsPayload:
 The `ProcessorInterface` class provides access to a node's internal knowledge processing pipeline.
 ```python
 class ProcessorInterface:
+    worker_thread: threading.Thread | None = None
+
     def __init__(
         self, 
         cache: Cache, 
         network: NetworkInterface,
         identity: NodeIdentity,
+        use_kobj_processor_thread: bool,
         default_handlers: list[KnowledgeHandler] = []
     ): ...
 

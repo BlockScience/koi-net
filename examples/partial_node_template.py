@@ -27,7 +27,7 @@ node = NodeInterface(
 )
 
 if __name__ == "__main__":
-    node.initialize()
+    node.start()
 
     try:
         while True:
@@ -38,4 +38,4 @@ if __name__ == "__main__":
             time.sleep(5)
             
     finally:
-        node.finalize()
+        node.stop()

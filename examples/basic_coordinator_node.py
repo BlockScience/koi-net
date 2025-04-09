@@ -53,7 +53,10 @@ node = NodeInterface(
             state=[KoiNetNode, KoiNetEdge]
         )
     ),
-    identity_file_path="coordinator_identity.json"
+    use_kobj_processor_thread=True,
+    cache_directory_path="coordinator_node_rid_cache",
+    event_queues_file_path="coordinator_node_event_queus.json",
+    identity_file_path="coordinator_node_identity.json",
 )
 
 
@@ -88,9 +91,9 @@ def handshake_handler(proc: ProcessorInterface, kobj: KnowledgeObject):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    node.initialize()
+    node.start()
     yield
-    node.finalize()
+    node.stop()
 
 app = FastAPI(
     lifespan=lifespan, 
@@ -105,8 +108,6 @@ def broadcast_events(req: EventsPayload, background: BackgroundTasks):
     for event in req.events:
         node.processor.handle(event=event, source=KnowledgeSource.External)
     
-    background.add_task(node.processor.flush_kobj_queue)
-
 @app.post(POLL_EVENTS_PATH)
 def poll_events(req: PollEvents) -> EventsPayload:
     logger.info(f"Request to {POLL_EVENTS_PATH}")

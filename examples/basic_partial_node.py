@@ -27,7 +27,9 @@ node = NodeInterface(
     profile=NodeProfile(
         node_type=NodeType.PARTIAL
     ),
-    identity_file_path="partial_identity.json",
+    cache_directory_path="partial_node_rid_cache",
+    event_queues_file_path="parital_node_event_queus.json",
+    identity_file_path="partial_node_identity.json",
     first_contact="http://127.0.0.1:8000/koi-net"
 )
 
@@ -72,11 +74,11 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
     
 
 
-node.initialize()
+node.start()
 
 while True:
     for event in node.network.poll_neighbors():
         node.processor.handle(event=event, source=KnowledgeSource.External)
     node.processor.flush_kobj_queue()
     
-    time.sleep(1)
+    time.sleep(5)

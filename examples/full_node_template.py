@@ -50,15 +50,16 @@ node = NodeInterface(
             state=[KoiNetNode, KoiNetEdge]
         )
     ),
+    use_kobj_processor_thread=True,
     first_contact=coordinator_url
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    node.initialize()
+    node.start()
     yield
-    node.finalize()
+    node.stop()
 
 
 app = FastAPI(lifespan=lifespan, root_path="/koi-net")
@@ -69,8 +70,6 @@ def broadcast_events(req: EventsPayload, background: BackgroundTasks):
     for event in req.events:
         node.processor.handle(event=event, source=KnowledgeSource.External)
     
-    background.add_task(node.processor.flush_kobj_queue)
-
 @app.post(POLL_EVENTS_PATH)
 def poll_events(req: PollEvents) -> EventsPayload:
     logger.info(f"Request to {POLL_EVENTS_PATH}")
