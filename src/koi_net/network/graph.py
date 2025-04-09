@@ -74,13 +74,13 @@ class NetworkGraph:
         """Returns edges this node belongs to.
         
         All edges returned by default, specify `direction` to restrict to incoming or outgoing edges only."""
-        
+                
         edges = []
-        if direction != "in":
+        if direction != "in" and self.dg.out_edges:
             out_edges = self.dg.out_edges(self.identity.rid)
             edges.extend([e for e in out_edges])
                 
-        if direction != "out":
+        if direction != "out" and self.dg.in_edges:
             in_edges = self.dg.in_edges(self.identity.rid)
             edges.extend([e for e in in_edges])
                     
