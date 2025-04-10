@@ -2,6 +2,37 @@
 
 *This specification is the result of several iterations of KOI research, [read more here](https://github.com/BlockScience/koi).*
 
+### Jump to Sections: 
+- [Protocol](#protocol)
+    - [Introduction](#introduction)
+    - [Communication Methods](#communication-methods)
+- [Quickstart](#quickstart)
+    - [Setup](#setup)
+    - [Creating a Node](#creating-a-node)
+    - [Knowledge Processing](#knowledge-processing)
+    - [Try It Out!](#try-it-out)
+- [Advanced](#advanced)
+    - [Knowledge Processing Pipeline](#knowledge-processing-pipeline)
+    - [Knowledge Handlers](#knowledge-handlers)
+        - [RID Handler](#rid-handler)
+        - [Manifest Handler](#manifest-handler)
+        - [Bundle Handler](#bundle-handler)
+        - [Network Handler](#network-handler)
+        - [Final Handler](#final-handler)
+    - [Registering Handlers](#registering-handlers)
+    - [Default Behavior](#default-behavior)
+- [Implementation Reference](#implementation-reference)
+    - [Node Interface](#node-interface)
+    - [Node Identity](#node-identity)
+    - [Network Interface](#network-interface)
+        - [Network Graph](#network-graph)
+        - [Request Handler](#request-handler)
+        - [Response Handler](#response-handler)
+    - [Processor Interface](#processor-interface)
+- [Development](#development)
+    - [Setup](#setup-1)
+    - [Distribution](#distribution)
+
 # Protocol
 ## Introduction
 
@@ -611,5 +642,5 @@ python -m build
 ```
 Push new package build to PyPI:
 ```shell
-python -m twine upload dist/*
+python -m twine upload --skip-existing dist/*
 ```
