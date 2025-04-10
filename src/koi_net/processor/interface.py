@@ -62,11 +62,13 @@ class ProcessorInterface:
     def register_handler(
         self,
         handler_type: HandlerType,
-        rid_types: list[RIDType] | None = None
+        rid_types: list[RIDType] | None = None,
+        source: KnowledgeSource | None = None,
+        event_types: list[KnowledgeEventType] | None = None
     ):
         """Assigns decorated function as handler for this processor."""
         def decorator(func: Callable) -> Callable:
-            handler = KnowledgeHandler(func, handler_type, rid_types)
+            handler = KnowledgeHandler(func, handler_type, rid_types, source, event_types)
             self.add_handler(handler)
             return func
         return decorator
@@ -91,6 +93,12 @@ class ProcessorInterface:
                 continue
             
             if handler.rid_types and type(kobj.rid) not in handler.rid_types:
+                continue
+            
+            if handler.source and handler.source != kobj.source:
+                continue
+            
+            if handler.event_types and kobj.event_type not in handler.event_types:
                 continue
             
             logger.info(f"Calling {handler_type} handler '{handler.func.__name__}'")
@@ -178,8 +186,8 @@ class ProcessorInterface:
                 kobj.manifest = bundle.manifest
                 kobj.contents = bundle.contents                
                 
-            kobj = self.call_handler_chain(HandlerType.Bundle, kobj)
-            if kobj is STOP_CHAIN: return
+        kobj = self.call_handler_chain(HandlerType.Bundle, kobj)
+        if kobj is STOP_CHAIN: return
             
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
             logger.info(f"Writing {kobj!r} to cache")

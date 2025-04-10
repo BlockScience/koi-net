@@ -26,20 +26,13 @@ def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
         return STOP_CHAIN
     
     if kobj.event_type == EventType.FORGET:
-        if processor.cache.exists(kobj.rid):
-            logger.info("Allowing cache forget")
-            kobj.normalized_event_type = EventType.FORGET
-            return kobj
-        
-        else:
-            # can't forget something I don't know about
-            return STOP_CHAIN
-
+        kobj.normalized_event_type = EventType.FORGET
+        return kobj
 
 # Manifest handlers
 
 @KnowledgeHandler.create(HandlerType.Manifest)
-def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+def basic_manifest_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Default manifest handler.
     
     Blocks manifests with the same hash, or aren't newer than the cached version. Sets the normalized event type to `NEW` or `UPDATE` depending on whether the RID was previously known to this node.
@@ -66,7 +59,11 @@ def basic_state_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
 
 # Bundle handlers
 
-@KnowledgeHandler.create(HandlerType.Bundle, rid_types=[KoiNetEdge])
+@KnowledgeHandler.create(
+    handler_type=HandlerType.Bundle, 
+    rid_types=[KoiNetEdge], 
+    source=KnowledgeSource.External,
+    event_types=[EventType.NEW, EventType.UPDATE])
 def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """Handles basic edge negotiation process.
     
@@ -74,10 +71,6 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
     """
     
     edge_profile = EdgeProfile.model_validate(kobj.contents)
-    
-    # only want to handle external knowledge events (not edges this node created)
-    if kobj.source != KnowledgeSource.External:
-        return
 
     # indicates peer subscribing to me
     if edge_profile.source == processor.identity.rid:     
