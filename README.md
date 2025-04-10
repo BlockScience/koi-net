@@ -45,10 +45,10 @@ The request and payload JSON objects are composed of the fundamental "knowledge 
 }
 ```
 
-This means that events are essentially just an RID, manifest, or bundle with an event type attached. Event types can be one of `FORGET`, `UPDATE`, or `NEW` forming the "FUN" acronym. While these types roughly correspond to delete, update, and create from CRUD operations, but they are not commands, they are signals. A node emits an event to indicate that its internal state has changed:
-- `NEW` - indicates an previously unknown RID was cached
-- `UPDATE` - indicates a previously known RID was cached
-- `FORGET` - indicates a previously known RID was deleted
+This means that events are essentially just an RID, manifest, or bundle with an event type attached. Event types can be one of `"FORGET"`, `"UPDATE"`, or `"NEW"` forming the "FUN" acronym. While these types roughly correspond to delete, update, and create from CRUD operations, but they are not commands, they are signals. A node emits an event to indicate that its internal state has changed:
+- `"NEW"` - indicates an previously unknown RID was cached
+- `"UPDATE"` - indicates a previously known RID was cached
+- `"FORGET"` - indicates a previously known RID was deleted
 
 Nodes may broadcast events to other nodes to indicate their internal state changed. Conversely, nodes may also listen to events from other nodes and as a result decide to change their internal state, take some other action, or do nothing.
 
@@ -107,12 +107,14 @@ node = NodeInterface(
 )
 ```
 
+When creating a node, you optionally enable `use_kobj_processor_thread` which will run the knowledge processing pipeline on a separate thread. This thread will automatically dequeue and process knowledge objects as they are added to the `kobj_queue`, which happenes when you call `node.process.handle(...)`. This is required to prevent race conditions in asynchronous applications, like web servers, therefore it is recommended to enable this feature for all full nodes. 
+
 ## Knowledge Processing
 
 Next we'll set up the knowledge processing flow for our node. This is where most of the node's logic and behavior will come into play. For partial nodes this will be an event loop, and for full nodes we will use webhooks. Make sure to call `node.start()` and `node.stop()` at the beginning and end of your node's life cycle.
 
 ### Partial Node
-Make sure to set `source=KnowledgeSource.External`, this indicates to the knowledge processing pipeline that the incoming knowledge was received from an external source. Where the knowledge is sourced from will impact decisions in the node's knowledge handlers.
+Make sure to set `source=KnowledgeSource.External` when calling `handle` on external knowledge, this indicates to the knowledge processing pipeline that the incoming knowledge was received from another node. Where the knowledge is sourced from will impact decisions in the node's knowledge handlers.
 ```python
 import time
 from koi_net.processor.knowledge_object import KnowledgeSource
@@ -209,6 +211,147 @@ python -m examples.basic_coordinator_node
 ```shell
 python -m examples.basic_partial_node
 ```
+
+# Advanced
+
+## Knowledge Processing Pipeline
+Beyond the `NodeInterface` setup and boiler plate for partial/full nodes, node behavior is mostly controlled through the use of knowledge handlers. Effectively creating your own handlers relies on a solid understanding of the knowledge processing pipeline, so we'll start with that. As a developer, you will interface with the pipeline through the `ProcessorInterface` accessed with `node.processor`. The pipeline handles knowledge objects, from the `KnowledgeObject` class, a container for all knowledge types in the RID / KOI-net ecosystem:
+- RIDs
+- Manifests
+- Bundles
+- Events
+
+Here is the class definition for a knowledge object:
+```python
+type KnowledgeEventType = EventType | None
+
+class KnowledgeSource(StrEnum):
+    Internal = "INTERNAL"
+    External = "EXTERNAL"
+
+class KnowledgeObject(BaseModel):
+    rid: RID
+    manifest: Manifest | None = None
+    contents: dict | None = None
+    event_type: KnowledgeEventType = None
+    source: KnowledgeSource
+    normalized_event_type: KnowledgeEventType = None
+    network_targets: set[KoiNetNode] = set()
+```
+
+In addition to the fields required to represent the knowledge types (`rid`, `manifest`, `contents`, `event_type`), knowledge objects also include a `source` field, indicating whether the knowledge originated from within the node (`KnowledgeSource.Internal`) or from another node (`KnowledgeSource.External`).
+
+The final two fields are not inputs, but are set by handlers as the knowledge object moves through the processing pipeline. The normalized event type indicates the event type normalized to the perspective of the node's cache, and the network targets indicate where the resulting event should be broadcasted to.
+
+Knowledge objects enter the processing pipeline through the `node.processor.handle(...)` method. Using kwargs you can pass any of the knowledge types listed above, a knowledge source, and an optional `event_type` (for non-event knowledge types). The handle function will simply normalize the provided knowledge type into a knowledge object, and put it in the `kobj_queue`, an internal, thread-safe queue of knowledge objects. If you have enabled `use_kobj_processor_thread` then the queue will be automatically processed on the processor thread, otherwise you will need to regularly call `flush_kobj_queue` to process queued knowledge objects (as in the partial node example). Both methods will process knowledge objects sequentially, in the order that they were queued in (FIFO). 
+
+
+## Knowledge Handlers
+
+Processing happens through five distinct phases, corresponding to the handler types: `RID`, `Manifest`, `Bundle`, `Network`, and `Final`. Each handler type can be understood by describing (1) what knowledge object fields are available to the handler, and (2) what action takes place after this phase, which the handler can influence. As knowledge objects pass through the pipeline, fields may be added or updated. 
+
+Handlers are registered in a single handler array within the processor. There is no limit to the number of handlers in use, and multiple handlers can be assigned to the same handler type. At each phase of knowledge processing, we will chain together all of the handlers of the corresponding type and run them in their array order. The order handlers are registered in matters!
+
+Each handler will be passed a knowledge object. They can choose to return one of three types: `None`, `KnowledgeObject`, or `STOP_CHAIN`. Returning `None` will pass the unmodified knowledge object (the same one the handler received) to the next handler in the chain. If a handler modified their knowledge object, they should return it to pass the new version to the next handler. Finally, a handler can return `STOP_CHAIN` to immediately stop processing the knowledge object. No further handlers will be called and it will not enter the next phase of processing.
+
+Summary of processing pipeline:
+```
+RID -> Manifest -> Bundle -> [cache action] -> Network -> [network action] -> Final
+           |
+(skip if event type is "FORGET")
+```
+
+### RID Handler
+The knowledge object passed to handlers of this type are guaranteed to have an RID and knowledge source field. This handler type acts as a filter, if none of the handlers return `STOP_CHAIN` the pipeline will progress to the next phase. The pipeline diverges slightly after this handler chain, based on the event type of the knowledge object.
+
+If the event type is `"NEW"`, `"UPDATE"`, or `None` and the manifest is not already in the knowledge object, the node will attempt to retrieve it from (1) the local cache if the source is internal, or (2) from another node if the source is external. If it fails to retrieves the manifest, the pipeline will end. Next, the manifest handler chain will be called.
+
+If the event type is `"FORGET"`, and the bundle (manifest + contents) is not already in the knowledge object, the node will attempt to retrieve it from the local cache, regardless of the source. In this case the knowledge object represents what we will delete from the cache, not new incoming knowledge. If it fails to retrieve the bundle, the pipeline will end. Next, the bundle handler chain will be called.
+
+### Manifest Handler
+The knowledge object passed to handlers of this type are guaranteed to have an RID, manifest, and knowledge source field. This handler type acts as a filter, if none of the handlers return `STOP_CHAIN` the pipeline will progress to the next phase.
+
+If the bundle (manifest + contents) is not already in the knowledge object, the node will attempt to retrieve it from (1) the local cache if the source is internal, or (2) from another node if the source is external. If it fails to retrieve the bundle, the pipeline will end. Next, the bundle handler chain will be called.
+
+### Bundle Handler
+The knowledge object passed to handlers of this type are guaranteed to have an RID, manifest, bundle (manifest + contents), and knowledge source field. This handler type acts as a decider. In this phase, the knowledge object's normalized event type must be set to `"NEW"` or `"UPDATE"` to write it to cache, or `"FORGET"` to delete it from the cache. If the normalized event type remains unset (`None`), or a handler returns `STOP_CHAIN`, then the pipeline will end without taking any cache action.
+
+The cache action will take place after the handler chain ends, so if multiple handlers set a normalized event type, the final handler will take precedence.
+
+### Network Handler
+The knowledge object passed to handlers of this type are guaranteed to have an RID, manifest, bundle (manifest + contents), normalized event type, and knowledge source field. This handler type acts as a decider. In this phase, handlers decide which nodes to broadcast this knowledge object to by appending KOI-net node RIDs to the knowledge object's `network_targets` field. If a handler returns `STOP_CHAIN`, the pipeline will end without taking any network action.
+
+The network action will take place after the handler chain ends. The node will attempt to broadcast a "normalized event", created from the knowledge object's RID, bundle, and normalized event type, to all of the node's in the network targets array. 
+
+### Final Handler
+The knowledge object passed to handlers of this type are guaranteed to have an RID, manifest, bundle (manifest + contents), normalized event type, and knowledge source field.
+
+This is the final handler chain that is called, it doesn't make any decisions or filter for succesive handler types. Handlers here can be useful if you want to take some action after the network broadcast has ended.
+
+## Registering Handlers
+Knowledge handlers are registered with a node's processor by decorating a handler function. There are two types of decorators, the first way converts the function into a handler object which can be manually added to a processor. This is how the default handlers are defined, and makes them more portable (could be imported from another package). The second automatically registers a handler with your node instance. This is not portable but more convenient. The input of the decorated function will be the processor instance, and a knowledge object.
+
+```python
+from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
+
+@KnowledgeHandler.create(HandlerType.RID)
+def example_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    ...
+
+@node.processor.register_handler(HandlerType.RID)
+def example_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    ...
+```
+
+While handler's only require specifying the handler type, you can also specify the RID types, knowledge source, or event types you want to handle. If a knowledge object doesn't match all of the specified parameters, it won't be called. By default, handlers will match all RID types, all event types, and both internal and external sourced knowledge.
+
+```python
+@KnowledgeHandler.create(
+    handler_type=HandlerType.Bundle, 
+    rid_types=[KoiNetEdge], 
+    source=KnowledgeSource.External,
+    event_types=[EventType.NEW, EventType.UPDATE])
+def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
+    ...
+```
+
+The processor instance passed to your function should be used to take any necessary node actions (cache, network, etc.). It is also sometimes useful to add new knowledge objects to the queue while processing a different knowledge object. You can simply call `processor.handle(...)` in the same way as you would outside of a handler. It will put at the end of the queue and processed when it is dequeued like any other knowledge object.
+
+
+## Default Behavior
+
+The default configuration provides four default handlers which will take precedence over any handlers you add yourself. To override this behavior, you can set the `handlers` field in the `NodeInterface`:
+
+```python
+from koi_net import NodeInterface
+from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
+from koi_net.processor.default_handlers import (
+    basic_rid_handler,
+    basic_manifest_handler,
+    edge_negotiation_handler,
+    basic_network_output_filter
+)
+
+node = NodeInterface(
+    name="mypartialnode",
+    profile=NodeProfile(
+        node_type=NodeType.PARTIAL,
+        provides=NodeProvides(
+            event=[]
+        )
+    ),
+    handlers=[
+        basic_rid_handler,
+        basic_manifest_handler,
+        edge_negotiation_handler,
+        basic_network_output_filter
+
+        # include all or none of the default handlers
+    ]
+)
+```
+
+Take a look at `src/koi_net/processor/default_handlers.py` to see some more in depth examples and better understand the default node behavior.
 
 # Implementation Reference
 This section provides high level explanations of the Python implementation. More detailed explanations of methods can be found in the docstrings within the codebase itself.
@@ -422,14 +565,13 @@ class ProcessorInterface:
         event: Event | None = None,
         kobj: KnowledgeObject | None = None,
         event_type: KnowledgeEventType = None,
-        source: KnowledgeSource = KnowledgeSource.Internal,
-        flush: bool = False
+        source: KnowledgeSource = KnowledgeSource.Internal
     ): ...
 ```
 
 The `register_handler` method is a decorator which can wrap a function to create a new `KnowledgeHandler` and add it to the processing pipeline in a single step. The `add_handler` method adds an existing `KnowledgeHandler` to the processining pipeline.
 
-The most commonly used functions in this class are `handle` and `flush_kobj_queue`. The `handle` method can be called on RIDs, manifests, bundles, and events to convert them to normalized to `KnowledgeObject` instances which are then added to the processing queue. The `flush` flag can be set to `True` to immediately start processing, or `flush_kobj_queue` can be called after queueing multiple knowledge objects. When calling the `handle` method, knowledge objects are marked as internally source by default. If you are handling RIDs, manifests, bundles, or events sourced from other nodes, `source` should be set to `KnowledgeSource.External`.
+The most commonly used functions in this class are `handle` and `flush_kobj_queue`. The `handle` method can be called on RIDs, manifests, bundles, and events to convert them to normalized to `KnowledgeObject` instances which are then added to the processing queue. If you have enabled `use_kobj_processor_thread` then the queue will be automatically processed, otherwise you will need to regularly call `flush_kobj_queue` to process queued knolwedge objects. When calling the `handle` method, knowledge objects are marked as internally source by default. If you are handling RIDs, manifests, bundles, or events sourced from other nodes, `source` should be set to `KnowledgeSource.External`.
 
 Here is an example of how an event polling loop would be implemented using the knowledge processing pipeline:
 ```python
