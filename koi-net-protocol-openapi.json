@@ -216,12 +216,12 @@
       },
       "BundlesPayload": {
         "properties": {
-          "manifests": {
+          "bundles": {
             "items": {
               "$ref": "#/components/schemas/Bundle"
             },
             "type": "array",
-            "title": "Manifests"
+            "title": "Bundles"
           },
           "not_found": {
             "items": {
@@ -244,7 +244,7 @@
         },
         "type": "object",
         "required": [
-          "manifests"
+          "bundles"
         ],
         "title": "BundlesPayload"
       },
