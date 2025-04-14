@@ -25,12 +25,12 @@ class NetworkGraph:
         
     def generate(self):
         """Generates directed graph from cached KOI nodes and edges."""
-        logger.info("Generating network graph")
+        logger.debug("Generating network graph")
         self.dg.clear()
         for rid in self.cache.list_rids():
             if type(rid) == KoiNetNode:                
                 self.dg.add_node(rid)
-                logger.info(f"Added node {rid}")
+                logger.debug(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
                 edge_profile = self.get_edge_profile(rid)
@@ -38,8 +38,8 @@ class NetworkGraph:
                     logger.warning(f"Failed to load {rid!r}")
                     continue
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
-                logger.info(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
-        logger.info("Done")
+                logger.debug(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
+        logger.debug("Done")
         
     def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None:
         """Returns node profile given its RID."""

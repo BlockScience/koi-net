@@ -22,7 +22,7 @@ def basic_rid_handler(processor: ProcessorInterface, kobj: KnowledgeObject):
     """
     if (kobj.rid == processor.identity.rid and 
         kobj.source == KnowledgeSource.External):
-        logger.info("Don't let anyone else tell me who I am!")
+        logger.debug("Don't let anyone else tell me who I am!")
         return STOP_CHAIN
     
     if kobj.event_type == EventType.FORGET:
@@ -41,17 +41,17 @@ def basic_manifest_handler(processor: ProcessorInterface, kobj: KnowledgeObject)
 
     if prev_bundle:
         if kobj.manifest.sha256_hash == prev_bundle.manifest.sha256_hash:
-            logger.info("Hash of incoming manifest is same as existing knowledge, ignoring")
+            logger.debug("Hash of incoming manifest is same as existing knowledge, ignoring")
             return STOP_CHAIN
         if kobj.manifest.timestamp <= prev_bundle.manifest.timestamp:
-            logger.info("Timestamp of incoming manifest is the same or older than existing knowledge, ignoring")
+            logger.debug("Timestamp of incoming manifest is the same or older than existing knowledge, ignoring")
             return STOP_CHAIN
         
-        logger.info("RID previously known to me, labeling as 'UPDATE'")
+        logger.debug("RID previously known to me, labeling as 'UPDATE'")
         kobj.normalized_event_type = EventType.UPDATE
 
     else:
-        logger.info("RID previously unknown to me, labeling as 'NEW'")
+        logger.debug("RID previously unknown to me, labeling as 'NEW'")
         kobj.normalized_event_type = EventType.NEW
         
     return kobj
@@ -77,7 +77,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         if edge_profile.status != EdgeStatus.PROPOSED:
             return
         
-        logger.info("Handling edge negotiation")
+        logger.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
         peer_profile = processor.network.graph.get_node_profile(peer_rid)
@@ -96,11 +96,11 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         abort = False
         if (edge_profile.edge_type == EdgeType.WEBHOOK and 
             peer_profile.node_type == NodeType.PARTIAL):
-            logger.info("Partial nodes cannot use webhooks")
+            logger.debug("Partial nodes cannot use webhooks")
             abort = True
         
         if not set(edge_profile.rid_types).issubset(provided_events):
-            logger.info("Requested RID types not provided by this node")
+            logger.debug("Requested RID types not provided by this node")
             abort = True
         
         if abort:
@@ -110,16 +110,16 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
         else:
             # approve edge profile
-            logger.info("Approving proposed edge")
+            logger.debug("Approving proposed edge")
             edge_profile.status = EdgeStatus.APPROVED
             updated_bundle = Bundle.generate(kobj.rid, edge_profile.model_dump())
       
-            processor.handle(bundle=updated_bundle)
+            processor.handle(bundle=updated_bundle, event_type=EventType.UPDATE)
             return
               
     elif edge_profile.target == processor.identity.rid:
         if edge_profile.status == EdgeStatus.APPROVED:
-            logger.info("Edge approved by other node!")
+            logger.debug("Edge approved by other node!")
 
 
 # Network handlers
@@ -140,12 +140,12 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
             edge_profile = kobj.bundle.validate_contents(EdgeProfile)
             
             if edge_profile.source == processor.identity.rid:
-                logger.info(f"Adding edge target '{edge_profile.target!r}' to network targets")
+                logger.debug(f"Adding edge target '{edge_profile.target!r}' to network targets")
                 kobj.network_targets.update([edge_profile.target])
                 involves_me = True
                 
             elif edge_profile.target == processor.identity.rid:
-                logger.info(f"Adding edge source '{edge_profile.source!r}' to network targets")
+                logger.debug(f"Adding edge source '{edge_profile.source!r}' to network targets")
                 kobj.network_targets.update([edge_profile.source])
                 involves_me = True
     
@@ -156,7 +156,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
             allowed_type=type(kobj.rid)
         )
         
-        logger.info(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
+        logger.debug(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
         kobj.network_targets.update(subscribers)
         
     return kobj

@@ -101,12 +101,12 @@ class ProcessorInterface:
             if handler.event_types and kobj.event_type not in handler.event_types:
                 continue
             
-            logger.info(f"Calling {handler_type} handler '{handler.func.__name__}'")
+            logger.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
             resp = handler.func(self, kobj.model_copy())
             
             # stops handler chain execution
             if resp is STOP_CHAIN:
-                logger.info(f"Handler chain stopped by {handler.func.__name__}")
+                logger.debug(f"Handler chain stopped by {handler.func.__name__}")
                 return STOP_CHAIN
             # kobj unmodified
             elif resp is None:
@@ -114,7 +114,7 @@ class ProcessorInterface:
             # kobj modified by handler
             elif isinstance(resp, KnowledgeObject):
                 kobj = resp
-                logger.info(f"Knowledge object modified by {handler.func.__name__}")
+                logger.debug(f"Knowledge object modified by {handler.func.__name__}")
             else:
                 raise ValueError(f"Handler {handler.func.__name__} returned invalid response '{resp}'")
                     
@@ -134,34 +134,41 @@ class ProcessorInterface:
         The pipeline may be stopped by any point by a single handler returning the `STOP_CHAIN` sentinel. In that case, the process will exit immediately. Further handlers of that type and later handler chains will not be called.
         """
         
-        logger.info(f"Handling {kobj!r}")
+        logger.debug(f"Handling {kobj!r}")
         kobj = self.call_handler_chain(HandlerType.RID, kobj)
         if kobj is STOP_CHAIN: return
         
         if kobj.event_type == EventType.FORGET:
             bundle = self.cache.read(kobj.rid)
             if not bundle: 
-                logger.info("Local bundle not found")
+                logger.debug("Local bundle not found")
                 return
             
             # the bundle (to be deleted) attached to kobj for downstream analysis
-            logger.info("Adding local bundle (to be deleted) to knowledge object")
+            logger.debug("Adding local bundle (to be deleted) to knowledge object")
             kobj.manifest = bundle.manifest
             kobj.contents = bundle.contents
             
         else:
             # attempt to retrieve manifest
             if not kobj.manifest:
+                logger.debug("Manifest not found")
                 if kobj.source == KnowledgeSource.External:
-                    logger.info("Manifest not found, attempting to fetch remotely")
+                    logger.debug("Attempting to fetch remote manifest")
                     manifest = self.network.fetch_remote_manifest(kobj.rid)
-                    if not manifest: return
                     
                 elif kobj.source == KnowledgeSource.Internal:
-                    logger.info("Manifest not found, attempting to read cache")
+                    logger.debug("Attempting to read manifest from cache")
                     bundle = self.cache.read(kobj.rid)
-                    if not bundle: return
-                    manifest = bundle.manifest
+                    if bundle: 
+                        manifest = bundle.manifest
+                    else:
+                        manifest = None
+                        return
+                    
+                if not manifest:
+                    logger.debug("Failed to find manifest")
+                    return
                 
                 kobj.manifest = manifest
                 
@@ -170,19 +177,22 @@ class ProcessorInterface:
             
             # attempt to retrieve bundle
             if not kobj.bundle:
+                logger.debug("Bundle not found")
                 if kobj.source == KnowledgeSource.External:
-                    logger.info("Bundle not found, attempting to fetch")
+                    logger.debug("Attempting to fetch remote bundle")
                     bundle = self.network.fetch_remote_bundle(kobj.rid)
-                    # TODO: WARNING MANIFEST MAY BE DIFFERENT
                     
                 elif kobj.source == KnowledgeSource.Internal:
-                    logger.info("Bundle not found, attempting to read cache")
+                    logger.debug("Attempting to read bundle from cache")
                     bundle = self.cache.read(kobj.rid)
                 
                 if kobj.manifest != bundle.manifest:
                     logger.warning("Retrieved bundle contains a different manifest")
                 
-                if not bundle: return
+                if not bundle: 
+                    logger.debug("Failed to find bundle")
+                    return
+                
                 kobj.manifest = bundle.manifest
                 kobj.contents = bundle.contents                
                 
@@ -190,28 +200,28 @@ class ProcessorInterface:
         if kobj is STOP_CHAIN: return
             
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
-            logger.info(f"Writing {kobj!r} to cache")
+            logger.info(f"Writing to cache: {kobj!r}")
             self.cache.write(kobj.bundle)
             
         elif kobj.normalized_event_type == EventType.FORGET:
-            logger.info(f"Deleting {kobj!r} from cache")
+            logger.info(f"Deleting from cache: {kobj!r}")
             self.cache.delete(kobj.rid)
             
         else:
-            logger.info("Normalized event type was never set, no cache or network operations will occur")
+            logger.debug("Normalized event type was never set, no cache or network operations will occur")
             return
         
         if type(kobj.rid) in (KoiNetNode, KoiNetEdge):
-            logger.info("Change to node or edge, regenerating network graph")
+            logger.debug("Change to node or edge, regenerating network graph")
             self.network.graph.generate()
         
         kobj = self.call_handler_chain(HandlerType.Network, kobj)
         if kobj is STOP_CHAIN: return
         
         if kobj.network_targets:
-            logger.info(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
+            logger.debug(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
         else:
-            logger.info("No network targets set")
+            logger.debug("No network targets set")
         
         for node in kobj.network_targets:
             self.network.push_event_to(kobj.normalized_event, node, flush=True)
@@ -228,18 +238,25 @@ class ProcessorInterface:
         
         while not self.kobj_queue.empty():
             kobj = self.kobj_queue.get()
-            logger.info(f"Dequeued {kobj!r}")
-            self.process_kobj(kobj)
-            self.kobj_queue.task_done()
-            logger.info("Done handling")
+            logger.debug(f"Dequeued {kobj!r}")
+            
+            try:
+                self.process_kobj(kobj)
+            finally:
+                self.kobj_queue.task_done()
+            logger.debug("Done")
     
     def kobj_processor_worker(self, timeout=0.1):
         while True:
             try:
                 kobj = self.kobj_queue.get(timeout=timeout)
-                logger.info(f"Dequeued {kobj!r}")
-                self.process_kobj(kobj)
-                self.kobj_queue.task_done()
+                logger.debug(f"Dequeued {kobj!r}")
+                
+                try:
+                    self.process_kobj(kobj)
+                finally:
+                    self.kobj_queue.task_done()
+                logger.debug("Done")
             
             except queue.Empty:
                 pass
@@ -275,4 +292,4 @@ class ProcessorInterface:
             raise ValueError("One of 'rid', 'manifest', 'bundle', 'event', or 'kobj' must be provided")
         
         self.kobj_queue.put(_kobj)
-        logger.info(f"Queued {_kobj!r}")
+        logger.debug(f"Queued {_kobj!r}")

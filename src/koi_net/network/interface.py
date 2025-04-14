@@ -100,7 +100,7 @@ class NetworkInterface:
         
         Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
         """
-        logger.info(f"Pushing event {event.event_type} {event.rid} to {node}")
+        logger.debug(f"Pushing event {event.event_type} {event.rid} to {node}")
             
         node_profile = self.graph.get_node_profile(node)
         if not node_profile:
@@ -136,14 +136,14 @@ class NetworkInterface:
         if queue:
             while not queue.empty():
                 event = queue.get()
-                logger.info(f"Dequeued {event.event_type} '{event.rid}'")
+                logger.debug(f"Dequeued {event.event_type} '{event.rid}'")
                 events.append(event)
         
         return events
     
     def flush_poll_queue(self, node: KoiNetNode) -> list[Event]:
         """Flushes a node's poll queue, returning list of events."""
-        logger.info(f"Flushing poll queue for {node}")
+        logger.debug(f"Flushing poll queue for {node}")
         return self._flush_queue(self.poll_event_queue, node)
     
     def flush_webhook_queue(self, node: KoiNetNode):
@@ -152,7 +152,7 @@ class NetworkInterface:
         If node profile is unknown, or node type is not `FULL`, this operation will fail silently. If the remote node cannot be reached, all events will be requeued.
         """
         
-        logger.info(f"Flushing webhook queue for {node}")
+        logger.debug(f"Flushing webhook queue for {node}")
         
         node_profile = self.graph.get_node_profile(node)
         
@@ -167,7 +167,7 @@ class NetworkInterface:
         events = self._flush_queue(self.webhook_event_queue, node)
         if not events: return
         
-        logger.info(f"Broadcasting {len(events)} events")
+        logger.debug(f"Broadcasting {len(events)} events")
         
         try:  
             self.request_handler.broadcast_events(node, events=events)
@@ -179,23 +179,23 @@ class NetworkInterface:
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for the specified RID type."""
         
-        logger.info(f"Looking for state providers of '{rid_type}'")
+        logger.debug(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
             node = self.graph.get_node_profile(node_rid)
                         
             if node.node_type == NodeType.FULL and rid_type in node.provides.state:
-                logger.info(f"Found provider '{node_rid}'")
+                logger.debug(f"Found provider '{node_rid}'")
                 provider_nodes.append(node_rid)
         
         if not provider_nodes:
-            logger.info("Failed to find providers")
+            logger.debug("Failed to find providers")
         return provider_nodes
             
     def fetch_remote_bundle(self, rid: RID):
         """Attempts to fetch a bundle by RID from known peer nodes."""
         
-        logger.info(f"Fetching remote bundle '{rid}'")
+        logger.debug(f"Fetching remote bundle '{rid}'")
         remote_bundle = None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_bundles(
@@ -203,7 +203,7 @@ class NetworkInterface:
             
             if payload.bundles:
                 remote_bundle = payload.bundles[0]
-                logger.info(f"Got bundle from '{node_rid}'")
+                logger.debug(f"Got bundle from '{node_rid}'")
                 break
         
         if not remote_bundle:
@@ -214,7 +214,7 @@ class NetworkInterface:
     def fetch_remote_manifest(self, rid: RID):
         """Attempts to fetch a manifest by RID from known peer nodes."""
         
-        logger.info(f"Fetching remote manifest '{rid}'")
+        logger.debug(f"Fetching remote manifest '{rid}'")
         remote_manifest = None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_manifests(
@@ -222,7 +222,7 @@ class NetworkInterface:
             
             if payload.manifests:
                 remote_manifest = payload.manifests[0]
-                logger.info(f"Got bundle from '{node_rid}'")
+                logger.debug(f"Got bundle from '{node_rid}'")
                 break
         
         if not remote_manifest:
@@ -239,17 +239,17 @@ class NetworkInterface:
         neighbors = self.graph.get_neighbors()
         
         if not neighbors and self.first_contact:
-            logger.info("No neighbors found, polling first contact")
+            logger.debug("No neighbors found, polling first contact")
             try:
                 payload = self.request_handler.poll_events(
                     url=self.first_contact, 
                     rid=self.identity.rid
                 )
                 if payload.events:
-                    logger.info(f"Received {len(payload.events)} events from '{self.first_contact}'")
+                    logger.debug(f"Received {len(payload.events)} events from '{self.first_contact}'")
                 return payload.events
             except httpx.ConnectError:
-                logger.info(f"Failed to reach first contact '{self.first_contact}'")
+                logger.debug(f"Failed to reach first contact '{self.first_contact}'")
         
         events = []
         for node_rid in neighbors:
@@ -263,10 +263,10 @@ class NetworkInterface:
                     rid=self.identity.rid
                 )
                 if payload.events:
-                    logger.info(f"Received {len(payload.events)} events from {node_rid!r}")
+                    logger.debug(f"Received {len(payload.events)} events from {node_rid!r}")
                 events.extend(payload.events)
             except httpx.ConnectError:
-                logger.info(f"Failed to reach node '{node_rid}'")
+                logger.debug(f"Failed to reach node '{node_rid}'")
                 continue
             
         return events                

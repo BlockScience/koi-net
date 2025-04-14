@@ -15,6 +15,9 @@ class Event(BaseModel):
     manifest: Manifest | None = None
     contents: dict | None = None
     
+    def __repr__(self):
+        return f"<Event '{self.rid}' event type: '{self.event_type}'>"
+    
     @classmethod
     def from_bundle(cls, event_type: EventType, bundle: Bundle):
         return cls(

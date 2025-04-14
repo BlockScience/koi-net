@@ -84,15 +84,15 @@ class NodeInterface:
             )
         )
         
-        logger.info("Waiting for kobj queue to empty")
+        logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:
             self.processor.kobj_queue.join()
         else:
             self.processor.flush_kobj_queue()
-        logger.info("Done")
+        logger.debug("Done")
     
         if not self.network.graph.get_neighbors() and self.first_contact:
-            logger.info(f"I don't have any neighbors, reaching out to first contact {self.first_contact}")
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.first_contact}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
@@ -106,7 +106,7 @@ class NodeInterface:
                 )
                 
             except httpx.ConnectError:
-                logger.info("Failed to reach first contact")
+                logger.warning("Failed to reach first contact")
                 return
             
                         
@@ -118,7 +118,7 @@ class NodeInterface:
         logger.info("Stopping node...")
         
         if self.use_kobj_processor_thread:
-            logger.info("Waiting for kobj queue to empty")
+            logger.info(f"Waiting for kobj queue to empty ({self.processor.kobj_queue.unfinished_tasks} tasks remaining)")
             self.processor.kobj_queue.join()
         else:
             self.processor.flush_kobj_queue()

@@ -1,6 +1,5 @@
 import logging
 import httpx
-from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
@@ -46,7 +45,7 @@ class RequestHandler:
         request: RequestModels,
         response_model: type[ResponseModels] | None = None
     ) -> ResponseModels | None:
-        logger.info(f"Making request to {url}")
+        logger.debug(f"Making request to {url}")
         resp = httpx.post(
             url=url,
             data=request.model_dump_json()
@@ -66,7 +65,7 @@ class RequestHandler:
                 raise Exception("Node not found")
             if node_profile.node_type != NodeType.FULL:
                 raise Exception("Can't query partial node")
-            logger.info(f"Resolved {node_rid!r} to {node_profile.base_url}")
+            logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
             return node_profile.base_url
         else:
             return url
@@ -79,10 +78,11 @@ class RequestHandler:
         **kwargs
     ) -> None:
         """See protocol.api_models.EventsPayload for available kwargs."""
+        request = req or EventsPayload.model_validate(kwargs)
         self.make_request(
-            self.get_url(node, url) + BROADCAST_EVENTS_PATH,
-            req or EventsPayload.model_validate(kwargs)
+            self.get_url(node, url) + BROADCAST_EVENTS_PATH, request
         )
+        logger.info(f"Broadcasted {len(request.events)} event(s) to {node or url!r}")
         
     def poll_events(
         self, 
@@ -92,12 +92,14 @@ class RequestHandler:
         **kwargs
     ) -> EventsPayload:
         """See protocol.api_models.PollEvents for available kwargs."""
-        return self.make_request(
-            self.get_url(node, url) + POLL_EVENTS_PATH,
-            req or PollEvents.model_validate(kwargs),
+        request = req or PollEvents.model_validate(kwargs)
+        resp = self.make_request(
+            self.get_url(node, url) + POLL_EVENTS_PATH, request,
             response_model=EventsPayload
         )
-            
+        logger.info(f"Polled {len(resp.events)} events from {node or url!r}")
+        return resp
+        
     def fetch_rids(
         self, 
         node: RID = None, 
@@ -106,11 +108,13 @@ class RequestHandler:
         **kwargs
     ) -> RidsPayload:
         """See protocol.api_models.FetchRids for available kwargs."""
-        return self.make_request(
-            self.get_url(node, url) + FETCH_RIDS_PATH,
-            req or FetchRids.model_validate(kwargs),
+        request = req or FetchRids.model_validate(kwargs)
+        resp = self.make_request(
+            self.get_url(node, url) + FETCH_RIDS_PATH, request,
             response_model=RidsPayload
         )
+        logger.info(f"Fetched {len(resp.rids)} RID(s) from {node or url!r}")
+        return resp
                 
     def fetch_manifests(
         self, 
@@ -120,11 +124,13 @@ class RequestHandler:
         **kwargs
     ) -> ManifestsPayload:
         """See protocol.api_models.FetchManifests for available kwargs."""
-        return self.make_request(
-            self.get_url(node, url) + FETCH_MANIFESTS_PATH,
-            req or FetchManifests.model_validate(kwargs),
+        request = req or FetchManifests.model_validate(kwargs)
+        resp = self.make_request(
+            self.get_url(node, url) + FETCH_MANIFESTS_PATH, request,
             response_model=ManifestsPayload
         )
+        logger.info(f"Fetched {len(resp.manifests)} manifest(s) from {node or url!r}")
+        return resp
                 
     def fetch_bundles(
         self, 
@@ -134,8 +140,10 @@ class RequestHandler:
         **kwargs
     ) -> BundlesPayload:
         """See protocol.api_models.FetchBundles for available kwargs."""
-        return self.make_request(
-            self.get_url(node, url) + FETCH_BUNDLES_PATH,
-            req or FetchBundles.model_validate(kwargs),
+        request = req or FetchBundles.model_validate(kwargs)
+        resp = self.make_request(
+            self.get_url(node, url) + FETCH_BUNDLES_PATH, request,
             response_model=BundlesPayload
         )
+        logger.info(f"Fetched {len(resp.bundles)} bundle(s) from {node or url!r}")
+        return resp
