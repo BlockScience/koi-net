@@ -76,7 +76,9 @@ The request and payload JSON objects are composed of the fundamental "knowledge 
 }
 ```
 
-This means that events are essentially just an RID, manifest, or bundle with an event type attached. Event types can be one of `"FORGET"`, `"UPDATE"`, or `"NEW"` forming the "FUN" acronym. While these types roughly correspond to delete, update, and create from CRUD operations, but they are not commands, they are signals. A node emits an event to indicate that its internal state has changed:
+An event is a signalling construct that conveys information about RID objects between networked nodes. Events are composed of an RID, manifest, or bundle with an event type attached. Event types can be one of `"FORGET"`, `"UPDATE"`, or `"NEW"` forming the "FUN" acronym. 
+
+As opposed to CRUD (create, read, update, delete), events are a series of messages, not operations. Each node has its own autonomy in deciding how to react based on the message it receives. For example, a processor node may receive a `"NEW"` event for an RID object its not interested in, and ignore it. Or it may decide that an `"UPDATE"` event should trigger fetching a bundle from another node. A node emits an event to indicate that its internal state has changed:
 - `"NEW"` - indicates an previously unknown RID was cached
 - `"UPDATE"` - indicates a previously known RID was cached
 - `"FORGET"` - indicates a previously known RID was deleted
