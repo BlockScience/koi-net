@@ -186,12 +186,12 @@ class ProcessorInterface:
                     logger.debug("Attempting to read bundle from cache")
                     bundle = self.cache.read(kobj.rid)
                 
-                if kobj.manifest != bundle.manifest:
-                    logger.warning("Retrieved bundle contains a different manifest")
-                
                 if not bundle: 
                     logger.debug("Failed to find bundle")
                     return
+                
+                if kobj.manifest != bundle.manifest:
+                    logger.warning("Retrieved bundle contains a different manifest")
                 
                 kobj.manifest = bundle.manifest
                 kobj.contents = bundle.contents                
@@ -224,7 +224,10 @@ class ProcessorInterface:
             logger.debug("No network targets set")
         
         for node in kobj.network_targets:
-            self.network.push_event_to(kobj.normalized_event, node, flush=True)
+            self.network.push_event_to(kobj.normalized_event, node)
+            if not self.network.flush_webhook_queue(node):
+                logger.warning("Dropping unresponsive node")
+                self.handle(rid=node, event_type=EventType.FORGET)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
 
