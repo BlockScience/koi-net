@@ -50,7 +50,7 @@ class NodeInterface:
         )
         
         # pull all handlers defined in default_handlers module
-        if not handlers:
+        if handlers is None:
             handlers = [
                 obj for obj in vars(default_handlers).values() 
                 if isinstance(obj, KnowledgeHandler)
