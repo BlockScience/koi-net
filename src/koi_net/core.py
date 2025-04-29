@@ -1,4 +1,5 @@
 import logging
+from typing import Generic
 import httpx
 from rid_lib.ext import Cache, Bundle
 from .network import NetworkInterface
@@ -6,45 +7,43 @@ from .processor import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
-from .protocol.node import NodeProfile
 from .protocol.event import Event, EventType
+from .config import ConfigType
 
 logger = logging.getLogger(__name__)
 
 
-class NodeInterface:
+
+class NodeInterface(Generic[ConfigType]):
+    config: ConfigType
     cache: Cache
     identity: NodeIdentity
     network: NetworkInterface
     processor: ProcessorInterface
-    first_contact: str
+    
     use_kobj_processor_thread: bool
     
     def __init__(
         self, 
-        name: str,
-        profile: NodeProfile,
-        identity_file_path: str = "identity.json",
-        event_queues_file_path: str = "event_queues.json",
-        cache_directory_path: str = "rid_cache",
+        config: ConfigType,
         use_kobj_processor_thread: bool = False,
-        first_contact: str | None = None,
+        
         handlers: list[KnowledgeHandler] | None = None,
+        
         cache: Cache | None = None,
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
     ):
-        self.cache = cache or Cache(cache_directory_path)
+        self.config: ConfigType = config
+        self.cache = cache or Cache(
+            self.config.koi_net.cache_directory_path)
+        
         self.identity = NodeIdentity(
-            name=name,
-            profile=profile,
-            cache=self.cache,
-            file_path=identity_file_path
-        )
-        self.first_contact = first_contact
+            config=self.config,
+            cache=self.cache)
+        
         self.network = network or NetworkInterface(
-            file_path=event_queues_file_path, 
-            first_contact=self.first_contact,
+            config=self.config,
             cache=self.cache, 
             identity=self.identity
         )
@@ -58,13 +57,14 @@ class NodeInterface:
 
         self.use_kobj_processor_thread = use_kobj_processor_thread
         self.processor = processor or ProcessorInterface(
+            config=self.config,
             cache=self.cache, 
             network=self.network, 
             identity=self.identity, 
             use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
         )
-    
+            
     def start(self) -> None:
         """Starts a node, call this method first.
         
@@ -91,8 +91,8 @@ class NodeInterface:
             self.processor.flush_kobj_queue()
         logger.debug("Done")
     
-        if not self.network.graph.get_neighbors() and self.first_contact:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.first_contact}")
+        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact:
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
@@ -101,7 +101,7 @@ class NodeInterface:
             
             try:
                 self.network.request_handler.broadcast_events(
-                    url=self.first_contact,
+                    url=self.config.koi_net.first_contact,
                     events=events
                 )
                 
