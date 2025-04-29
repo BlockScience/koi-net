@@ -1,11 +1,13 @@
 import logging
 from queue import Queue
+from typing import Generic
 import httpx
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
+
 from .graph import NetworkGraph
 from .request_handler import RequestHandler
 from .response_handler import ResponseHandler
@@ -13,6 +15,7 @@ from ..protocol.node import NodeType
 from ..protocol.edge import EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
+from ..config import Config, ConfigType
 
 logger = logging.getLogger(__name__)
 
@@ -23,33 +26,30 @@ class EventQueueModel(BaseModel):
 
 type EventQueue = dict[RID, Queue[Event]]
 
-class NetworkInterface:
+class NetworkInterface(Generic[ConfigType]):
     """A collection of functions and classes to interact with the KOI network."""
     
+    config: ConfigType    
     identity: NodeIdentity
     cache: Cache
-    first_contact: str | None
     graph: NetworkGraph
     request_handler: RequestHandler
     response_handler: ResponseHandler
     poll_event_queue: EventQueue
     webhook_event_queue: EventQueue
-    event_queues_file_path: str
     
     def __init__(
         self, 
-        file_path: str,
-        first_contact: str | None,
+        config: ConfigType,
         cache: Cache, 
         identity: NodeIdentity
     ):
+        self.config = config
         self.identity = identity
         self.cache = cache
-        self.first_contact = first_contact
         self.graph = NetworkGraph(cache, identity)
         self.request_handler = RequestHandler(cache, self.graph)
         self.response_handler = ResponseHandler(cache)
-        self.event_queues_file_path = file_path
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
@@ -58,7 +58,7 @@ class NetworkInterface:
     def _load_event_queues(self):
         """Loads event queues from storage."""
         try:
-            with open(self.event_queues_file_path, "r") as f:
+            with open(self.config.koi_net.event_queues_path, "r") as f:
                 queues = EventQueueModel.model_validate_json(f.read())
             
             for node in queues.poll.keys():
@@ -92,7 +92,7 @@ class NetworkInterface:
         if len(events_model.poll) == 0 and len(events_model.webhook) == 0:
             return
         
-        with open(self.event_queues_file_path, "w") as f:
+        with open(self.config.koi_net.event_queues_path, "w") as f:
             f.write(events_model.model_dump_json(indent=2))
     
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
@@ -171,10 +171,12 @@ class NetworkInterface:
         
         try:  
             self.request_handler.broadcast_events(node, events=events)
+            return True
         except httpx.ConnectError:
-            logger.warning("Broadcast failed, requeuing events")
+            logger.warning("Broadcast failed, dropping node")
             for event in events:
                 self.push_event_to(event, node)
+            return False
             
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for the specified RID type."""
@@ -238,18 +240,18 @@ class NetworkInterface:
         
         neighbors = self.graph.get_neighbors()
         
-        if not neighbors and self.first_contact:
+        if not neighbors and self.config.koi_net.first_contact:
             logger.debug("No neighbors found, polling first contact")
             try:
                 payload = self.request_handler.poll_events(
-                    url=self.first_contact, 
+                    url=self.config.koi_net.first_contact, 
                     rid=self.identity.rid
                 )
                 if payload.events:
-                    logger.debug(f"Received {len(payload.events)} events from '{self.first_contact}'")
+                    logger.debug(f"Received {len(payload.events)} events from '{self.config.koi_net.first_contact}'")
                 return payload.events
             except httpx.ConnectError:
-                logger.debug(f"Failed to reach first contact '{self.first_contact}'")
+                logger.debug(f"Failed to reach first contact '{self.config.koi_net.first_contact}'")
         
         events = []
         for node_rid in neighbors:

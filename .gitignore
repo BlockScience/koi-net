@@ -2,6 +2,7 @@ rid-lib
 __pycache__
 *.json
 venv
+.env
 prototypes
 .vscode
 dist/

@@ -1,7 +1,7 @@
 import logging
 import queue
 import threading
-from typing import Callable
+from typing import Callable, Generic
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
 from rid_lib.types.koi_net_edge import KoiNetEdge
@@ -9,6 +9,7 @@ from rid_lib.types.koi_net_node import KoiNetNode
 from ..identity import NodeIdentity
 from ..network import NetworkInterface
 from ..protocol.event import Event, EventType
+from ..config import Config
 from .handler import (
     KnowledgeHandler, 
     HandlerType, 
@@ -24,9 +25,10 @@ from .knowledge_object import (
 logger = logging.getLogger(__name__)
 
 
-class ProcessorInterface:
+class ProcessorInterface():
     """Provides access to this node's knowledge processing pipeline."""
     
+    config: Config
     cache: Cache
     network: NetworkInterface
     identity: NodeIdentity
@@ -36,13 +38,15 @@ class ProcessorInterface:
     worker_thread: threading.Thread | None = None
     
     def __init__(
-        self, 
+        self,
+        config: Config,
         cache: Cache, 
         network: NetworkInterface,
         identity: NodeIdentity,
         use_kobj_processor_thread: bool,
         default_handlers: list[KnowledgeHandler] = []
     ):
+        self.config = config
         self.cache = cache
         self.network = network
         self.identity = identity
