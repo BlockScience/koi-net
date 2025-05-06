@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 class ServerConfig(BaseModel):
     host: str | None = "127.0.0.1"
     port: int | None = 8000
-    path: str | None = None
+    path: str | None = "/koi-net"
     
     @property
     def url(self):

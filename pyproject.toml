@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "koi-net"
-version = "1.0.0-beta.13"
+version = "1.0.0-beta.14"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
@@ -13,10 +13,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 dependencies = [
-    "rid-lib>=3.2.1",
+    "rid-lib>=3.2.3",
     "networkx>=3.4.2",
     "httpx>=0.28.1",
-    "pydantic>=2.10.6"
+    "pydantic>=2.10.6",
+    "ruamel.yaml>=0.18.10",
+    "python-dotenv>=1.1.0"
 ]
 
 [project.optional-dependencies]
