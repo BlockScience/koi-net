@@ -15,7 +15,7 @@ from ..protocol.node import NodeType
 from ..protocol.edge import EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
-from ..config import Config, ConfigType
+from ..config import ConfigType
 
 logger = logging.getLogger(__name__)
 

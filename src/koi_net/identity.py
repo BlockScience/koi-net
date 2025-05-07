@@ -3,7 +3,7 @@ from rid_lib.ext.bundle import Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
-from .config import Config
+from .config import NodeConfig
 from .protocol.node import NodeProfile
 
 logger = logging.getLogger(__name__)
@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 class NodeIdentity:
     """Represents a node's identity (RID, profile, bundle)."""
     
-    config: Config    
+    config: NodeConfig    
     cache: Cache
     
     def __init__(
         self,
-        config: Config,
+        config: NodeConfig,
         cache: Cache
     ):
         """Initializes node identity from a name and profile.

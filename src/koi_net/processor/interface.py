@@ -9,7 +9,7 @@ from rid_lib.types.koi_net_node import KoiNetNode
 from ..identity import NodeIdentity
 from ..network import NetworkInterface
 from ..protocol.event import Event, EventType
-from ..config import Config
+from ..config import NodeConfig
 from .handler import (
     KnowledgeHandler, 
     HandlerType, 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class ProcessorInterface():
     """Provides access to this node's knowledge processing pipeline."""
     
-    config: Config
+    config: NodeConfig
     cache: Cache
     network: NetworkInterface
     identity: NodeIdentity
@@ -39,7 +39,7 @@ class ProcessorInterface():
     
     def __init__(
         self,
-        config: Config,
+        config: NodeConfig,
         cache: Cache, 
         network: NetworkInterface,
         identity: NodeIdentity,
