@@ -40,7 +40,7 @@ class EnvConfig(BaseModel):
             return env_val
         return value
 
-class Config(BaseModel):
+class NodeConfig(BaseModel):
     server: ServerConfig | None = Field(default_factory=ServerConfig)
     koi_net: KoiNetConfig
     _file_path: str = PrivateAttr(default="config.yaml")
@@ -49,7 +49,7 @@ class Config(BaseModel):
     @classmethod
     def load_from_yaml(
         cls, 
-        file_path: str | None = None, 
+        file_path: str = "config.yaml", 
         generate_missing: bool = True
     ):
         yaml = YAML()
@@ -62,7 +62,13 @@ class Config(BaseModel):
             config._file_content = file_content
             
         except FileNotFoundError:
+            # empty_fields = {}
+            # for name, field in cls.model_fields.items():
+                
+            #     if field.default is None or field.default_factory is None:
+            # print(empty_fields)
             config = cls()
+            
             
         config._file_path = file_path
         
@@ -92,4 +98,4 @@ class Config(BaseModel):
                     f.write(self._file_content)
                 raise e
                 
-ConfigType = TypeVar("ConfigType", bound=Config)
+ConfigType = TypeVar("ConfigType", bound=NodeConfig)
