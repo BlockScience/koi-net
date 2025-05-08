@@ -173,7 +173,7 @@ class NetworkInterface(Generic[ConfigType]):
             self.request_handler.broadcast_events(node, events=events)
             return True
         except httpx.ConnectError:
-            logger.warning("Broadcast failed, dropping node")
+            logger.warning("Broadcast failed")
             for event in events:
                 self.push_event_to(event, node)
             return False

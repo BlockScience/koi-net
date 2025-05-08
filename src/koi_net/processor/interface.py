@@ -229,9 +229,7 @@ class ProcessorInterface():
         
         for node in kobj.network_targets:
             self.network.push_event_to(kobj.normalized_event, node)
-            if not self.network.flush_webhook_queue(node):
-                logger.warning("Dropping unresponsive node")
-                self.handle(rid=node, event_type=EventType.FORGET)
+            self.network.flush_webhook_queue(node)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
 
