@@ -212,7 +212,7 @@
           "contents"
         ],
         "title": "Bundle",
-        "description": "A Knowledge Bundle composed of a manifest and optional contents associated with an RIDed object.\n\nA container object for the cached data associated with an RID. It is \nreturned by the read function of Cache."
+        "description": "A knowledge bundle composed of a manifest and contents associated with an RIDed object.\n\nActs as a container for the data associated with an RID. It is written to and read from the cache."
       },
       "BundlesPayload": {
         "properties": {
@@ -420,7 +420,8 @@
           "timestamp",
           "sha256_hash"
         ],
-        "title": "Manifest"
+        "title": "Manifest",
+        "description": "A portable descriptor of a data object associated with an RID.\n\nComposed of an RID, timestamp, and sha256 hash of the data object."
       },
       "ManifestsPayload": {
         "properties": {
