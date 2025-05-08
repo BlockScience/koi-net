@@ -106,36 +106,56 @@ Your first decision will be whether to setup a partial or full node:
 - Partial nodes only need to indicate their type, and optionally the RID types of events they provide.
 - Full nodes need to indicate their type, the base URL for their KOI-net API, and optionally the RID types of events and state they provide.
 
+Nodes are configured using the provided `NodeConfig` class. Defaults can be set as shown below, and will automatically load from and save to YAML files. See the `koi_net.config` module for more info.
+
 ### Partial Node
 ```python
 from koi_net import NodeInterface
 from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
+from koi_net.config import NodeConfig, KoiNetConfig
 
-node = NodeInterface(
-    name="mypartialnode",
-    profile=NodeProfile(
-        node_type=NodeType.PARTIAL,
-        provides=NodeProvides(
-            event=[]
+class CoordinatorNodeConfig(NodeConfig):
+    koi_net: KoiNetConfig | None = Field(default_factory = lambda:
+        KoiNetConfig(
+            node_name="coordinator",
+            node_profile=NodeProfile(
+                node_type=NodeType.FULL
+            ),
+            cache_directory_path=".basic_partial_rid_cache",
+            event_queues_path="basic_partial_event_queues.json",
+            first_contact="http://127.0.0.1:8000/koi-net"
         )
     )
+
+
+node = NodeInterface(
+    config=CoordinatorNodeConfig.load_from_yaml("basical_partial_config.yaml")
 )
 ```
 ### Full Node
 ```python
 from koi_net import NodeInterface
 from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
+from koi_net.config import NodeConfig, KoiNetConfig
+
+class CoordinatorNodeConfig(NodeConfig):
+    koi_net: KoiNetConfig | None = Field(default_factory = lambda:
+        KoiNetConfig(
+            node_name="coordinator",
+            node_profile=NodeProfile(
+                node_type=NodeType.FULL,
+                provides=NodeProvides(
+                    event=[KoiNetNode, KoiNetEdge],
+                    state=[KoiNetNode, KoiNetEdge]
+                )
+            ),
+            cache_directory_path=".coordinator_rid_cache",
+            event_queues_path="coordinator_event_queues.json"
+        )
+    )
 
 node = NodeInterface(
-    name="myfullnode",
-    profile=NodeProfile(
-        base_url="http://127.0.0.1:8000",
-        node_type=NodeType.FULL,
-        provides=NodeProvides(
-            event=[],
-            state=[]
-        )
-    ),
+    config=CoordinatorNodeConfig.load_from_yaml("coordinator_config.yaml"),
     use_kobj_processor_thread=True
 )
 ```
@@ -358,6 +378,7 @@ The default configuration provides four default handlers which will take precede
 ```python
 from koi_net import NodeInterface
 from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
+from koi_net.config import NodeConfig
 from koi_net.processor.default_handlers import (
     basic_rid_handler,
     basic_manifest_handler,
@@ -366,13 +387,7 @@ from koi_net.processor.default_handlers import (
 )
 
 node = NodeInterface(
-    name="mypartialnode",
-    profile=NodeProfile(
-        node_type=NodeType.PARTIAL,
-        provides=NodeProvides(
-            event=[]
-        )
-    ),
+    config=NodeConfig.load_from_yaml(),
     handlers=[
         basic_rid_handler,
         basic_manifest_handler,
@@ -393,23 +408,21 @@ This section provides high level explanations of the Python implementation. More
 The node class mostly acts as a container for other classes with more specialized behavior, with special functions that should be called to start up and shut down a node. We'll take a look at each of these components in turn, but here is the class stub:
 ```python
 class NodeInterface:
+    config: ConfigType
     cache: Cache
     identity: NodeIdentity
     network: NetworkInterface
     processor: ProcessorInterface
-    first_contact: str
+    
     use_kobj_processor_thread: bool
-
+    
     def __init__(
         self, 
-        name: str,
-        profile: NodeProfile,
-        identity_file_path: str = "identity.json",
-        event_queues_file_path: str = "event_queues.json",
-        cache_directory_path: str = "rid_cache",
+        config: ConfigType,
         use_kobj_processor_thread: bool = False,
-        first_contact: str | None = None,
+        
         handlers: list[KnowledgeHandler] | None = None,
+        
         cache: Cache | None = None,
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
