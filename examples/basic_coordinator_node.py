@@ -1,11 +1,13 @@
 import json
 import logging
+from pydantic import Field
 import uvicorn
 from contextlib import asynccontextmanager
 from rich.logging import RichHandler
 from fastapi import FastAPI
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
+from koi_net.config import NodeConfig, KoiNetConfig
 from koi_net.processor.handler import HandlerType
 from koi_net.processor.knowledge_object import KnowledgeObject, KnowledgeSource
 from koi_net.protocol.edge import EdgeType
@@ -41,22 +43,26 @@ logging.basicConfig(
 
 logging.getLogger("koi_net").setLevel(logging.DEBUG)
 
-port = 8000
+
+class CoordinatorNodeConfig(NodeConfig):
+    koi_net: KoiNetConfig | None = Field(default_factory = lambda:
+        KoiNetConfig(
+            node_name="coordinator",
+            node_profile=NodeProfile(
+                node_type=NodeType.FULL,
+                provides=NodeProvides(
+                    event=[KoiNetNode, KoiNetEdge],
+                    state=[KoiNetNode, KoiNetEdge]
+                )
+            ),
+            cache_directory_path=".coordinator_rid_cache",
+            event_queues_path="coordinator_event_queues.json"
+        )
+    )
 
 node = NodeInterface(
-    name="coordinator",
-    profile=NodeProfile(
-        base_url=f"http://127.0.0.1:{port}/koi-net",
-        node_type=NodeType.FULL,
-        provides=NodeProvides(
-            event=[KoiNetNode, KoiNetEdge],
-            state=[KoiNetNode, KoiNetEdge]
-        )
-    ),
-    use_kobj_processor_thread=True,
-    cache_directory_path="coordinator_node_rid_cache",
-    event_queues_file_path="coordinator_node_event_queus.json",
-    identity_file_path="coordinator_node_identity.json",
+    config=CoordinatorNodeConfig.load_from_yaml("coordinator_config.yaml"),
+    use_kobj_processor_thread=True
 )
 
 
@@ -132,4 +138,4 @@ if __name__ == "__main__":
     with open("koi-net-protocol-openapi.json", "w") as f:
         json.dump(openapi_spec, f, indent=2)
     
-    uvicorn.run("examples.basic_coordinator_node:app", port=port)
+    uvicorn.run("examples.basic_coordinator_node:app", port=node.config.server.port)
