@@ -431,7 +431,58 @@ class NodeInterface:
     def start(self): ...
     def stop(self): ...
 ```
-As you can see, only a name and profile are required. The other fields allow for additional customization if needed.
+As you can see, only a node config is required, all other fields are optional.
+
+## Node Config
+
+The node config class is a mix of configuration groups providing basic shared behavior across nodes through a standard interface. The class is implemented as Pydantic model, but provides functions to load from and save to a YAML file, the expected format within a node repo.
+
+```python
+class ServerConfig(BaseModel):
+    host: str | None = "127.0.0.1"
+    port: int | None = 8000
+    path: str | None = "/koi-net"
+    
+    @property
+    def url(self) -> str: ...
+
+class KoiNetConfig(BaseModel):
+    node_name: str
+    node_rid: KoiNetNode | None = None
+    node_profile: NodeProfile
+    
+    cache_directory_path: str | None = ".rid_cache"
+    event_queues_path: str | None = "event_queues.json"
+
+    first_contact: str | None = None
+
+class EnvConfig(BaseModel):
+    ...
+
+class NodeConfig(BaseModel):
+    server: ServerConfig | None = Field(default_factory=ServerConfig)
+    koi_net: KoiNetConfig
+
+    @classmethod
+    def load_from_yaml(
+        cls, 
+        file_path: str = "config.yaml", 
+        generate_missing: bool = True
+    ): ...
+    
+    def save_to_yaml(self): ...
+```
+
+Nodes are expected to create new node config classes inheriting from `NodeConfig`. You may want to set a default KoiNetConfig (see examples) to allow for a default config to be generated if not provided by the user. Environment variables can be handled by inheriting from the `EnvConfig` class and adding new string fields. The value of this field should be equivalent to the environment variable name, for example:
+
+```python
+class SlackEnvConfig(EnvConfig):
+    slack_bot_token: str | None = "SLACK_BOT_TOKEN"
+    slack_signing_secret: str | None = "SLACK_SIGNING_SECRET"
+    slack_app_token: str | None = "SLACK_APP_TOKEN"
+```
+
+This special config class will automatically load in the variables from the current environment, or local `.env` file. Beyond these base config classes, you are free to add your own config groups. See `config.py` in the [koi-net-slack-sensor-node](https://github.com/BlockScience/koi-net-slack-sensor-node/blob/main/slack_sensor_node/config.py) repo for a more complete example.
 
 ## Node Identity
 The `NodeIdentity` class provides easy access to a node's own RID, profile, and bundle. It provides access to the following properties after initialization, accessed with `node.identity`.
@@ -441,7 +492,7 @@ class NodeIdentity:
     profile: NodeProfile
     bundle: Bundle
 ```
-This it what is initialized from the required `name` and `profile` fields in the `NodeInterface` constructor. Node RIDs take the form of `orn:koi-net.node:<name>+<uuid>`, and are generated on first use to the identity JSON file along with a the node profile.
+This it what is initialized from the required `name` and `profile` fields in the `NodeConfig` class. Node RIDs take the form of `orn:koi-net.node:<name>+<uuid>`, and are generated on first use to the identity JSON file along with a the node profile.
 
 ## Network Interface
 The `NetworkInterface` class provides access to high level network actions, and contains several other network related classes. It is accessed with `node.network`.

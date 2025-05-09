@@ -13,7 +13,7 @@ class ServerConfig(BaseModel):
     path: str | None = "/koi-net"
     
     @property
-    def url(self):
+    def url(self) -> str:
         return f"http://{self.host}:{self.port}{self.path or ''}"
 
 class KoiNetConfig(BaseModel):
