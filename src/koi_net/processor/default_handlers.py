@@ -134,6 +134,10 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
     if KoiNetNode not in node_profile.provides.event:
         return
     
+    # prevents coordinators from attempting to form a self loop
+    if kobj.rid == processor.identity.rid:
+        return
+    
     # already have an edge established
     if processor.network.graph.get_edge_profile(
         source=kobj.rid,
