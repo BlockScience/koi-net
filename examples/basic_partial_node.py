@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 class CoordinatorNodeConfig(NodeConfig):
     koi_net: KoiNetConfig | None = Field(default_factory = lambda:
         KoiNetConfig(
-            node_name="coordinator",
+            node_name="partial",
             node_profile=NodeProfile(
-                node_type=NodeType.FULL
+                node_type=NodeType.PARTIAL
             ),
             cache_directory_path=".basic_partial_rid_cache",
             event_queues_path="basic_partial_event_queues.json",
@@ -33,7 +33,7 @@ class CoordinatorNodeConfig(NodeConfig):
 
 
 node = NodeInterface(
-    config=CoordinatorNodeConfig.load_from_yaml("basical_partial_config.yaml")
+    config=CoordinatorNodeConfig.load_from_yaml("basic_partial_config.yaml")
 )
 
 node.start()
