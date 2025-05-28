@@ -18,7 +18,8 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.10.6",
     "ruamel.yaml>=0.18.10",
-    "python-dotenv>=1.1.0"
+    "python-dotenv>=1.1.0",
+    "cryptography>=45.0.3"
 ]
 
 [project.optional-dependencies]

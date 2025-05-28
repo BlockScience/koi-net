@@ -5,6 +5,8 @@ from rid_lib.types.koi_net_node import KoiNetNode
 
 from .config import NodeConfig
 from .protocol.node import NodeProfile
+from .protocol.secure import PrivateKey
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class NodeIdentity:
     
     config: NodeConfig    
     cache: Cache
+    _priv_key: PrivateKey
     
     def __init__(
         self,
@@ -28,6 +31,7 @@ class NodeIdentity:
         """
         self.config = config
         self.cache = cache
+        self._priv_key = None    
         
     @property
     def rid(self) -> KoiNetNode:
@@ -35,8 +39,16 @@ class NodeIdentity:
     
     @property
     def profile(self) -> NodeProfile:
-        return self.config.koi_net.node_profile 
+        return self.config.koi_net.node_profile
     
     @property
     def bundle(self) -> Bundle:
         return self.cache.read(self.rid)
+    
+    @property
+    def priv_key(self) -> PrivateKey:
+        if not self._priv_key:
+            with open(self.config.koi_net.private_key_pem_path, "r") as f:
+                priv_key_pem = f.read()
+                self._priv_key = PrivateKey.from_pem(priv_key_pem, self.config.env.priv_key_password)
+        return self._priv_key

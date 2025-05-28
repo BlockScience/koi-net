@@ -3,7 +3,6 @@ from enum import StrEnum
 from typing import Callable
 from rid_lib import RIDType
 
-from ..protocol.event import EventType
 from .knowledge_object import KnowledgeSource, KnowledgeEventType
 
 

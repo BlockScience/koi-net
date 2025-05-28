@@ -1,10 +1,14 @@
+from base64 import urlsafe_b64encode
 import os
 from typing import TypeVar
 from ruamel.yaml import YAML
-from koi_net.protocol.node import NodeProfile
+from koi_net.protocol.node import NodeProfile, NodeType
 from rid_lib.types import KoiNetNode
 from pydantic import BaseModel, Field, PrivateAttr
 from dotenv import load_dotenv
+
+from koi_net.utils import sha256_hash
+from .protocol.secure import PublicKey, PrivateKey
 
 
 class ServerConfig(BaseModel):
@@ -23,10 +27,13 @@ class KoiNetConfig(BaseModel):
     
     cache_directory_path: str | None = ".rid_cache"
     event_queues_path: str | None = "event_queues.json"
+    private_key_pem_path: str | None = "priv_key.pem"
 
     first_contact: str | None = None
 
 class EnvConfig(BaseModel):
+    priv_key_password: str | None = "PRIV_KEY_PASSWORD"
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         load_dotenv()
@@ -43,6 +50,7 @@ class EnvConfig(BaseModel):
 class NodeConfig(BaseModel):
     server: ServerConfig | None = Field(default_factory=ServerConfig)
     koi_net: KoiNetConfig
+    env: EnvConfig | None = Field(default_factory=EnvConfig)
     _file_path: str = PrivateAttr(default="config.yaml")
     _file_content: str | None = PrivateAttr(default=None)
     
@@ -72,13 +80,27 @@ class NodeConfig(BaseModel):
             
         config._file_path = file_path
         
-        if generate_missing:            
-            config.koi_net.node_rid = (
-                config.koi_net.node_rid or KoiNetNode.generate(config.koi_net.node_name)
-            )   
-            config.koi_net.node_profile.base_url = (
-                config.koi_net.node_profile.base_url or config.server.url
-            )
+        if generate_missing:
+            if not config.koi_net.node_rid:
+                priv_key = PrivateKey.generate()
+                pub_key = priv_key.public_key()
+                
+                config.koi_net.node_rid = KoiNetNode(
+                    config.koi_net.node_name,
+                    sha256_hash(pub_key.der)
+                )
+                
+                with open(config.koi_net.private_key_pem_path, "w") as f:
+                    f.write(
+                        priv_key.to_pem(config.env.priv_key_password)
+                    )
+                
+                config.koi_net.node_profile.public_key = urlsafe_b64encode(pub_key.der).decode()
+            
+            if config.koi_net.node_profile.node_type == NodeType.FULL:
+                config.koi_net.node_profile.base_url = (
+                    config.koi_net.node_profile.base_url or config.server.url
+                )
                 
             config.save_to_yaml()
                     

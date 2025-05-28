@@ -3,6 +3,8 @@ import httpx
 from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
+
+from koi_net.protocol.secure import PublicKey
 from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
@@ -50,6 +52,27 @@ class RequestHandler:
             url=url,
             data=request.model_dump_json()
         )
+        
+        source_node_rid_str = resp.headers.get("koi-net-source-node-rid")
+        if source_node_rid_str:
+            source_node_rid = RID.from_string(source_node_rid_str)
+            signature = resp.headers.get("koi-net-response-signature")
+
+            print("from:", source_node_rid)
+            print("signed:", signature)
+        
+            node_profile = self.graph.get_node_profile(source_node_rid)
+            
+            if node_profile:
+                pub_key = PublicKey.from_der(node_profile.public_key)
+                
+                valid = pub_key.verify(signature, resp.content)
+                
+                print("request valid?", valid)
+            
+            else:
+                print("node unknown")
+        
         if response_model:
             return response_model.model_validate_json(resp.text)
             
