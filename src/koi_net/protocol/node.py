@@ -15,3 +15,4 @@ class NodeProfile(BaseModel):
     base_url: str | None = None
     node_type: NodeType
     provides: NodeProvides = NodeProvides()
+    public_key: str | None = None
