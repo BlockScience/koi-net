@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 
+
 class PrivateKey:
     priv_key: ec.EllipticCurvePrivateKey
     

@@ -1,6 +1,5 @@
 from base64 import urlsafe_b64encode
 import os
-from typing import TypeVar
 from ruamel.yaml import YAML
 from koi_net.protocol.node import NodeProfile, NodeType
 from rid_lib.types import KoiNetNode
@@ -120,4 +119,3 @@ class NodeConfig(BaseModel):
                     f.write(self._file_content)
                 raise e
                 
-ConfigType = TypeVar("ConfigType", bound=NodeConfig)

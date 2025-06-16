@@ -2,7 +2,6 @@ import logging
 from rid_lib.ext.bundle import Bundle
 from rid_lib.ext.cache import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
-
 from .config import NodeConfig
 from .protocol.node import NodeProfile
 from .protocol.secure import PrivateKey
@@ -16,7 +15,7 @@ class NodeIdentity:
     
     config: NodeConfig    
     cache: Cache
-    _priv_key: PrivateKey
+    _priv_key: PrivateKey | None
     
     def __init__(
         self,

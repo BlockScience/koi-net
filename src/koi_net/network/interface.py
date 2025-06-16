@@ -1,6 +1,5 @@
 import logging
 from queue import Queue
-from typing import Generic
 import httpx
 from pydantic import BaseModel
 from rid_lib import RID
@@ -15,7 +14,7 @@ from ..protocol.node import NodeType
 from ..protocol.edge import EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
-from ..config import ConfigType
+from ..config import NodeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +25,10 @@ class EventQueueModel(BaseModel):
 
 type EventQueue = dict[RID, Queue[Event]]
 
-class NetworkInterface(Generic[ConfigType]):
+class NetworkInterface:
     """A collection of functions and classes to interact with the KOI network."""
     
-    config: ConfigType    
+    config: NodeConfig    
     identity: NodeIdentity
     cache: Cache
     graph: NetworkGraph
@@ -40,7 +39,7 @@ class NetworkInterface(Generic[ConfigType]):
     
     def __init__(
         self, 
-        config: ConfigType,
+        config: NodeConfig,
         cache: Cache, 
         identity: NodeIdentity
     ):

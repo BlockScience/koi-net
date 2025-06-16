@@ -1,7 +1,7 @@
 import logging
 import queue
 import threading
-from typing import Callable, Generic
+from typing import Callable
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle, Cache, Manifest
 from rid_lib.types.koi_net_edge import KoiNetEdge
@@ -25,7 +25,7 @@ from .knowledge_object import (
 logger = logging.getLogger(__name__)
 
 
-class ProcessorInterface():
+class ProcessorInterface:
     """Provides access to this node's knowledge processing pipeline."""
     
     config: NodeConfig
