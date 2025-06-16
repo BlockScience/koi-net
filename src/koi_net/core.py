@@ -1,5 +1,4 @@
 import logging
-from typing import Generic
 import httpx
 from rid_lib.ext import Cache, Bundle
 from .network import NetworkInterface
@@ -8,14 +7,14 @@ from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
 from .protocol.event import Event, EventType
-from .config import ConfigType
+from .config import NodeConfig
 
 logger = logging.getLogger(__name__)
 
 
 
-class NodeInterface(Generic[ConfigType]):
-    config: ConfigType
+class NodeInterface:
+    config: NodeConfig
     cache: Cache
     identity: NodeIdentity
     network: NetworkInterface
@@ -25,7 +24,7 @@ class NodeInterface(Generic[ConfigType]):
     
     def __init__(
         self, 
-        config: ConfigType,
+        config: NodeConfig,
         use_kobj_processor_thread: bool = False,
         
         handlers: list[KnowledgeHandler] | None = None,
@@ -34,7 +33,7 @@ class NodeInterface(Generic[ConfigType]):
         network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
     ):
-        self.config: ConfigType = config
+        self.config = config
         self.cache = cache or Cache(
             self.config.koi_net.cache_directory_path)
         
