@@ -47,7 +47,7 @@ class NetworkInterface:
         self.identity = identity
         self.cache = cache
         self.graph = NetworkGraph(cache, identity)
-        self.request_handler = RequestHandler(cache, self.graph)
+        self.request_handler = RequestHandler(cache, self.graph, identity)
         self.response_handler = ResponseHandler(cache)
         
         self.poll_event_queue = dict()
