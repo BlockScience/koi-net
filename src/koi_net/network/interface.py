@@ -243,7 +243,7 @@ class NetworkInterface:
             logger.debug("No neighbors found, polling first contact")
             try:
                 payload = self.request_handler.poll_events(
-                    url=self.config.koi_net.first_contact, 
+                    node=self.config.koi_net.first_contact, 
                     rid=self.identity.rid
                 )
                 if payload.events:

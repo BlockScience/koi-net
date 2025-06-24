@@ -100,7 +100,7 @@ class NodeInterface:
             
             try:
                 self.network.request_handler.broadcast_events(
-                    url=self.config.koi_net.first_contact,
+                    node=self.config.koi_net.first_contact,
                     events=events
                 )
                 

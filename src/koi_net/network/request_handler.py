@@ -7,6 +7,7 @@ from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
 from koi_net.protocol.secure import PublicKey
+from koi_net.utils import sha256_hash
 from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
@@ -63,9 +64,11 @@ class RequestHandler:
         response_model: type[ResponseModels] | None = None
     ) -> ResponseModels | None:
         url = self.get_url(node) + path
-        logger.debug(f"Making request to {url}")
+        logger.info(f"Making request to {url}")
         
         request_body = request.model_dump_json()
+        
+        logger.info(f"req body hash: {sha256_hash(request_body)}")
         
         headers = {
             KOI_NET_MESSAGE_SIGNATURE: self.identity.priv_key.sign(
@@ -76,12 +79,21 @@ class RequestHandler:
             KOI_NET_TIMESTAMP: datetime.now(timezone.utc).isoformat()
         }
         
+        logger.info(f"Secure req headers {headers}")
+        
         resp = httpx.post(
             url=url,
             data=request_body,
             headers=headers
         )
         
+        if path == BROADCAST_EVENTS_PATH:
+            logger.info("Broadcast doesn't require secure response")
+            return
+                
+        logger.info(f"resp body hash: {sha256_hash(resp.content.decode())}")
+        
+        logger.info(f"Secure resp headers {resp.headers}")
         
         signature = resp.headers.get(KOI_NET_MESSAGE_SIGNATURE)
         if signature:
@@ -90,26 +102,27 @@ class RequestHandler:
             target_node_rid = RID.from_string(
                 resp.headers.get(KOI_NET_TARGET_NODE_RID))
 
-            print("from:", source_node_rid)
-            print("signed:", signature)
+            logger.info(f"from: {source_node_rid}")
+            logger.info(f"signed: {signature}")
         
             node_profile = self.graph.get_node_profile(source_node_rid)
             
-            if node_profile:
-                pub_key = PublicKey.from_der(node_profile.public_key)
-                
-                if not pub_key.verify(signature, resp.content):
-                    raise Exception("Invalid signature")
-            else:
+            if not node_profile:
                 raise Exception("Unknown Node RID")            
+
+            pub_key = PublicKey.from_der(node_profile.public_key)
             
+            if not pub_key.verify(signature, resp.content):
+                breakpoint()
+                raise Exception("Invalid signature")
+                            
             if target_node_rid != self.identity.rid:
                 raise Exception("I am not the target")
             
-            timestamp = datetime.fromisoformat(resp.headers.get(KOI_NET_TIMESTAMP))
-            if datetime.now(timezone.utc) - timestamp > timedelta(minutes=5):
-                raise Exception("Expired message")
-            
+            # timestamp = datetime.fromisoformat(resp.headers.get(KOI_NET_TIMESTAMP))
+            # if datetime.now(timezone.utc) - timestamp > timedelta(minutes=5):
+            #     raise Exception("Expired message")
+        
         if response_model:
             return response_model.model_validate_json(resp.text)
             

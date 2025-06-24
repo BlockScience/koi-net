@@ -28,7 +28,7 @@ class KoiNetConfig(BaseModel):
     event_queues_path: str | None = "event_queues.json"
     private_key_pem_path: str | None = "priv_key.pem"
 
-    first_contact: str | None = None
+    first_contact: KoiNetNode | None = None
 
 class EnvConfig(BaseModel):
     priv_key_password: str | None = "PRIV_KEY_PASSWORD"
@@ -86,7 +86,7 @@ class NodeConfig(BaseModel):
                 
                 config.koi_net.node_rid = KoiNetNode(
                     config.koi_net.node_name,
-                    sha256_hash(pub_key.der)
+                    sha256_hash(pub_key.to_der())
                 )
                 
                 with open(config.koi_net.private_key_pem_path, "w") as f:
@@ -94,7 +94,7 @@ class NodeConfig(BaseModel):
                         priv_key.to_pem(config.env.priv_key_password)
                     )
                 
-                config.koi_net.node_profile.public_key = urlsafe_b64encode(pub_key.der).decode()
+                config.koi_net.node_profile.public_key = pub_key.to_der()
             
             if config.koi_net.node_profile.node_type == NodeType.FULL:
                 config.koi_net.node_profile.base_url = (

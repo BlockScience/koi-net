@@ -27,7 +27,7 @@ class CoordinatorNodeConfig(NodeConfig):
             ),
             cache_directory_path=".basic_partial_rid_cache",
             event_queues_path="basic_partial_event_queues.json",
-            first_contact="http://127.0.0.1:8000/koi-net"
+            first_contact="orn:koi-net.node:coordinator+0579755bf9371c0380e50ecc223bf1ab73f8a437034b1c685cb85fa0460b8a85"
         )
     )
 
@@ -35,6 +35,8 @@ class CoordinatorNodeConfig(NodeConfig):
 node = NodeInterface(
     config=CoordinatorNodeConfig.load_from_yaml("basic_partial_config.yaml")
 )
+
+print(node.config.koi_net.first_contact)
 
 node.start()
 
