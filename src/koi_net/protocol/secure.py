@@ -15,6 +15,9 @@ class PrivateKey:
     @classmethod
     def generate(cls):
         return cls(priv_key=ec.generate_private_key(ec.SECP192R1()))
+
+    def public_key(self) -> "PublicKey":
+        return PublicKey(self.priv_key.public_key())
     
     @classmethod
     def from_pem(cls, priv_key_pem: str, password: str | None = None):
@@ -24,10 +27,7 @@ class PrivateKey:
                 password=password.encode()
             )
         )
-    
-    def public_key(self) -> "PublicKey":
-        return PublicKey(self.priv_key.public_key())
-    
+
     def to_pem(self, password: str | None = None) -> str:
         return self.priv_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -42,6 +42,9 @@ class PrivateKey:
                 signature_algorithm=ec.ECDSA(hashes.SHA256())
             )
         ).decode()
+        
+    # def sign_json(self, message: dict) -> str:
+        
 
 class PublicKey:
     pub_key: ec.EllipticCurvePublicKey

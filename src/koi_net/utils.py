@@ -33,7 +33,7 @@ def load_pub_key_from_pem(pub_key_pem: str) -> ec.EllipticCurvePublicKey:
         data=pub_key_pem.encode()
     )
 
-def sha256_hash(data: bytes) -> str:
+def sha256_hash(data: str) -> str:
     hash = hashlib.sha256()
-    hash.update(data)
+    hash.update(data.encode())
     return hash.hexdigest()
