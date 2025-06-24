@@ -53,7 +53,6 @@ class NetworkInterface(Generic[ConfigType]):
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
-        self._load_event_queues()
     
     def _load_event_queues(self):
         """Loads event queues from storage."""
