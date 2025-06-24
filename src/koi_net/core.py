@@ -74,7 +74,7 @@ class NodeInterface(Generic[ConfigType]):
             logger.info("Starting processor worker thread")
             self.processor.worker_thread.start()
         
-        self.network._load_event_queues()
+        # self.network._load_event_queues()
         self.network.graph.generate()
         
         self.processor.handle(
@@ -123,4 +123,4 @@ class NodeInterface(Generic[ConfigType]):
         else:
             self.processor.flush_kobj_queue()
         
-        self.network._save_event_queues()
+        # self.network._save_event_queues()
