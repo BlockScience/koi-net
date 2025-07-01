@@ -1,9 +1,11 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+import json
 import cryptography
 import cryptography.exceptions
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
+from rid_lib.types import KoiNetNode
 
 
 class PrivateKey:
@@ -92,3 +94,20 @@ class PublicKey:
             return True
         except cryptography.exceptions.InvalidSignature:
             return False
+        
+
+def generate_secure_payload(
+    source_node: KoiNetNode,
+    target_node: KoiNetNode,
+    payload: str
+) -> str:
+    return json.dumps(
+        obj={
+            "secure":{
+                "source_node": source_node,
+                "target_node": target_node
+            },
+            "payload": payload
+        }, 
+        separators=(',', ':')
+    )

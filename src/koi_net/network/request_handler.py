@@ -6,7 +6,7 @@ from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
-from koi_net.protocol.secure import PublicKey
+from koi_net.protocol.secure import PublicKey, generate_secure_payload
 from koi_net.utils import sha256_hash
 from ..protocol.api_models import (
     RidsPayload,
@@ -55,7 +55,18 @@ class RequestHandler:
         self.cache = cache
         self.graph = graph
         self.identity = identity
-                
+    
+    def get_url(self, node_rid: KoiNetNode) -> str:
+        """Retrieves URL of a node."""
+        
+        node_profile = self.graph.get_node_profile(node_rid)
+        if not node_profile:
+            raise Exception("Node not found")
+        if node_profile.node_type != NodeType.FULL:
+            raise Exception("Can't query partial node")
+        logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
+        return node_profile.base_url
+    
     def make_request(
         self,
         node: KoiNetNode,
@@ -66,16 +77,22 @@ class RequestHandler:
         url = self.get_url(node) + path
         logger.info(f"Making request to {url}")
         
+        source_node = self.identity.rid
+        target_node = node
+        
         request_body = request.model_dump_json()
+        
+        secure_req_payload = generate_secure_payload(
+            source_node, target_node, request_body)
+        
+        signature = self.identity.priv_key.sign(secure_req_payload.encode())
         
         logger.info(f"req body hash: {sha256_hash(request_body)}")
         
         headers = {
-            KOI_NET_MESSAGE_SIGNATURE: self.identity.priv_key.sign(
-                request_body.encode()
-            ),
-            KOI_NET_SOURCE_NODE_RID: str(self.identity.rid),
-            KOI_NET_TARGET_NODE_RID: str(node),
+            KOI_NET_MESSAGE_SIGNATURE: signature,
+            KOI_NET_SOURCE_NODE_RID: str(source_node),
+            KOI_NET_TARGET_NODE_RID: str(target_node),
             KOI_NET_TIMESTAMP: datetime.now(timezone.utc).isoformat()
         }
         
@@ -112,8 +129,10 @@ class RequestHandler:
 
             pub_key = PublicKey.from_der(node_profile.public_key)
             
-            if not pub_key.verify(signature, resp.content):
-                breakpoint()
+            secure_resp_payload = generate_secure_payload(
+                source_node_rid, target_node_rid, resp.text)
+            
+            if not pub_key.verify(signature, secure_resp_payload.encode()):
                 raise Exception("Invalid signature")
                             
             if target_node_rid != self.identity.rid:
@@ -125,17 +144,6 @@ class RequestHandler:
         
         if response_model:
             return response_model.model_validate_json(resp.text)
-            
-    def get_url(self, node_rid: KoiNetNode) -> str:
-        """Retrieves URL of a node."""
-        
-        node_profile = self.graph.get_node_profile(node_rid)
-        if not node_profile:
-            raise Exception("Node not found")
-        if node_profile.node_type != NodeType.FULL:
-            raise Exception("Can't query partial node")
-        logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
-        return node_profile.base_url
     
     def broadcast_events(
         self, 
