@@ -4,9 +4,9 @@ import networkx as nx
 from rid_lib import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
-from ..identity import NodeIdentity
-from ..protocol.edge import EdgeProfile, EdgeStatus
-from ..protocol.node import NodeProfile
+from .identity import NodeIdentity
+from .protocol.edge import EdgeProfile, EdgeStatus
+from .protocol.node import NodeProfile
 
 logger = logging.getLogger(__name__)
 

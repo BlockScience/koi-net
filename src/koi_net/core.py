@@ -1,7 +1,8 @@
 import logging
 import httpx
 from rid_lib.ext import Cache, Bundle
-from .network import NetworkInterface
+from .network_interface import NetworkInterface
+from .network_graph import NetworkGraph
 from .processor import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
@@ -18,6 +19,7 @@ class NodeInterface:
     cache: Cache
     identity: NodeIdentity
     network: NetworkInterface
+    graph: NetworkGraph
     processor: ProcessorInterface
     
     use_kobj_processor_thread: bool
@@ -40,6 +42,8 @@ class NodeInterface:
         self.identity = NodeIdentity(
             config=self.config,
             cache=self.cache)
+        
+        self.graph = NetworkGraph(self.cache, self.identity)
         
         self.network = network or NetworkInterface(
             config=self.config,

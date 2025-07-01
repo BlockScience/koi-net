@@ -4,8 +4,8 @@ from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode
 
-from ..identity import NodeIdentity
-from ..protocol.api_models import (
+from .identity import NodeIdentity
+from .protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -13,17 +13,17 @@ from ..protocol.api_models import (
     FetchManifests,
     FetchBundles,
 )
-from ..protocol.consts import (
+from .protocol.consts import (
     BROADCAST_EVENTS_PATH,
     KOI_NET_MESSAGE_SIGNATURE,
     KOI_NET_SOURCE_NODE_RID,
     KOI_NET_TARGET_NODE_RID
 )
-from ..protocol.event import EventType
-from ..protocol.node import NodeProfile
-from ..protocol.secure import PublicKey
-from ..utils import sha256_hash
-from .graph import NetworkGraph
+from .protocol.event import EventType
+from .protocol.node import NodeProfile
+from .protocol.secure import PublicKey
+from .utils import sha256_hash
+from .network_graph import NetworkGraph
 
 
 logger = logging.getLogger(__name__)
