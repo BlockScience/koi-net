@@ -8,7 +8,7 @@ from rid_lib.types.koi_net_node import KoiNetNode
 from koi_net.identity import NodeIdentity
 from koi_net.protocol.secure import PublicKey
 from koi_net.utils import sha256_hash
-from ..protocol.api_models import (
+from .protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -20,7 +20,7 @@ from ..protocol.api_models import (
     RequestModels,
     ResponseModels
 )
-from ..protocol.consts import (
+from .protocol.consts import (
     BROADCAST_EVENTS_PATH,
     KOI_NET_MESSAGE_SIGNATURE,
     POLL_EVENTS_PATH,
@@ -32,8 +32,8 @@ from ..protocol.consts import (
     KOI_NET_TARGET_NODE_RID,
     KOI_NET_TIMESTAMP
 )
-from ..protocol.node import NodeType
-from .graph import NetworkGraph
+from .protocol.node import NodeType
+from .network_graph import NetworkGraph
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,18 @@ class RequestHandler:
         self.cache = cache
         self.graph = graph
         self.identity = identity
-                
+    
+    def get_url(self, node_rid: KoiNetNode) -> str:
+        """Retrieves URL of a node."""
+        
+        node_profile = self.graph.get_node_profile(node_rid)
+        if not node_profile:
+            raise Exception("Node not found")
+        if node_profile.node_type != NodeType.FULL:
+            raise Exception("Can't query partial node")
+        logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
+        return node_profile.base_url
+    
     def make_request(
         self,
         node: KoiNetNode,
@@ -125,17 +136,6 @@ class RequestHandler:
         
         if response_model:
             return response_model.model_validate_json(resp.text)
-            
-    def get_url(self, node_rid: KoiNetNode) -> str:
-        """Retrieves URL of a node."""
-        
-        node_profile = self.graph.get_node_profile(node_rid)
-        if not node_profile:
-            raise Exception("Node not found")
-        if node_profile.node_type != NodeType.FULL:
-            raise Exception("Can't query partial node")
-        logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
-        return node_profile.base_url
     
     def broadcast_events(
         self, 

@@ -7,7 +7,7 @@ from rid_lib.ext import Bundle, Cache, Manifest
 from rid_lib.types.koi_net_edge import KoiNetEdge
 from rid_lib.types.koi_net_node import KoiNetNode
 from ..identity import NodeIdentity
-from ..network import NetworkInterface
+from ..network_interface import NetworkInterface
 from ..protocol.event import Event, EventType
 from ..config import NodeConfig
 from .handler import (
