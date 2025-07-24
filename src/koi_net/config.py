@@ -1,4 +1,3 @@
-from base64 import urlsafe_b64encode
 import os
 from ruamel.yaml import YAML
 from koi_net.protocol.node import NodeProfile, NodeType
@@ -28,7 +27,8 @@ class KoiNetConfig(BaseModel):
     event_queues_path: str | None = "event_queues.json"
     private_key_pem_path: str | None = "priv_key.pem"
 
-    first_contact: KoiNetNode | None = None
+    first_contact_rid: KoiNetNode | None = None
+    first_contact_url: str | None = None
 
 class EnvConfig(BaseModel):
     priv_key_password: str | None = "PRIV_KEY_PASSWORD"

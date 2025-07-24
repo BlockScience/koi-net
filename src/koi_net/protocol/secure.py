@@ -42,9 +42,7 @@ class PrivateKey:
                 signature_algorithm=ec.ECDSA(hashes.SHA256())
             )
         ).decode()
-        
-    # def sign_json(self, message: dict) -> str:
-        
+                
 
 class PublicKey:
     pub_key: ec.EllipticCurvePublicKey
