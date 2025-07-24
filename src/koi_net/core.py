@@ -7,6 +7,7 @@ from .processor import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
+from .secure import Secure
 from .protocol.event import Event, EventType
 from .config import NodeConfig
 
@@ -21,6 +22,7 @@ class NodeInterface:
     network: NetworkInterface
     graph: NetworkGraph
     processor: ProcessorInterface
+    secure: Secure
     
     use_kobj_processor_thread: bool
     
@@ -67,6 +69,10 @@ class NodeInterface:
             use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
         )
+        
+        self.secure = Secure(
+            identity=self.identity   
+        )
             
     def start(self) -> None:
         """Starts a node, call this method first.
@@ -94,8 +100,8 @@ class NodeInterface:
             self.processor.flush_kobj_queue()
         logger.debug("Done")
     
-        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact}")
+        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact_rid:
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact_rid}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
@@ -104,7 +110,7 @@ class NodeInterface:
             
             try:
                 self.network.request_handler.broadcast_events(
-                    node=self.config.koi_net.first_contact,
+                    node=self.config.koi_net.first_contact_rid,
                     events=events
                 )
                 
