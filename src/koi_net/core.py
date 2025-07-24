@@ -6,6 +6,7 @@ from .processor import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
+from .secure import Secure
 from .protocol.event import Event, EventType
 from .config import NodeConfig
 
@@ -19,6 +20,7 @@ class NodeInterface:
     identity: NodeIdentity
     network: NetworkInterface
     processor: ProcessorInterface
+    secure: Secure
     
     use_kobj_processor_thread: bool
     
@@ -62,6 +64,10 @@ class NodeInterface:
             identity=self.identity, 
             use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
+        )
+        
+        self.secure = Secure(
+            identity=self.identity   
         )
             
     def start(self) -> None:
