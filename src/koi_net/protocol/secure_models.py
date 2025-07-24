@@ -14,11 +14,6 @@ class SignedEnvelope(BaseModel, Generic[T]):
     target_node: KoiNetNode
     signature: str
     
-    @model_validator(mode="after")
-    def verify_signature(self):
-        ...
-        
-    
     def verify_with(self, pub_key: PublicKey) -> bool:
         unsigned_envelope = UnsignedEnvelope(
             **self.model_dump(exclude={"signature"})

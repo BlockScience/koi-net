@@ -2,7 +2,6 @@ import logging
 from rid_lib import RID
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
-from rid_lib.types import KoiNetNode
 
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
@@ -13,16 +12,7 @@ from ..protocol.api_models import (
     FetchManifests,
     FetchBundles,
 )
-from ..protocol.consts import (
-    BROADCAST_EVENTS_PATH,
-    KOI_NET_MESSAGE_SIGNATURE,
-    KOI_NET_SOURCE_NODE_RID,
-    KOI_NET_TARGET_NODE_RID
-)
-from ..protocol.event import EventType
-from ..protocol.node import NodeProfile
-from ..protocol.secure import PublicKey
-from ..utils import sha256_hash
+
 from .graph import NetworkGraph
 
 
@@ -81,39 +71,3 @@ class ResponseHandler:
                 not_found.append(rid)
             
         return BundlesPayload(bundles=bundles, not_found=not_found)
-    
-    def validate_request(self, headers: dict, body: bytes):
-        req_signature = headers.get(KOI_NET_MESSAGE_SIGNATURE)
-
-        logger.debug(f"req body hash: {sha256_hash(body.decode())}")
-        logger.debug(f"Secure req headers {headers}")
-        
-        if req_signature:
-            source_node_rid: KoiNetNode = RID.from_string(
-                headers.get(KOI_NET_SOURCE_NODE_RID))
-            target_node_rid: KoiNetNode = RID.from_string(
-                headers.get(KOI_NET_TARGET_NODE_RID))
-            
-            node_profile = self.graph.get_node_profile(source_node_rid)
-            
-            if node_profile:
-                pub_key = PublicKey.from_der(node_profile.public_key)
-                
-                if not pub_key.verify(req_signature, body):
-                    raise Exception("Invalid signature")
-                
-                if target_node_rid != self.identity.rid:
-                    raise Exception("I am not the target")
-            
-            else:
-                raise Exception("Unknown Node RID")
-        else:
-            raise Exception("Missing secure headers")
-               
-    
-    def generate_response_headers(self, resp_body: bytes, source_node_rid):
-            return {
-                KOI_NET_MESSAGE_SIGNATURE: self.identity.priv_key.sign(resp_body),
-                KOI_NET_SOURCE_NODE_RID: str(self.identity.rid),
-                KOI_NET_TARGET_NODE_RID: str(source_node_rid)
-            }
