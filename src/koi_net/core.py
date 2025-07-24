@@ -90,8 +90,8 @@ class NodeInterface:
             self.processor.flush_kobj_queue()
         logger.debug("Done")
     
-        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact}")
+        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact_rid:
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact_rid}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
@@ -100,7 +100,7 @@ class NodeInterface:
             
             try:
                 self.network.request_handler.broadcast_events(
-                    node=self.config.koi_net.first_contact,
+                    node=self.config.koi_net.first_contact_rid,
                     events=events
                 )
                 
