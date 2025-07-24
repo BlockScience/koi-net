@@ -18,7 +18,7 @@ logging.getLogger("koi_net").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class CoordinatorNodeConfig(NodeConfig):
+class PartialNodeConfig(NodeConfig):
     koi_net: KoiNetConfig | None = Field(default_factory = lambda:
         KoiNetConfig(
             node_name="partial",
@@ -27,16 +27,16 @@ class CoordinatorNodeConfig(NodeConfig):
             ),
             cache_directory_path=".basic_partial_rid_cache",
             event_queues_path="basic_partial_event_queues.json",
-            first_contact="orn:koi-net.node:coordinator+0579755bf9371c0380e50ecc223bf1ab73f8a437034b1c685cb85fa0460b8a85"
+            first_contact_rid="orn:koi-net.node:coordinator+0579755bf9371c0380e50ecc223bf1ab73f8a437034b1c685cb85fa0460b8a85",
+            first_contact_url="http://127.0.0.1:8000/koi-net"
         )
     )
 
 
 node = NodeInterface(
-    config=CoordinatorNodeConfig.load_from_yaml("basic_partial_config.yaml")
+    config=PartialNodeConfig.load_from_yaml("basic_partial_config.yaml")
 )
 
-print(node.config.koi_net.first_contact)
 
 node.start()
 

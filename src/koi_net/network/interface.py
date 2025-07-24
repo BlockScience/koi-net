@@ -48,7 +48,7 @@ class NetworkInterface:
         self.cache = cache
         self.graph = NetworkGraph(cache, identity)
         self.request_handler = RequestHandler(cache, self.graph, identity)
-        self.response_handler = ResponseHandler(cache)
+        self.response_handler = ResponseHandler(cache, self.graph, identity)
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
@@ -238,24 +238,17 @@ class NetworkInterface:
         
         neighbors = self.graph.get_neighbors()
         
-        if not neighbors and self.config.koi_net.first_contact:
-            logger.debug("No neighbors found, polling first contact")
-            try:
-                payload = self.request_handler.poll_events(
-                    node=self.config.koi_net.first_contact, 
-                    rid=self.identity.rid
-                )
-                if payload.events:
-                    logger.debug(f"Received {len(payload.events)} events from '{self.config.koi_net.first_contact}'")
-                return payload.events
-            except httpx.ConnectError:
-                logger.debug(f"Failed to reach first contact '{self.config.koi_net.first_contact}'")
+        if not neighbors:
+            neighbors = [self.config.koi_net.first_contact_rid]
+        
+        print(neighbors)
         
         events = []
         for node_rid in neighbors:
-            node = self.graph.get_node_profile(node_rid)
-            if not node: continue
-            if node.node_type != NodeType.FULL: continue
+            if node_rid != self.config.koi_net.first_contact_rid:
+                node = self.graph.get_node_profile(node_rid)
+                if not node: continue
+                if node.node_type != NodeType.FULL: continue
             
             try:
                 payload = self.request_handler.poll_events(

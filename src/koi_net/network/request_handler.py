@@ -1,12 +1,11 @@
 import logging
 import httpx
-from datetime import datetime, timezone, timedelta
 from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
-from koi_net.protocol.secure import PublicKey, generate_secure_payload
+from koi_net.protocol.secure import PublicKey
 from koi_net.utils import sha256_hash
 from ..protocol.api_models import (
     RidsPayload,
@@ -20,17 +19,16 @@ from ..protocol.api_models import (
     RequestModels,
     ResponseModels
 )
+from ..protocol.secure_models import (
+    SignedEnvelope,
+    UnsignedEnvelope
+)
 from ..protocol.consts import (
     BROADCAST_EVENTS_PATH,
-    KOI_NET_MESSAGE_SIGNATURE,
     POLL_EVENTS_PATH,
     FETCH_RIDS_PATH,
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH,
-    KOI_NET_MESSAGE_SIGNATURE,
-    KOI_NET_SOURCE_NODE_RID,
-    KOI_NET_TARGET_NODE_RID,
-    KOI_NET_TIMESTAMP
 )
 from ..protocol.node import NodeType
 from .graph import NetworkGraph
@@ -59,8 +57,12 @@ class RequestHandler:
     def get_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node."""
         
+        print(node_rid)
+        
         node_profile = self.graph.get_node_profile(node_rid)
         if not node_profile:
+            if node_rid == self.identity.config.koi_net.first_contact_rid:
+                return self.identity.config.koi_net.first_contact_url
             raise Exception("Node not found")
         if node_profile.node_type != NodeType.FULL:
             raise Exception("Can't query partial node")
@@ -77,73 +79,44 @@ class RequestHandler:
         url = self.get_url(node) + path
         logger.info(f"Making request to {url}")
         
-        source_node = self.identity.rid
-        target_node = node
-        
-        request_body = request.model_dump_json()
-        
-        secure_req_payload = generate_secure_payload(
-            source_node, target_node, request_body)
-        
-        signature = self.identity.priv_key.sign(secure_req_payload.encode())
-        
-        logger.info(f"req body hash: {sha256_hash(request_body)}")
-        
-        headers = {
-            KOI_NET_MESSAGE_SIGNATURE: signature,
-            KOI_NET_SOURCE_NODE_RID: str(source_node),
-            KOI_NET_TARGET_NODE_RID: str(target_node),
-            KOI_NET_TIMESTAMP: datetime.now(timezone.utc).isoformat()
-        }
-        
-        logger.info(f"Secure req headers {headers}")
-        
-        resp = httpx.post(
-            url=url,
-            data=request_body,
-            headers=headers
+        envelope = UnsignedEnvelope(
+            payload=request,
+            source_node=self.identity.rid,
+            target_node=node
         )
         
+        signed_envelope = envelope.sign_with(self.identity.priv_key)
+                
+        resp = httpx.post(url, data=signed_envelope.model_dump_json())
+        
         if path == BROADCAST_EVENTS_PATH:
-            logger.info("Broadcast doesn't require secure response")
+            # logger.info("Broadcast doesn't require secure response")
             return
                 
         logger.info(f"resp body hash: {sha256_hash(resp.content.decode())}")
         
         logger.info(f"Secure resp headers {resp.headers}")
         
-        signature = resp.headers.get(KOI_NET_MESSAGE_SIGNATURE)
-        if signature:
-            source_node_rid = RID.from_string(
-                resp.headers.get(KOI_NET_SOURCE_NODE_RID))
-            target_node_rid = RID.from_string(
-                resp.headers.get(KOI_NET_TARGET_NODE_RID))
+        resp_envelope = SignedEnvelope[response_model].model_validate_json(resp.text)
+        node_profile = self.graph.get_node_profile(
+            resp_envelope.source_node)
+            
+        if not node_profile:
+            raise Exception("Unknown Node RID")            
 
-            logger.info(f"from: {source_node_rid}")
-            logger.info(f"signed: {signature}")
+        pub_key = PublicKey.from_der(node_profile.public_key)
         
-            node_profile = self.graph.get_node_profile(source_node_rid)
-            
-            if not node_profile:
-                raise Exception("Unknown Node RID")            
-
-            pub_key = PublicKey.from_der(node_profile.public_key)
-            
-            secure_resp_payload = generate_secure_payload(
-                source_node_rid, target_node_rid, resp.text)
-            
-            if not pub_key.verify(signature, secure_resp_payload.encode()):
-                raise Exception("Invalid signature")
-                            
-            if target_node_rid != self.identity.rid:
-                raise Exception("I am not the target")
-            
-            # timestamp = datetime.fromisoformat(resp.headers.get(KOI_NET_TIMESTAMP))
-            # if datetime.now(timezone.utc) - timestamp > timedelta(minutes=5):
-            #     raise Exception("Expired message")
+        if not resp_envelope.verify_with(pub_key):
+            raise Exception("Invalid signature")
+                        
+        if resp_envelope.target_node != self.identity.rid:
+            raise Exception("I am not the target")
         
-        if response_model:
-            return response_model.model_validate_json(resp.text)
+        # timestamp = datetime.fromisoformat(resp.headers.get(KOI_NET_TIMESTAMP))
+        # if datetime.now(timezone.utc) - timestamp > timedelta(minutes=5):
+        #     raise Exception("Expired message")
+    
+        return resp_envelope.payload
     
     def broadcast_events(
         self, 
