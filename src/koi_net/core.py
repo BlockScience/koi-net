@@ -3,6 +3,8 @@ import httpx
 from rid_lib.ext import Cache, Bundle
 from .network_interface import NetworkInterface
 from .network_graph import NetworkGraph
+from .request_handler import RequestHandler
+from .response_handler import ResponseHandler
 from .processor import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
@@ -47,10 +49,27 @@ class NodeInterface:
         
         self.graph = NetworkGraph(self.cache, self.identity)
         
+        self.secure = Secure(
+            identity=self.identity,
+            graph=self.graph
+        )
+        
+        self.request_handler = RequestHandler(
+            self.cache, 
+            self.graph, 
+            self.identity,
+            self.secure
+        )
+        
+        self.response_handler = ResponseHandler(self.cache, self.graph, self.identity)
+        
         self.network = network or NetworkInterface(
             config=self.config,
             cache=self.cache, 
-            identity=self.identity
+            identity=self.identity,
+            graph=self.graph,
+            request_handler=self.request_handler,
+            response_handler=self.response_handler
         )
         
         # pull all handlers defined in default_handlers module
@@ -68,10 +87,6 @@ class NodeInterface:
             identity=self.identity, 
             use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
-        )
-        
-        self.secure = Secure(
-            identity=self.identity   
         )
             
     def start(self) -> None:

@@ -1,9 +1,12 @@
+import logging
 from base64 import urlsafe_b64decode, urlsafe_b64encode
-import cryptography
-import cryptography.exceptions
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
+
+from koi_net.utils import sha256_hash
+
+logger = logging.getLogger(__name__)
 
 
 class PrivateKey:
@@ -36,12 +39,20 @@ class PrivateKey:
         ).decode()
         
     def sign(self, message: bytes) -> str:
-        return urlsafe_b64encode(
+        hashed_message = sha256_hash(message.decode())
+        
+        signature = urlsafe_b64encode(
             self.priv_key.sign(
                 data=message,
                 signature_algorithm=ec.ECDSA(hashes.SHA256())
             )
         ).decode()
+        
+        logger.debug(f"Signing message with [{self.public_key().to_der()}]")
+        logger.debug(f"hash: {hashed_message}")
+        logger.debug(f"signature: {signature}")
+        
+        return signature
                 
 
 class PublicKey:
@@ -81,12 +92,16 @@ class PublicKey:
         ).decode()
         
     def verify(self, signature: str, message: bytes) -> bool:
-        try:
-            self.pub_key.verify(
-                signature=urlsafe_b64decode(signature),
-                data=message,
-                signature_algorithm=ec.ECDSA(hashes.SHA256())
-            )
-            return True
-        except cryptography.exceptions.InvalidSignature:
-            return False
+        hashed_message = sha256_hash(message.decode())
+
+        logger.debug(f"Verifying message with [{self.to_der()}]")
+        logger.debug(f"hash: {hashed_message}")
+        logger.debug(f"signature: {signature}")
+        
+        self.pub_key.verify(
+            signature=urlsafe_b64decode(signature),
+            data=message,
+            signature_algorithm=ec.ECDSA(hashes.SHA256())
+        )
+    
+        # throws cryptography.exceptions.InvalidSignature on failure

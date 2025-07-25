@@ -13,7 +13,7 @@ from .protocol.api_models import (
     FetchBundles,
 )
 
-from .graph import NetworkGraph
+from .network_graph import NetworkGraph
 
 
 logger = logging.getLogger(__name__)
