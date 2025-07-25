@@ -5,8 +5,6 @@ from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
-from koi_net.protocol.secure import PublicKey
-from koi_net.utils import sha256_hash
 from .protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
@@ -19,10 +17,7 @@ from .protocol.api_models import (
     RequestModels,
     ResponseModels
 )
-from .protocol.secure_models import (
-    SignedEnvelope,
-    UnsignedEnvelope
-)
+from .protocol.secure_models import SignedEnvelope
 from .protocol.consts import (
     BROADCAST_EVENTS_PATH,
     POLL_EVENTS_PATH,
@@ -32,6 +27,7 @@ from .protocol.consts import (
 )
 from .protocol.node import NodeType
 from .network_graph import NetworkGraph
+from .secure import Secure
 
 
 logger = logging.getLogger(__name__)
@@ -43,16 +39,19 @@ class RequestHandler:
     cache: Cache
     graph: NetworkGraph
     identity: NodeIdentity
+    secure: Secure
     
     def __init__(
         self, 
         cache: Cache, 
         graph: NetworkGraph, 
-        identity: NodeIdentity
+        identity: NodeIdentity,
+        secure: Secure
     ):
         self.cache = cache
         self.graph = graph
         self.identity = identity
+        self.secure = secure
     
     def get_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node."""
@@ -74,48 +73,34 @@ class RequestHandler:
         node: KoiNetNode,
         path: str, 
         request: RequestModels,
-        response_model: type[ResponseModels] | None = None
     ) -> ResponseModels | None:
         url = self.get_url(node) + path
         logger.info(f"Making request to {url}")
-        
-        envelope = UnsignedEnvelope(
+    
+        signed_envelope = self.secure.create_envelope(
             payload=request,
-            source_node=self.identity.rid,
-            target_node=node
+            target=node
         )
-        
-        signed_envelope = envelope.sign_with(self.identity.priv_key)
                 
-        resp = httpx.post(url, data=signed_envelope.model_dump_json())
+        result = httpx.post(url, data=signed_envelope.model_dump_json())
         
         if path == BROADCAST_EVENTS_PATH:
-            # logger.info("Broadcast doesn't require secure response")
-            return
-                
-        logger.info(f"resp body hash: {sha256_hash(resp.content.decode())}")
+            return None
         
-        logger.info(f"Secure resp headers {resp.headers}")
+        elif path == POLL_EVENTS_PATH:
+            EnvelopeModel = SignedEnvelope[EventsPayload]
+        elif path == FETCH_RIDS_PATH:
+            EnvelopeModel = SignedEnvelope[RidsPayload]
+        elif path == FETCH_MANIFESTS_PATH:
+            EnvelopeModel = SignedEnvelope[ManifestsPayload]
+        elif path == FETCH_BUNDLES_PATH:
+            EnvelopeModel = SignedEnvelope[BundlesPayload]
+        else:
+            raise Exception(f"Unknown path '{path}'")
         
-        resp_envelope = SignedEnvelope[response_model].model_validate_json(resp.text)
-        node_profile = self.graph.get_node_profile(
-            resp_envelope.source_node)
-            
-        if not node_profile:
-            raise Exception("Unknown Node RID")            
-
-        pub_key = PublicKey.from_der(node_profile.public_key)
+        resp_envelope = EnvelopeModel.model_validate_json(result.text)        
+        self.secure.validate_envelope(resp_envelope)
         
-        if not resp_envelope.verify_with(pub_key):
-            raise Exception("Invalid signature")
-                        
-        if resp_envelope.target_node != self.identity.rid:
-            raise Exception("I am not the target")
-        
-        # timestamp = datetime.fromisoformat(resp.headers.get(KOI_NET_TIMESTAMP))
-        # if datetime.now(timezone.utc) - timestamp > timedelta(minutes=5):
-        #     raise Exception("Expired message")
-    
         return resp_envelope.payload
     
     def broadcast_events(
@@ -126,9 +111,7 @@ class RequestHandler:
     ) -> None:
         """See protocol.api_models.EventsPayload for available kwargs."""
         request = req or EventsPayload.model_validate(kwargs)
-        self.make_request(
-            node, BROADCAST_EVENTS_PATH, request
-        )
+        self.make_request(node, BROADCAST_EVENTS_PATH, request)
         logger.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
         
     def poll_events(
@@ -139,10 +122,7 @@ class RequestHandler:
     ) -> EventsPayload:
         """See protocol.api_models.PollEvents for available kwargs."""
         request = req or PollEvents.model_validate(kwargs)
-        resp = self.make_request(
-            node, POLL_EVENTS_PATH, request,
-            response_model=EventsPayload
-        )
+        resp = self.make_request(node, POLL_EVENTS_PATH, request)
         logger.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
@@ -154,10 +134,7 @@ class RequestHandler:
     ) -> RidsPayload:
         """See protocol.api_models.FetchRids for available kwargs."""
         request = req or FetchRids.model_validate(kwargs)
-        resp = self.make_request(
-            node, FETCH_RIDS_PATH, request,
-            response_model=RidsPayload
-        )
+        resp = self.make_request(node, FETCH_RIDS_PATH, request)
         logger.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
@@ -169,10 +146,7 @@ class RequestHandler:
     ) -> ManifestsPayload:
         """See protocol.api_models.FetchManifests for available kwargs."""
         request = req or FetchManifests.model_validate(kwargs)
-        resp = self.make_request(
-            node, FETCH_MANIFESTS_PATH, request,
-            response_model=ManifestsPayload
-        )
+        resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
         logger.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
@@ -184,9 +158,6 @@ class RequestHandler:
     ) -> BundlesPayload:
         """See protocol.api_models.FetchBundles for available kwargs."""
         request = req or FetchBundles.model_validate(kwargs)
-        resp = self.make_request(
-            node, FETCH_BUNDLES_PATH, request,
-            response_model=BundlesPayload
-        )
+        resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
         logger.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp

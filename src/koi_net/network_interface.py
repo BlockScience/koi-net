@@ -41,14 +41,17 @@ class NetworkInterface:
         self, 
         config: NodeConfig,
         cache: Cache, 
-        identity: NodeIdentity
+        identity: NodeIdentity,
+        graph: NetworkGraph,
+        request_handler: RequestHandler,
+        response_handler: ResponseHandler
     ):
         self.config = config
         self.identity = identity
         self.cache = cache
-        self.graph = NetworkGraph(cache, identity)
-        self.request_handler = RequestHandler(cache, self.graph, identity)
-        self.response_handler = ResponseHandler(cache, self.graph, identity)
+        self.graph = graph
+        self.request_handler = request_handler
+        self.response_handler = response_handler
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
