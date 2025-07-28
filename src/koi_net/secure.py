@@ -1,20 +1,28 @@
+from rid_lib.types import KoiNetNode
+from rid_lib.ext import Bundle, Cache
 from .identity import NodeIdentity
 from .protocol.secure_models import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
 from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
-from .network_graph import NetworkGraph
 from .utils import sha256_hash
 
 
 class Secure:
     identity: NodeIdentity
-    graph: NetworkGraph
+    cache: Cache
     
-    def __init__(self, identity: NodeIdentity, graph: NetworkGraph):
+    def __init__(self, identity: NodeIdentity, cache: Cache):
         self.identity = identity
-        self.graph = graph
+        self.cache = cache
+        
+    # def validate_profile_bundle(self, bundle: Bundle[NodeProfile]):
+    #     if type(bundle.rid) != KoiNetNode:
+    #         raise Exception("Not a node profile")
+                
+    #     node_profile = bundle.validate_contents(NodeProfile)
+        
         
     def create_envelope(self, payload, target) -> SignedEnvelope:
         return UnsignedEnvelope(
@@ -24,8 +32,7 @@ class Secure:
         ).sign_with(self.identity.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
-        node_profile = self.graph.get_node_profile(
-            envelope.source_node)
+        node_profile = self.cache.read(envelope.source_node).contents
         
         if node_profile:
             pub_key = PublicKey.from_der(node_profile.public_key)
@@ -34,31 +41,26 @@ class Secure:
             if envelope.target_node != self.identity.rid:
                 raise Exception("I am not the target")
         
-        else:
-            # check if its a broadcast
-            
-            print(type(envelope.payload), envelope.payload)
-            
+        else:            
             if type(envelope.payload) != EventsPayload:
                 raise Exception("Unknown Node RID")
                  
-            handshake_case = False
-            
+            found_profile = False
             for event in envelope.payload.events:
                 if event.rid != envelope.source_node:
                     continue
                 if event.event_type != EventType.NEW:
                     continue
                 
-                node_profile = event.bundle.validate_contents(NodeProfile)
+                node_profile = event.bundle.contents
                 hashed_pub_key = sha256_hash(node_profile.public_key)
 
                 if envelope.source_node.uuid != hashed_pub_key:
                     raise Exception("Invalid public key on new node!")
                 
-                handshake_case = True
+                found_profile = True
                 break
             
-            if not handshake_case:
+            if not found_profile:
                 raise Exception("Unknown Node RID")            
 

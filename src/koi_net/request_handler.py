@@ -26,7 +26,6 @@ from .protocol.consts import (
     FETCH_BUNDLES_PATH,
 )
 from .protocol.node import NodeType
-from .network_graph import NetworkGraph
 from .secure import Secure
 
 
@@ -37,19 +36,16 @@ class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
     cache: Cache
-    graph: NetworkGraph
     identity: NodeIdentity
     secure: Secure
     
     def __init__(
         self, 
         cache: Cache, 
-        graph: NetworkGraph, 
         identity: NodeIdentity,
         secure: Secure
     ):
         self.cache = cache
-        self.graph = graph
         self.identity = identity
         self.secure = secure
     
@@ -58,7 +54,7 @@ class RequestHandler:
         
         print(node_rid)
         
-        node_profile = self.graph.get_node_profile(node_rid)
+        node_profile = self.cache.read(node_rid).contents
         if not node_profile:
             if node_rid == self.identity.config.koi_net.first_contact_rid:
                 return self.identity.config.koi_net.first_contact_url

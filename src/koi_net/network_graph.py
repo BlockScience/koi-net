@@ -6,7 +6,6 @@ from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from .identity import NodeIdentity
 from .protocol.edge import EdgeProfile, EdgeStatus
-from .protocol.node import NodeProfile
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class NetworkGraph:
                 logger.debug(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
-                edge_profile = self.get_edge_profile(rid)
+                edge_profile: EdgeProfile = self.cache.read(rid).contents
                 if not edge_profile:
                     logger.warning(f"Failed to load {rid!r}")
                     continue
@@ -41,32 +40,15 @@ class NetworkGraph:
                 logger.debug(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
         logger.debug("Done")
         
-    def get_node_profile(self, rid: KoiNetNode) -> NodeProfile | None:
-        """Returns node profile given its RID."""
-        bundle = self.cache.read(rid)
-        if bundle:
-            return bundle.validate_contents(NodeProfile)
-        
-    def get_edge_profile(
-        self, 
-        rid: KoiNetEdge | None = None,
-        source: KoiNetNode | None = None, 
-        target: KoiNetNode | None = None,
-    ) -> EdgeProfile | None:
-        """Returns edge profile given its RID, or source and target node RIDs."""
-        if source and target:
-            if (source, target) not in self.dg.edges: return
+    def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> EdgeProfile | None:
+        """Returns edge RID given the RIDs of a source and target node."""
+        if (source, target) in self.dg.edges:
             edge_data = self.dg.get_edge_data(source, target)
-            if not edge_data: return
-            rid = edge_data.get("rid")
-            if not rid: return
-        elif not rid:
-            raise ValueError("Either 'rid' or 'source' and 'target' must be provided")
-        
-        bundle = self.cache.read(rid)
-        if bundle:
-            return bundle.validate_contents(EdgeProfile)
-        
+            if edge_data:
+                return edge_data.get("rid")
+
+        return None
+
     def get_edges(
         self,
         direction: Literal["in", "out"] | None = None,
@@ -106,7 +88,7 @@ class NetworkGraph:
         
         neighbors = []
         for edge_rid in self.get_edges(direction):
-            edge_profile = self.get_edge_profile(edge_rid)
+            edge_profile: EdgeProfile = self.cache.read(edge_rid).contents
             
             if not edge_profile: 
                 logger.warning(f"Failed to find edge {edge_rid!r} in cache")

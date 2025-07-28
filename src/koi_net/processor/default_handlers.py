@@ -82,7 +82,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         logger.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
-        peer_profile = processor.network.graph.get_node_profile(peer_rid)
+        peer_profile = processor.network.cache.read(peer_rid).contents
         
         if not peer_profile:
             logger.warning(f"Peer {peer_rid} unknown to me")
@@ -128,8 +128,8 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
 @KnowledgeHandler.create(HandlerType.Network, rid_types=[KoiNetNode])
 def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
-    node_profile = kobj.bundle.validate_contents(NodeProfile)
-    
+    node_profile = kobj.bundle.contents
+        
     # looking for event provider of nodes
     if KoiNetNode not in node_profile.provides.event:
         return
@@ -139,7 +139,7 @@ def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
         return
     
     # already have an edge established
-    if processor.network.graph.get_edge_profile(
+    if processor.network.graph.get_edge(
         source=kobj.rid,
         target=processor.identity.rid,
     ) is not None:
@@ -194,7 +194,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
                 involves_me = True
         
         elif type(kobj.rid) == KoiNetEdge:
-            edge_profile = kobj.bundle.validate_contents(EdgeProfile)
+            edge_profile = kobj.bundle.contents
             
             if edge_profile.source == processor.identity.rid:
                 logger.debug(f"Adding edge target '{edge_profile.target!r}' to network targets")

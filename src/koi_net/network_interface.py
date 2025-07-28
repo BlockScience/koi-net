@@ -10,7 +10,7 @@ from rid_lib.types import KoiNetNode
 from .network_graph import NetworkGraph
 from .request_handler import RequestHandler
 from .response_handler import ResponseHandler
-from .protocol.node import NodeType
+from .protocol.node import NodeProfile, NodeType
 from .protocol.edge import EdgeType
 from .protocol.event import Event
 from .identity import NodeIdentity
@@ -103,15 +103,17 @@ class NetworkInterface:
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid} to {node}")
             
-        node_profile = self.graph.get_node_profile(node)
+        node_profile = self.cache.read(node).contents
         if not node_profile:
             logger.warning(f"Node {node!r} unknown to me")
         
         # if there's an edge from me to the target node, override broadcast type
-        edge_profile = self.graph.get_edge_profile(
+        edge_rid = self.graph.get_edge(
             source=self.identity.rid,
             target=node
         )
+        
+        edge_profile = self.cache.read(edge_rid).contents
         
         if edge_profile:
             if edge_profile.edge_type == EdgeType.WEBHOOK:
@@ -155,7 +157,7 @@ class NetworkInterface:
         
         logger.debug(f"Flushing webhook queue for {node}")
         
-        node_profile = self.graph.get_node_profile(node)
+        node_profile = self.cache.read(node).contents
         
         if not node_profile:
             logger.warning(f"{node!r} not found")
@@ -185,7 +187,7 @@ class NetworkInterface:
         logger.debug(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
-            node = self.graph.get_node_profile(node_rid)
+            node = self.cache.read(node_rid).contents
                         
             if node.node_type == NodeType.FULL and rid_type in node.provides.state:
                 logger.debug(f"Found provider '{node_rid}'")
@@ -249,7 +251,7 @@ class NetworkInterface:
         events = []
         for node_rid in neighbors:
             if node_rid != self.config.koi_net.first_contact_rid:
-                node = self.graph.get_node_profile(node_rid)
+                node: NodeProfile = self.cache.read(node_rid).contents
                 if not node: continue
                 if node.node_type != NodeType.FULL: continue
             

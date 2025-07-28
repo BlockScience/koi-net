@@ -13,9 +13,6 @@ from .protocol.api_models import (
     FetchBundles,
 )
 
-from .network_graph import NetworkGraph
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,17 +20,14 @@ class ResponseHandler:
     """Handles generating responses to requests from other KOI nodes."""
     
     cache: Cache
-    graph: NetworkGraph
     identity: NodeIdentity
     
     def __init__(
         self, 
         cache: Cache, 
-        graph: NetworkGraph, 
         identity: NodeIdentity
     ):
         self.cache = cache
-        self.graph = graph
         self.identity = identity
         
     def fetch_rids(self, req: FetchRids) -> RidsPayload:
