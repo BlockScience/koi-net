@@ -32,10 +32,11 @@ class NetworkGraph:
                 logger.debug(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
-                edge_profile: EdgeProfile = self.cache.read(rid).contents
-                if not edge_profile:
+                edge_bundle = self.cache.read(rid)
+                if not edge_bundle:
                     logger.warning(f"Failed to load {rid!r}")
                     continue
+                edge_profile = edge_bundle.validate_contents(EdgeProfile)
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
                 logger.debug(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
         logger.debug("Done")
@@ -88,12 +89,14 @@ class NetworkGraph:
         
         neighbors = []
         for edge_rid in self.get_edges(direction):
-            edge_profile: EdgeProfile = self.cache.read(edge_rid).contents
+            edge_bundle = self.cache.read(edge_rid)
             
-            if not edge_profile: 
+            if not edge_bundle: 
                 logger.warning(f"Failed to find edge {edge_rid!r} in cache")
                 continue
-                        
+            
+            edge_profile = edge_bundle.validate_contents(EdgeProfile)
+            
             if status and edge_profile.status != status:
                 continue
             
