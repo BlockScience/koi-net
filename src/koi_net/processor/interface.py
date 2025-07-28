@@ -159,6 +159,7 @@ class ProcessorInterface:
                 logger.debug("Manifest not found")
                 if kobj.source == KnowledgeSource.External:
                     logger.debug("Attempting to fetch remote manifest")
+                    # TODO: fetch from source node (when integrated with secure protocol)
                     manifest = self.network.fetch_remote_manifest(kobj.rid)
                     
                 elif kobj.source == KnowledgeSource.Internal:

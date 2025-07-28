@@ -51,17 +51,16 @@ class NodeInterface:
         
         self.secure = Secure(
             identity=self.identity,
-            graph=self.graph
+            cache=self.cache
         )
         
         self.request_handler = RequestHandler(
             self.cache, 
-            self.graph, 
             self.identity,
             self.secure
         )
         
-        self.response_handler = ResponseHandler(self.cache, self.graph, self.identity)
+        self.response_handler = ResponseHandler(self.cache, self.identity)
         
         self.network = network or NetworkInterface(
             config=self.config,
