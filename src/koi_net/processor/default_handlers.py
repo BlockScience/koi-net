@@ -72,7 +72,7 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
     Automatically approves proposed edges if they request RID types this node can provide (or KOI nodes/edges). Validates the edge type is allowed for the node type (partial nodes cannot use webhooks). If edge is invalid, a `FORGET` event is sent to the other node.
     """
     
-    edge_profile = EdgeProfile.model_validate(kobj.contents)
+    edge_profile = kobj.bundle.validate_contents(EdgeProfile)
 
     # indicates peer subscribing to me
     if edge_profile.source == processor.identity.rid:     
@@ -82,11 +82,13 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
         logger.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
-        peer_profile = processor.network.cache.read(peer_rid).contents
+        peer_bundle = processor.network.cache.read(peer_rid)
         
-        if not peer_profile:
+        if not peer_bundle:
             logger.warning(f"Peer {peer_rid} unknown to me")
             return STOP_CHAIN
+        
+        peer_profile = peer_bundle.validate_contents(NodeProfile)
         
         # explicitly provided event RID types and (self) node + edge objects
         provided_events = (
@@ -128,8 +130,8 @@ def edge_negotiation_handler(processor: ProcessorInterface, kobj: KnowledgeObjec
 
 @KnowledgeHandler.create(HandlerType.Network, rid_types=[KoiNetNode])
 def coordinator_contact(processor: ProcessorInterface, kobj: KnowledgeObject):
-    node_profile = kobj.bundle.contents
-        
+    node_profile = kobj.bundle.validate_contents(NodeProfile)
+            
     # looking for event provider of nodes
     if KoiNetNode not in node_profile.provides.event:
         return
@@ -194,7 +196,7 @@ def basic_network_output_filter(processor: ProcessorInterface, kobj: KnowledgeOb
                 involves_me = True
         
         elif type(kobj.rid) == KoiNetEdge:
-            edge_profile = kobj.bundle.contents
+            edge_profile = kobj.bundle.validate_contents(EdgeProfile)
             
             if edge_profile.source == processor.identity.rid:
                 logger.debug(f"Adding edge target '{edge_profile.target!r}' to network targets")

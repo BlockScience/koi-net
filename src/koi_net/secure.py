@@ -32,9 +32,10 @@ class Secure:
         ).sign_with(self.identity.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
-        node_profile = self.cache.read(envelope.source_node).contents
+        node_bundle = self.cache.read(envelope.source_node)
         
-        if node_profile:
+        if node_bundle:
+            node_profile = node_bundle.validate_contents(NodeProfile)
             pub_key = PublicKey.from_der(node_profile.public_key)
             envelope.verify_with(pub_key)
                             
@@ -52,7 +53,7 @@ class Secure:
                 if event.event_type != EventType.NEW:
                     continue
                 
-                node_profile = event.bundle.contents
+                node_profile = event.bundle.validate_contents(NodeProfile)
                 hashed_pub_key = sha256_hash(node_profile.public_key)
 
                 if envelope.source_node.uuid != hashed_pub_key:

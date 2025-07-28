@@ -25,7 +25,7 @@ from .protocol.consts import (
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH,
 )
-from .protocol.node import NodeType
+from .protocol.node import NodeProfile, NodeType
 from .secure import Secure
 
 
@@ -54,11 +54,13 @@ class RequestHandler:
         
         print(node_rid)
         
-        node_profile = self.cache.read(node_rid).contents
-        if not node_profile:
+        node_bundle = self.cache.read(node_rid)
+        
+        if not node_bundle:
             if node_rid == self.identity.config.koi_net.first_contact_rid:
                 return self.identity.config.koi_net.first_contact_url
             raise Exception("Node not found")
+        node_profile = node_bundle.validate_contents(NodeProfile)
         if node_profile.node_type != NodeType.FULL:
             raise Exception("Can't query partial node")
         logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
