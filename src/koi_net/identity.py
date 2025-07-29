@@ -42,6 +42,7 @@ class NodeIdentity:
     
     @property
     def bundle(self) -> Bundle:
+        # NOTE: this could be a good place to use effector, lazy dereference -> create bundle and write to cache if it doesn't exist yet
         return self.cache.read(self.rid)
     
     @property

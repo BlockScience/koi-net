@@ -53,7 +53,7 @@ class RequestHandler:
         """Retrieves URL of a node."""
         
         print(node_rid)
-        
+        # NOTE: can be replaced by deref
         node_bundle = self.cache.read(node_rid)
         
         if not node_bundle:
