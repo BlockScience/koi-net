@@ -4,8 +4,8 @@ from rid_lib.core import RIDType
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 from ..protocol.event import EventType
-from ..network_interface import NetworkInterface
-from ..network_graph import NetworkGraph
+from ..network.interface import NetworkInterface
+from ..network.graph import NetworkGraph
 from ..identity import NodeIdentity
 from .handler import (
     KnowledgeHandler,

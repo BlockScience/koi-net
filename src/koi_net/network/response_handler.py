@@ -3,8 +3,8 @@ from rid_lib import RID
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
-from .identity import NodeIdentity
-from .protocol.api_models import (
+from ..identity import NodeIdentity
+from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -43,6 +43,7 @@ class ResponseHandler:
         not_found: list[RID] = []
         
         for rid in (req.rids or self.cache.list_rids(req.rid_types)):
+            # NOTE: can be replaced by deref
             bundle = self.cache.read(rid)
             if bundle:
                 manifests.append(bundle.manifest)
@@ -58,6 +59,7 @@ class ResponseHandler:
         not_found: list[RID] = []
 
         for rid in req.rids:
+            # NOTE: can be replaced by deref
             bundle = self.cache.read(rid)
             if bundle:
                 bundles.append(bundle)
