@@ -9,7 +9,6 @@ from rid_lib.types import KoiNetNode
 
 from .network_graph import NetworkGraph
 from .request_handler import RequestHandler
-from .response_handler import ResponseHandler
 from .protocol.node import NodeProfile, NodeType
 from .protocol.edge import EdgeProfile, EdgeType
 from .protocol.event import Event
@@ -33,7 +32,6 @@ class NetworkInterface:
     cache: Cache
     graph: NetworkGraph
     request_handler: RequestHandler
-    response_handler: ResponseHandler
     poll_event_queue: EventQueue
     webhook_event_queue: EventQueue
     
@@ -44,14 +42,12 @@ class NetworkInterface:
         identity: NodeIdentity,
         graph: NetworkGraph,
         request_handler: RequestHandler,
-        response_handler: ResponseHandler
     ):
         self.config = config
         self.identity = identity
         self.cache = cache
         self.graph = graph
         self.request_handler = request_handler
-        self.response_handler = response_handler
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
@@ -102,7 +98,8 @@ class NetworkInterface:
         Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid} to {node}")
-            
+        
+        # NOTE: can be replaced by deref
         node_bundle = self.cache.read(node)
         if not node_bundle:
             logger.warning(f"Node {node!r} unknown to me")
@@ -114,6 +111,7 @@ class NetworkInterface:
             target=node
         )
         
+        # NOTE: can be replaced by deref
         edge_bundle = self.cache.read(edge_rid)
         
         if edge_bundle:
@@ -160,6 +158,7 @@ class NetworkInterface:
         
         logger.debug(f"Flushing webhook queue for {node}")
         
+        # NOTE: can be replaced by deref
         node_bundle = self.cache.read(node)
         
         if not node_bundle:
@@ -185,13 +184,16 @@ class NetworkInterface:
             for event in events:
                 self.push_event_to(event, node)
             return False
-            
+    
+    # SEPARATION HERE -----
+    
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for the specified RID type."""
         
         logger.debug(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
+            # NOTE: can be replaced by deref (maybe the list_rids part too?)
             node_bundle = self.cache.read(node_rid)
             
             node_profile = node_bundle.validate_contents(NodeProfile)
@@ -258,6 +260,7 @@ class NetworkInterface:
         events = []
         for node_rid in neighbors:
             if node_rid != self.config.koi_net.first_contact_rid:
+                # NOTE: can be replaced by deref
                 node_bundle = self.cache.read(node_rid)
                 if not node_bundle: continue
                 node_profile = node_bundle.validate_contents(NodeProfile)

@@ -19,9 +19,11 @@ class Effector:
         bundle = self.cache.read(rid)
         
         if not bundle:
+            # first check if there are any providers of this type in the network
             bundle = self.network.fetch_remote_bundle(rid)
         
         if not bundle:
+            # be smart? if this node is a provider of the type, maybe hit action table first
             if type(rid) in self._action_table:
                 bundle = self._action_table[type(rid)](rid)
         

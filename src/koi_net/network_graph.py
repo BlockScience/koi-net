@@ -32,6 +32,7 @@ class NetworkGraph:
                 logger.debug(f"Added node {rid}")
                 
             elif type(rid) == KoiNetEdge:
+                # NOTE: can be replaced by effector
                 edge_bundle = self.cache.read(rid)
                 if not edge_bundle:
                     logger.warning(f"Failed to load {rid!r}")
@@ -89,6 +90,7 @@ class NetworkGraph:
         
         neighbors = []
         for edge_rid in self.get_edges(direction):
+            # NOTE: can be replaced by deref
             edge_bundle = self.cache.read(edge_rid)
             
             if not edge_bundle: 

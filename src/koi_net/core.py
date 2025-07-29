@@ -5,7 +5,8 @@ from .network_interface import NetworkInterface
 from .network_graph import NetworkGraph
 from .request_handler import RequestHandler
 from .response_handler import ResponseHandler
-from .processor import ProcessorInterface
+from .processor.interface import ProcessorInterface
+from .processor.handler_context import HandlerContext
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
@@ -68,7 +69,6 @@ class NodeInterface:
             identity=self.identity,
             graph=self.graph,
             request_handler=self.request_handler,
-            response_handler=self.response_handler
         )
         
         # pull all handlers defined in default_handlers module
@@ -79,14 +79,25 @@ class NodeInterface:
             ]
 
         self.use_kobj_processor_thread = use_kobj_processor_thread
+        
+        self.handler_context = HandlerContext(
+            identity=self.identity,
+            cache=self.cache,
+            network=self.network,
+            graph=self.graph,
+            request_handler=self.request_handler
+        )
+        
         self.processor = processor or ProcessorInterface(
-            config=self.config,
+            handler_context=self.handler_context,
             cache=self.cache, 
+            graph=self.graph,
             network=self.network, 
-            identity=self.identity, 
             use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
         )
+        
+        self.handler_context.set_processor(self.processor)
             
     def start(self) -> None:
         """Starts a node, call this method first.
@@ -98,7 +109,7 @@ class NodeInterface:
             self.processor.worker_thread.start()
         
         # self.network._load_event_queues()
-        self.network.graph.generate()
+        self.graph.generate()
         
         self.processor.handle(
             bundle=Bundle.generate(
@@ -114,7 +125,7 @@ class NodeInterface:
             self.processor.flush_kobj_queue()
         logger.debug("Done")
     
-        if not self.network.graph.get_neighbors() and self.config.koi_net.first_contact_rid:
+        if not self.graph.get_neighbors() and self.config.koi_net.first_contact_rid:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact_rid}")
             
             events = [
@@ -123,7 +134,7 @@ class NodeInterface:
             ]
             
             try:
-                self.network.request_handler.broadcast_events(
+                self.request_handler.broadcast_events(
                     node=self.config.koi_net.first_contact_rid,
                     events=events
                 )

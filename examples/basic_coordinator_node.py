@@ -14,7 +14,7 @@ from koi_net.protocol.edge import EdgeType
 from koi_net.protocol.event import Event, EventType
 from koi_net.protocol.helpers import generate_edge_bundle
 from koi_net.protocol.node import NodeProfile, NodeType, NodeProvides
-from koi_net.processor import ProcessorInterface
+from koi_net.processor.interface import ProcessorInterface
 from koi_net.protocol.api_models import (
     PollEvents,
     FetchRids,
@@ -122,15 +122,15 @@ def poll_events(req: PollEvents) -> EventsPayload:
 
 @app.post(FETCH_RIDS_PATH)
 def fetch_rids(req: FetchRids) -> RidsPayload:
-    return node.network.response_handler.fetch_rids(req)
+    return node.response_handler.fetch_rids(req)
 
 @app.post(FETCH_MANIFESTS_PATH)
 def fetch_manifests(req: FetchManifests) -> ManifestsPayload:
-    return node.network.response_handler.fetch_manifests(req)
+    return node.response_handler.fetch_manifests(req)
 
 @app.post(FETCH_BUNDLES_PATH)
 def fetch_bundles(req: FetchBundles) -> BundlesPayload:
-    return node.network.response_handler.fetch_bundles(req)
+    return node.response_handler.fetch_bundles(req)
     
 if __name__ == "__main__":
     openapi_spec = app.openapi()

@@ -32,6 +32,7 @@ class Secure:
         ).sign_with(self.identity.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
+        # NOTE: can be replaced by deref
         node_bundle = self.cache.read(envelope.source_node)
         
         if node_bundle:
