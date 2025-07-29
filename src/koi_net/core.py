@@ -1,18 +1,19 @@
 import logging
 import httpx
 from rid_lib.ext import Cache, Bundle
-from .network_interface import NetworkInterface
-from .network_graph import NetworkGraph
-from .request_handler import RequestHandler
-from .response_handler import ResponseHandler
+from .network.interface import NetworkInterface
+from .network.graph import NetworkGraph
+from .network.request_handler import RequestHandler
+from .network.response_handler import ResponseHandler
 from .processor.interface import ProcessorInterface
-from .processor.handler_context import HandlerContext
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .identity import NodeIdentity
 from .secure import Secure
 from .protocol.event import Event, EventType
 from .config import NodeConfig
+from .processor.handler_context import HandlerContext
+from .effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,8 @@ class NodeInterface:
         self.config = config
         self.cache = cache or Cache(
             self.config.koi_net.cache_directory_path)
+        
+        self.effector = Effector(self.cache)
         
         self.identity = NodeIdentity(
             config=self.config,
@@ -98,6 +101,22 @@ class NodeInterface:
         )
         
         self.handler_context.set_processor(self.processor)
+        
+        self.effector.set_processor(self.processor)
+        self.effector.set_network(self.network)
+        
+        from rid_lib.types import KoiNetNode
+        @self.effector.register_action(KoiNetNode)
+        def dereference_koi_node(rid: KoiNetNode) -> Bundle:
+            print("generating new profile bundle")
+            if rid != self.identity.rid:
+                return
+            
+            return Bundle.generate(
+                rid=self.identity.rid,
+                contents=self.identity.profile.model_dump()
+            )
+         
             
     def start(self) -> None:
         """Starts a node, call this method first.
@@ -111,12 +130,16 @@ class NodeInterface:
         # self.network._load_event_queues()
         self.graph.generate()
         
-        self.processor.handle(
-            bundle=Bundle.generate(
-                rid=self.identity.rid, 
-                contents=self.identity.profile.model_dump()
-            )
-        )
+        # self.processor.handle(
+        #     bundle=Bundle.generate(
+        #         rid=self.identity.rid, 
+        #         contents=self.identity.profile.model_dump()
+        #     )
+        # )
+        
+        profile_bundle = self.effector.deref(self.identity.rid)
+        
+        print(profile_bundle)
         
         logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:

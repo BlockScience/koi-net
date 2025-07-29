@@ -3,8 +3,8 @@ import queue
 import threading
 from rid_lib.core import RID
 from rid_lib.ext import Bundle, Cache, Manifest
-from ..network_interface import NetworkInterface
-from ..network_graph import NetworkGraph
+from ..network.interface import NetworkInterface
+from ..network.graph import NetworkGraph
 from ..protocol.event import Event
 from .handler import KnowledgeHandler
 from .knowledge_object import (

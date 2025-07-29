@@ -5,7 +5,7 @@ from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
-from .protocol.api_models import (
+from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -17,16 +17,16 @@ from .protocol.api_models import (
     RequestModels,
     ResponseModels
 )
-from .protocol.secure_models import SignedEnvelope
-from .protocol.consts import (
+from ..protocol.secure_models import SignedEnvelope
+from ..protocol.consts import (
     BROADCAST_EVENTS_PATH,
     POLL_EVENTS_PATH,
     FETCH_RIDS_PATH,
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH,
 )
-from .protocol.node import NodeProfile, NodeType
-from .secure import Secure
+from ..protocol.node import NodeProfile, NodeType
+from ..secure import Secure
 
 
 logger = logging.getLogger(__name__)

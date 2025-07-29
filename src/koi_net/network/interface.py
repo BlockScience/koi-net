@@ -7,13 +7,13 @@ from rid_lib.core import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from .network_graph import NetworkGraph
+from .graph import NetworkGraph
 from .request_handler import RequestHandler
-from .protocol.node import NodeProfile, NodeType
-from .protocol.edge import EdgeProfile, EdgeType
-from .protocol.event import Event
-from .identity import NodeIdentity
-from .config import NodeConfig
+from ..protocol.node import NodeProfile, NodeType
+from ..protocol.edge import EdgeProfile, EdgeType
+from ..protocol.event import Event
+from ..identity import NodeIdentity
+from ..config import NodeConfig
 
 logger = logging.getLogger(__name__)
 
