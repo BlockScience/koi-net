@@ -41,7 +41,7 @@ node = NodeInterface(
 node.start()
 
 while True:
-    for event in node.network.poll_neighbors():
+    for event in node.resolver.poll_neighbors():
         node.processor.handle(event=event, source=KnowledgeSource.External)
     node.processor.flush_kobj_queue()
     

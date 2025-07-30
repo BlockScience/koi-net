@@ -4,7 +4,8 @@ from rid_lib.core import RIDType
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 from ..protocol.event import EventType
-from ..network.interface import NetworkInterface
+from ..network.resolver import NetworkResolver
+from ..network.event_queue import NetworkEventQueue
 from ..network.graph import NetworkGraph
 from ..identity import NodeIdentity
 from .handler import (
@@ -30,7 +31,8 @@ class KnowledgePipeline:
     handler_context: "HandlerContext"
     cache: Cache
     identity: NodeIdentity
-    network: NetworkInterface
+    resolver: NetworkResolver
+    event_queue: NetworkEventQueue
     graph: NetworkGraph
     handlers: list[KnowledgeHandler]
     
@@ -38,13 +40,15 @@ class KnowledgePipeline:
         self, 
         handler_context: "HandlerContext",
         cache: Cache, 
-        network: NetworkInterface,
+        resolver: NetworkResolver,
+        event_queue: NetworkEventQueue,
         graph: NetworkGraph,
         default_handlers: list[KnowledgeHandler] = []
     ):
         self.handler_context = handler_context
         self.cache = cache
-        self.network = network
+        self.resolver = resolver
+        self.event_queue = event_queue
         self.graph = graph
         self.handlers = default_handlers
     
@@ -94,7 +98,11 @@ class KnowledgePipeline:
                 continue
             
             logger.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
-            resp = handler.func(self.handler_context, kobj.model_copy())
+            
+            resp = handler.func(
+                ctx=self.handler_context,
+                kobj=kobj.model_copy()
+            )
             
             # stops handler chain execution
             if resp is STOP_CHAIN:
@@ -112,7 +120,7 @@ class KnowledgePipeline:
                     
         return kobj
     
-    def process(self, kobj: KnowledgeObject) -> None:
+    def process(self, kobj: KnowledgeObject):
         """Sends provided knowledge obejct through knowledge processing pipeline.
         
         Handler chains are called in between major events in the pipeline, indicated by their handler type. Each handler type is guaranteed to have access to certain knowledge, and may affect a subsequent action in the pipeline. The five handler types are as follows:
@@ -147,7 +155,7 @@ class KnowledgePipeline:
                 if kobj.source == KnowledgeSource.External:
                     logger.debug("Attempting to fetch remote manifest")
                     # TODO: fetch from source node (when integrated with secure protocol)
-                    manifest = self.network.fetch_remote_manifest(kobj.rid)
+                    manifest = self.resolver.fetch_remote_manifest(kobj.rid)
                     
                 elif kobj.source == KnowledgeSource.Internal:
                     logger.debug("Attempting to read manifest from cache")
@@ -173,7 +181,7 @@ class KnowledgePipeline:
                 logger.debug("Bundle not found")
                 if kobj.source == KnowledgeSource.External:
                     logger.debug("Attempting to fetch remote bundle")
-                    bundle = self.network.fetch_remote_bundle(kobj.rid)
+                    bundle = self.resolver.fetch_remote_bundle(kobj.rid)
                     
                 elif kobj.source == KnowledgeSource.Internal:
                     logger.debug("Attempting to read bundle from cache")
@@ -218,7 +226,7 @@ class KnowledgePipeline:
             logger.debug("No network targets set")
         
         for node in kobj.network_targets:
-            self.network.push_event_to(kobj.normalized_event, node)
-            self.network.flush_webhook_queue(node)
+            self.event_queue.push_event_to(kobj.normalized_event, node)
+            self.event_queue.flush_webhook_queue(node)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)

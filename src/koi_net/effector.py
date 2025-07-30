@@ -6,7 +6,7 @@ from rid_lib.core import RID, RIDType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .network.interface import NetworkInterface
+    from .network.resolver import NetworkResolver
     from .processor.interface import ProcessorInterface
     from .context import ActionContext
 
@@ -16,17 +16,23 @@ logger = logging.getLogger(__name__)
 
 class Effector:
     cache: Cache
-    network: "NetworkInterface | None"
+    resolver: "NetworkResolver | None"
     processor: "ProcessorInterface | None"
     action_context: "ActionContext | None"
-    _action_table: dict[type[RID], Callable[[RID], Bundle | None]] = dict()
+    _action_table: dict[
+        type[RID], 
+        Callable[
+            ["ActionContext", RID], 
+            Bundle | None
+        ]
+    ] = dict()
     
     def __init__(
         self, 
         cache: Cache,
     ):
         self.cache = cache
-        self.network = None
+        self.resolver = None
         self.processor = None
         self.action_context = None
         self._action_table = self.__class__._action_table.copy()
@@ -34,8 +40,8 @@ class Effector:
     def set_processor(self, processor: "ProcessorInterface"):
         self.processor = processor
         
-    def set_network(self, network: "NetworkInterface"):
-        self.network = network
+    def set_resolver(self, resolver: "NetworkResolver"):
+        self.resolver = resolver
         
     def set_action_context(self, action_context: "ActionContext"):
         self.action_context = action_context
@@ -53,7 +59,11 @@ class Effector:
             return func
         return decorator
     
-    def deref(self, rid: RID, handle: bool = True) -> Bundle | None:
+    def deref(
+        self, 
+        rid: RID, 
+        handle: bool = True
+    ) -> Bundle | None:
         logger.debug(f"Dereferencing {rid}")
         bundle = self.cache.read(rid)
         
@@ -66,7 +76,10 @@ class Effector:
             if type(rid) in self._action_table:
                 logger.debug("Action found")
                 func = self._action_table[type(rid)]
-                bundle = func(self.action_context, rid)
+                bundle = func(
+                    ctx=self.action_context, 
+                    rid=rid
+                )
             else:
                 logger.debug("No action found")
         
@@ -76,7 +89,7 @@ class Effector:
                 logger.debug("Action miss")
             
                 # first check if there are any providers of this type in the network
-                bundle = self.network.fetch_remote_bundle(rid)
+                bundle = self.resolver.fetch_remote_bundle(rid)
             
                 if bundle:
                     logger.debug("Network hit")
