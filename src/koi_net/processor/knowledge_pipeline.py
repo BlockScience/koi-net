@@ -130,7 +130,6 @@ class KnowledgePipeline:
         if kobj is STOP_CHAIN: return
         
         if kobj.event_type == EventType.FORGET:
-            # NOTE: this SHOULD just be a cache read (not deref)
             bundle = self.cache.read(kobj.rid)
             if not bundle: 
                 logger.debug("Local bundle not found")

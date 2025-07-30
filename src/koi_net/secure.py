@@ -1,4 +1,3 @@
-from rid_lib.ext import Cache
 from .identity import NodeIdentity
 from .protocol.secure_models import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
@@ -6,15 +5,17 @@ from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
 from .utils import sha256_hash
+from .effector import Effector
 
 
 class Secure:
     identity: NodeIdentity
-    cache: Cache
+    effector: Effector
     
-    def __init__(self, identity: NodeIdentity, cache: Cache):
+    def __init__(self, identity: NodeIdentity, effector: Effector
+):
         self.identity = identity
-        self.cache = cache
+        self.effector = effector
         
     # def validate_profile_bundle(self, bundle: Bundle[NodeProfile]):
     #     if type(bundle.rid) != KoiNetNode:
@@ -31,8 +32,7 @@ class Secure:
         ).sign_with(self.identity.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
-        # NOTE: can be replaced by deref
-        node_bundle = self.cache.read(envelope.source_node)
+        node_bundle = self.effector.deref(envelope.source_node)
         
         if node_bundle:
             node_profile = node_bundle.validate_contents(NodeProfile)
