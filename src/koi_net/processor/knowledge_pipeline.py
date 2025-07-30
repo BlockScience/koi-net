@@ -157,16 +157,6 @@ class KnowledgePipeline:
                     # TODO: fetch from source node (when integrated with secure protocol)
                     manifest = self.resolver.fetch_remote_manifest(kobj.rid)
                     
-                elif kobj.source == KnowledgeSource.Internal:
-                    logger.debug("Attempting to read manifest from cache")
-                    # NOTE: does this make sense? should a non FORGET event type allow just the RID to be handled? if its in the cache wouldn't it already have been handled 
-                    bundle = self.cache.read(kobj.rid)
-                    if bundle: 
-                        manifest = bundle.manifest
-                    else:
-                        manifest = None
-                        return
-                    
                 if not manifest:
                     logger.debug("Failed to find manifest")
                     return
@@ -181,12 +171,8 @@ class KnowledgePipeline:
                 logger.debug("Bundle not found")
                 if kobj.source == KnowledgeSource.External:
                     logger.debug("Attempting to fetch remote bundle")
+                    # TODO: fetch from source node (when integrated with secure protocol)
                     bundle = self.resolver.fetch_remote_bundle(kobj.rid)
-                    
-                elif kobj.source == KnowledgeSource.Internal:
-                    logger.debug("Attempting to read bundle from cache")
-                    # NOTE: does this make sense? should a non FORGET event type allow just the RID to be handled? if its in the cache wouldn't it already have been handled 
-                    bundle = self.cache.read(kobj.rid)
                 
                 if not bundle: 
                     logger.debug("Failed to find bundle")

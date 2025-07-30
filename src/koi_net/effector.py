@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-
 class Effector:
     cache: Cache
     resolver: "NetworkResolver | None"
@@ -59,12 +58,7 @@ class Effector:
             return func
         return decorator
     
-    def deref(
-        self, 
-        rid: RID, 
-        handle: bool = True
-    ) -> Bundle | None:
-        logger.debug(f"Dereferencing {rid}")
+    def _try_cache(self, rid: RID) -> Bundle | None:
         bundle = self.cache.read(rid)
         
         if bundle:
@@ -72,34 +66,54 @@ class Effector:
         else:
             logger.debug("Cache miss")
             
-            # be smart? if this node is a provider of the type, maybe hit action table first
-            if type(rid) in self._action_table:
-                logger.debug("Action found")
-                func = self._action_table[type(rid)]
-                bundle = func(
-                    ctx=self.action_context, 
-                    rid=rid
-                )
-            else:
-                logger.debug("No action found")
+        return bundle
         
-            if bundle:
-                logger.debug("Action hit")
-            else:
-                logger.debug("Action miss")
-            
-                # first check if there are any providers of this type in the network
-                bundle = self.resolver.fetch_remote_bundle(rid)
-            
-                if bundle:
-                    logger.debug("Network hit")
-                else:
-                    logger.debug("Network miss")
-                    return
+    def _try_action(self, rid: RID) -> Bundle | None:
+        if type(rid) not in self._action_table:
+            logger.debug("No action found")
+            return
         
-        if handle:
+        logger.debug("Action found")
+        func = self._action_table[type(rid)]
+        bundle = func(
+            ctx=self.action_context, 
+            rid=rid
+        )
+        
+        if bundle:
+            logger.debug("Action hit")
+        else:
+            logger.debug("Action miss")
+        
+        return bundle
+
+        
+    def _try_network(self, rid: RID):
+        bundle = self.resolver.fetch_remote_bundle(rid)
+        
+        if bundle:
+            logger.debug("Network hit")
+        else:
+            logger.debug("Network miss")
+        
+        return bundle
+    
+    def deref(
+        self, 
+        rid: RID, 
+        handle: bool = True
+    ) -> Bundle | None:
+        logger.debug(f"Dereferencing {rid}")
+        
+        bundle = (
+            self._try_cache(rid) or
+            self._try_action(rid) or
+            self._try_network(rid)
+        )
+        
+        if bundle and handle:
             self.processor.handle(bundle=bundle)
             # TODO: refactor for general solution, param to write through to cache before continuing
-            # self.processor.kobj_queue.join()
-    
+            # like `self.processor.kobj_queue.join()``
+        
         return bundle
