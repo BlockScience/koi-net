@@ -10,7 +10,6 @@ from koi_net import NodeInterface
 from koi_net.config import NodeConfig, KoiNetConfig
 from koi_net.processor.knowledge_object import KnowledgeSource
 from koi_net.protocol.node import NodeProfile, NodeType, NodeProvides
-from koi_net.processor.handler_context import HandlerContext
 from koi_net.protocol.api_models import (
     PollEvents,
     FetchRids,

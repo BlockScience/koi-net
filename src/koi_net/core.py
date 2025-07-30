@@ -1,6 +1,6 @@
 import logging
 import httpx
-from rid_lib.ext import Cache, Bundle
+from rid_lib.ext import Cache
 from .network.interface import NetworkInterface
 from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
@@ -12,7 +12,7 @@ from .identity import NodeIdentity
 from .secure import Secure
 from .protocol.event import Event, EventType
 from .config import NodeConfig
-from .processor.handler_context import HandlerContext
+from .context import HandlerContext, ActionContext
 from .effector import Effector
 from . import default_actions
 
@@ -80,12 +80,18 @@ class NodeInterface:
 
         self.use_kobj_processor_thread = use_kobj_processor_thread
         
+        self.action_context = ActionContext(
+            identity=self.identity,
+            effector=self.effector
+        )
+        
         self.handler_context = HandlerContext(
             identity=self.identity,
             cache=self.cache,
             network=self.network,
             graph=self.graph,
-            request_handler=self.request_handler
+            request_handler=self.request_handler,
+            effector=self.effector
         )
         
         self.processor = processor or ProcessorInterface(
@@ -101,7 +107,7 @@ class NodeInterface:
         
         self.effector.set_processor(self.processor)
         self.effector.set_network(self.network)
-        self.effector.set_handler_context(self.handler_context)
+        self.effector.set_action_context(self.action_context)
          
             
     def start(self) -> None:

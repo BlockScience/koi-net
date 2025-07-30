@@ -8,16 +8,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .network.interface import NetworkInterface
     from .processor.interface import ProcessorInterface
-    from .processor.handler_context import HandlerContext
+    from .context import ActionContext
 
 logger = logging.getLogger(__name__)
+
 
 
 class Effector:
     cache: Cache
     network: "NetworkInterface | None"
     processor: "ProcessorInterface | None"
-    handler_context: "HandlerContext | None"
+    action_context: "ActionContext | None"
     _action_table: dict[type[RID], Callable[[RID], Bundle | None]] = dict()
     
     def __init__(
@@ -27,7 +28,7 @@ class Effector:
         self.cache = cache
         self.network = None
         self.processor = None
-        self.handler_context = None
+        self.action_context = None
         self._action_table = self.__class__._action_table.copy()
         
     def set_processor(self, processor: "ProcessorInterface"):
@@ -36,8 +37,8 @@ class Effector:
     def set_network(self, network: "NetworkInterface"):
         self.network = network
         
-    def set_handler_context(self, handler_context: "HandlerContext"):
-        self.handler_context = handler_context
+    def set_action_context(self, action_context: "ActionContext"):
+        self.action_context = action_context
         
     @classmethod
     def register_default_action(cls, rid_type: RIDType):
@@ -65,7 +66,7 @@ class Effector:
             if type(rid) in self._action_table:
                 logger.debug("Action found")
                 func = self._action_table[type(rid)]
-                bundle = func(self.handler_context, rid)
+                bundle = func(self.action_context, rid)
             else:
                 logger.debug("No action found")
         

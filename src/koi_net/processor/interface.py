@@ -16,7 +16,7 @@ from .knowledge_pipeline import KnowledgePipeline
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .handler_context import HandlerContext
+    from ..context import HandlerContext
 
 logger = logging.getLogger(__name__)
 
