@@ -109,7 +109,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         
         if abort:
             event = Event.from_rid(EventType.FORGET, kobj.rid)
-            ctx.network.push_event_to(event, peer_rid, flush=True)
+            ctx.event_queue.push_event_to(event, peer_rid, flush=True)
             return STOP_CHAIN
 
         else:
@@ -165,7 +165,7 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
     
     logger.info("Catching up on network state")
     
-    payload = ctx.network.request_handler.fetch_rids(
+    payload = ctx.request_handler.fetch_rids(
         node=kobj.rid, 
         rid_types=[KoiNetNode]
     )

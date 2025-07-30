@@ -2,11 +2,8 @@ import logging
 import queue
 import threading
 from rid_lib.core import RID
-from rid_lib.ext import Bundle, Cache, Manifest
-from ..network.interface import NetworkInterface
-from ..network.graph import NetworkGraph
+from rid_lib.ext import Bundle, Manifest
 from ..protocol.event import Event
-from .handler import KnowledgeHandler
 from .knowledge_object import (
     KnowledgeObject,
     KnowledgeSource, 
@@ -14,19 +11,12 @@ from .knowledge_object import (
 )
 from .knowledge_pipeline import KnowledgePipeline
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..context import HandlerContext
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessorInterface:
     """Provides access to this node's knowledge processing pipeline."""
-    handler_context: "HandlerContext"
-    cache: Cache
-    network: NetworkInterface
-    graph: NetworkGraph
     pipeline: KnowledgePipeline
     kobj_queue: queue.Queue[KnowledgeObject]
     use_kobj_processor_thread: bool
@@ -34,27 +24,12 @@ class ProcessorInterface:
     
     def __init__(
         self,
-        handler_context: "HandlerContext",
-        cache: Cache, 
-        network: NetworkInterface,
-        graph: NetworkGraph,
+        pipeline: KnowledgePipeline,
         use_kobj_processor_thread: bool,
-        default_handlers: list[KnowledgeHandler] = []
     ):
-        self.handler_context = handler_context
-        self.cache = cache
-        self.network = network
-        self.graph = graph
+        self.pipeline = pipeline
         self.use_kobj_processor_thread = use_kobj_processor_thread
         self.kobj_queue = queue.Queue()
-        
-        self.pipeline = KnowledgePipeline(
-            handler_context=self.handler_context,
-            cache=self.cache,
-            network=self.network,
-            graph=self.graph,
-            default_handlers=default_handlers
-        )
         
         if self.use_kobj_processor_thread:
             self.worker_thread = threading.Thread(

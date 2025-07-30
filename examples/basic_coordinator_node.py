@@ -86,7 +86,7 @@ def broadcast_events(req: EventsPayload):
 @app.post(POLL_EVENTS_PATH)
 def poll_events(req: PollEvents) -> EventsPayload:
     logger.info(f"Request to {POLL_EVENTS_PATH}")
-    events = node.network.flush_poll_queue(req.rid)
+    events = node.event_queue.flush_poll_queue(req.rid)
     return EventsPayload(events=events)
 
 @app.post(FETCH_RIDS_PATH)
