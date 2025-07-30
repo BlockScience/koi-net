@@ -1,5 +1,7 @@
 import logging
 from typing import Callable
+from enum import StrEnum
+from koi_net.processor.knowledge_object import KnowledgeSource
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 
@@ -12,6 +14,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+class BundleSource(StrEnum):
+    CACHE = "CACHE"
+    ACTION = "ACTION"
+    NETWORK = "NETWORK"
 
 class Effector:
     cache: Cache
@@ -58,20 +65,20 @@ class Effector:
             return func
         return decorator
     
-    def _try_cache(self, rid: RID) -> Bundle | None:
+    def _try_cache(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         bundle = self.cache.read(rid)
         
         if bundle:
             logger.debug("Cache hit")
+            return bundle, BundleSource.CACHE
         else:
             logger.debug("Cache miss")
-            
-        return bundle
-        
-    def _try_action(self, rid: RID) -> Bundle | None:
+            return None
+                    
+    def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         if type(rid) not in self._action_table:
             logger.debug("No action found")
-            return
+            return None
         
         logger.debug("Action found")
         func = self._action_table[type(rid)]
@@ -82,21 +89,22 @@ class Effector:
         
         if bundle:
             logger.debug("Action hit")
+            return bundle, BundleSource.ACTION
         else:
             logger.debug("Action miss")
-        
-        return bundle
+            return None
 
         
-    def _try_network(self, rid: RID):
+    def _try_network(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         bundle = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
             logger.debug("Network hit")
+            return bundle, BundleSource.NETWORK
         else:
             logger.debug("Network miss")
+            return None
         
-        return bundle
     
     def deref(
         self, 
@@ -105,15 +113,29 @@ class Effector:
     ) -> Bundle | None:
         logger.debug(f"Dereferencing {rid}")
         
-        bundle = (
+        bundle, source = (
             self._try_cache(rid) or
             self._try_action(rid) or
-            self._try_network(rid)
+            self._try_network(rid) or
+            (None, None) # if not found, set bundle and source to None
         )
         
-        if bundle and handle:
-            self.processor.handle(bundle=bundle)
+        if (
+            handle 
+            and source is not None 
+            and source != BundleSource.CACHE
+        ):
+            knowledge_source = {
+                BundleSource.ACTION: KnowledgeSource.Internal,
+                BundleSource.NETWORK: KnowledgeSource.External
+            }[source]
+            
+            self.processor.handle(
+                bundle=bundle, 
+                source=knowledge_source
+            )
+
             # TODO: refactor for general solution, param to write through to cache before continuing
             # like `self.processor.kobj_queue.join()``
-        
+
         return bundle
