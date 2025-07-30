@@ -5,8 +5,8 @@ from rid_lib.ext.bundle import Bundle
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.protocol.node import NodeType
 from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
-from .handler_context import HandlerContext
 from .knowledge_object import KnowledgeObject, KnowledgeSource
+from ..context import HandlerContext
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType
 from ..protocol.node import NodeProfile
@@ -82,7 +82,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         logger.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
-        peer_bundle = ctx.cache.read(peer_rid)
+        peer_bundle = ctx.effector.deref(peer_rid)
         
         if not peer_bundle:
             logger.warning(f"Peer {peer_rid} unknown to me")
