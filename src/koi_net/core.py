@@ -1,13 +1,15 @@
 import logging
 import httpx
 from rid_lib.ext import Cache
-from .network.interface import NetworkInterface
+from .network.resolver import NetworkResolver
+from .network.event_queue import NetworkEventQueue
 from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
 from .network.response_handler import ResponseHandler
 from .processor.interface import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
+from .processor.knowledge_pipeline import KnowledgePipeline
 from .identity import NodeIdentity
 from .secure import Secure
 from .protocol.event import Event, EventType
@@ -24,7 +26,8 @@ class NodeInterface:
     config: NodeConfig
     cache: Cache
     identity: NodeIdentity
-    network: NetworkInterface
+    resolver: NetworkResolver
+    event_queue: NetworkEventQueue
     graph: NetworkGraph
     processor: ProcessorInterface
     secure: Secure
@@ -39,7 +42,6 @@ class NodeInterface:
         handlers: list[KnowledgeHandler] | None = None,
         
         cache: Cache | None = None,
-        network: NetworkInterface | None = None,
         processor: ProcessorInterface | None = None
     ):
         self.config = config
@@ -62,7 +64,16 @@ class NodeInterface:
         
         self.response_handler = ResponseHandler(self.cache, self.effector)
         
-        self.network = network or NetworkInterface(
+        self.resolver = NetworkResolver(
+            config=self.config,
+            cache=self.cache, 
+            identity=self.identity,
+            graph=self.graph,
+            request_handler=self.request_handler,
+            effector=self.effector
+        )
+        
+        self.event_queue = NetworkEventQueue(
             config=self.config,
             cache=self.cache, 
             identity=self.identity,
@@ -88,25 +99,30 @@ class NodeInterface:
         self.handler_context = HandlerContext(
             identity=self.identity,
             cache=self.cache,
-            network=self.network,
+            event_queue=self.event_queue,
             graph=self.graph,
             request_handler=self.request_handler,
             effector=self.effector
         )
         
-        self.processor = processor or ProcessorInterface(
+        self.pipeline = KnowledgePipeline(
             handler_context=self.handler_context,
-            cache=self.cache, 
+            cache=self.cache,
+            resolver=self.resolver,
+            event_queue=self.event_queue,
             graph=self.graph,
-            network=self.network, 
-            use_kobj_processor_thread=self.use_kobj_processor_thread,
             default_handlers=handlers
+        )
+        
+        self.processor = processor or ProcessorInterface(
+            pipeline=self.pipeline,
+            use_kobj_processor_thread=self.use_kobj_processor_thread
         )
         
         self.handler_context.set_processor(self.processor)
         
         self.effector.set_processor(self.processor)
-        self.effector.set_network(self.network)
+        self.effector.set_resolver(self.resolver)
         self.effector.set_action_context(self.action_context)
          
             
