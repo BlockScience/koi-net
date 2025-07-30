@@ -108,20 +108,24 @@ class Effector:
     
     def deref(
         self, 
-        rid: RID, 
-        handle: bool = True
+        rid: RID,
+        refresh_cache: bool = False,
+        use_network: bool = True,
+        handle_result: bool = True
     ) -> Bundle | None:
         logger.debug(f"Dereferencing {rid}")
         
         bundle, source = (
-            self._try_cache(rid) or
+            # if `refresh_cache`, skip try cache
+            not refresh_cache and self._try_cache(rid) or 
             self._try_action(rid) or
-            self._try_network(rid) or
-            (None, None) # if not found, set bundle and source to None
+            use_network and self._try_network(rid) or
+            # if not found, bundle and source set to None
+            (None, None) 
         )
         
         if (
-            handle 
+            handle_result 
             and source is not None 
             and source != BundleSource.CACHE
         ):
