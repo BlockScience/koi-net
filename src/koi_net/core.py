@@ -14,6 +14,7 @@ from .protocol.event import Event, EventType
 from .config import NodeConfig
 from .processor.handler_context import HandlerContext
 from .effector import Effector
+from . import default_actions
 
 logger = logging.getLogger(__name__)
 
@@ -45,26 +46,21 @@ class NodeInterface:
         self.cache = cache or Cache(
             self.config.koi_net.cache_directory_path)
         
+        self.identity = NodeIdentity(self.config)
+        
         self.effector = Effector(self.cache)
-        
-        self.identity = NodeIdentity(
-            config=self.config,
-            cache=self.cache)
-        
+
         self.graph = NetworkGraph(self.cache, self.identity)
         
-        self.secure = Secure(
-            identity=self.identity,
-            cache=self.cache
-        )
+        self.secure = Secure(self.identity, self.effector)
         
         self.request_handler = RequestHandler(
-            self.cache, 
+            self.effector, 
             self.identity,
             self.secure
         )
         
-        self.response_handler = ResponseHandler(self.cache, self.identity)
+        self.response_handler = ResponseHandler(self.cache, self.effector)
         
         self.network = network or NetworkInterface(
             config=self.config,
@@ -72,6 +68,7 @@ class NodeInterface:
             identity=self.identity,
             graph=self.graph,
             request_handler=self.request_handler,
+            effector=self.effector
         )
         
         # pull all handlers defined in default_handlers module
@@ -104,18 +101,7 @@ class NodeInterface:
         
         self.effector.set_processor(self.processor)
         self.effector.set_network(self.network)
-        
-        from rid_lib.types import KoiNetNode
-        @self.effector.register_action(KoiNetNode)
-        def dereference_koi_node(rid: KoiNetNode) -> Bundle:
-            print("generating new profile bundle")
-            if rid != self.identity.rid:
-                return
-            
-            return Bundle.generate(
-                rid=self.identity.rid,
-                contents=self.identity.profile.model_dump()
-            )
+        self.effector.set_handler_context(self.handler_context)
          
             
     def start(self) -> None:
@@ -130,17 +116,8 @@ class NodeInterface:
         # self.network._load_event_queues()
         self.graph.generate()
         
-        # self.processor.handle(
-        #     bundle=Bundle.generate(
-        #         rid=self.identity.rid, 
-        #         contents=self.identity.profile.model_dump()
-        #     )
-        # )
-        
-        profile_bundle = self.effector.deref(self.identity.rid)
-        
-        print(profile_bundle)
-        
+        self.effector.deref(self.identity.rid)
+                
         logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:
             self.processor.kobj_queue.join()
@@ -153,7 +130,7 @@ class NodeInterface:
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
-                Event.from_bundle(EventType.NEW, self.identity.bundle)
+                Event.from_bundle(EventType.NEW, self.effector.deref(self.identity.rid))
             ]
             
             try:

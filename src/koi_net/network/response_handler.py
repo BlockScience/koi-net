@@ -3,7 +3,6 @@ from rid_lib import RID
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
-from ..identity import NodeIdentity
 from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
@@ -12,6 +11,7 @@ from ..protocol.api_models import (
     FetchManifests,
     FetchBundles,
 )
+from ..effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +20,15 @@ class ResponseHandler:
     """Handles generating responses to requests from other KOI nodes."""
     
     cache: Cache
-    identity: NodeIdentity
+    effector: Effector
     
     def __init__(
         self, 
         cache: Cache, 
-        identity: NodeIdentity
+        effector: Effector,
     ):
         self.cache = cache
-        self.identity = identity
+        self.effector = effector
         
     def fetch_rids(self, req: FetchRids) -> RidsPayload:
         logger.info(f"Request to fetch rids, allowed types {req.rid_types}")
@@ -43,8 +43,7 @@ class ResponseHandler:
         not_found: list[RID] = []
         
         for rid in (req.rids or self.cache.list_rids(req.rid_types)):
-            # NOTE: can be replaced by deref
-            bundle = self.cache.read(rid)
+            bundle = self.effector.deref(rid)
             if bundle:
                 manifests.append(bundle.manifest)
             else:
@@ -59,8 +58,7 @@ class ResponseHandler:
         not_found: list[RID] = []
 
         for rid in req.rids:
-            # NOTE: can be replaced by deref
-            bundle = self.cache.read(rid)
+            bundle = self.effector.deref(rid)
             if bundle:
                 bundles.append(bundle)
             else:

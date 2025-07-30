@@ -14,6 +14,7 @@ from ..protocol.edge import EdgeProfile, EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
 from ..config import NodeConfig
+from ..effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class NetworkInterface:
     
     config: NodeConfig    
     identity: NodeIdentity
+    effector: Effector
     cache: Cache
     graph: NetworkGraph
     request_handler: RequestHandler
@@ -40,6 +42,7 @@ class NetworkInterface:
         config: NodeConfig,
         cache: Cache, 
         identity: NodeIdentity,
+        effector: Effector,
         graph: NetworkGraph,
         request_handler: RequestHandler,
     ):
@@ -48,6 +51,7 @@ class NetworkInterface:
         self.cache = cache
         self.graph = graph
         self.request_handler = request_handler
+        self.effector = effector
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
@@ -99,11 +103,10 @@ class NetworkInterface:
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid} to {node}")
         
-        # NOTE: can be replaced by deref
-        node_bundle = self.cache.read(node)
+        node_bundle = self.effector.deref(node)
         if not node_bundle:
             logger.warning(f"Node {node!r} unknown to me")
-            
+        node_profile = node_bundle.validate_contents(NodeProfile)
         
         # if there's an edge from me to the target node, override broadcast type
         edge_rid = self.graph.get_edge(
@@ -111,17 +114,18 @@ class NetworkInterface:
             target=node
         )
         
-        # NOTE: can be replaced by deref
-        edge_bundle = self.cache.read(edge_rid)
+        edge_bundle = None
+        if edge_rid:
+            edge_bundle = self.effector.deref(edge_rid)
         
         if edge_bundle:
             edge_profile = edge_bundle.validate_contents(EdgeProfile)
+            
             if edge_profile.edge_type == EdgeType.WEBHOOK:
                 event_queue = self.webhook_event_queue
             elif edge_profile.edge_type == EdgeType.POLL:
                 event_queue = self.poll_event_queue
         else:
-            node_profile = node_bundle.validate_contents(NodeProfile)
             if node_profile.node_type == NodeType.FULL:
                 event_queue = self.webhook_event_queue
             elif node_profile.node_type == NodeType.PARTIAL:
@@ -158,8 +162,7 @@ class NetworkInterface:
         
         logger.debug(f"Flushing webhook queue for {node}")
         
-        # NOTE: can be replaced by deref
-        node_bundle = self.cache.read(node)
+        node_bundle = self.effector.deref(node)
         
         if not node_bundle:
             logger.warning(f"{node!r} not found")
@@ -193,7 +196,9 @@ class NetworkInterface:
         logger.debug(f"Looking for state providers of '{rid_type}'")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
-            # NOTE: can be replaced by deref (maybe the list_rids part too?)
+            if node_rid == self.identity.rid:
+                continue
+            
             node_bundle = self.cache.read(node_rid)
             
             node_profile = node_bundle.validate_contents(NodeProfile)
@@ -260,7 +265,6 @@ class NetworkInterface:
         events = []
         for node_rid in neighbors:
             if node_rid != self.config.koi_net.first_contact_rid:
-                # NOTE: can be replaced by deref
                 node_bundle = self.cache.read(node_rid)
                 if not node_bundle: continue
                 node_profile = node_bundle.validate_contents(NodeProfile)

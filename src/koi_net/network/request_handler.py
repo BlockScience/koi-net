@@ -1,7 +1,7 @@
 import logging
 import httpx
+from koi_net import identity
 from rid_lib import RID
-from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from koi_net.identity import NodeIdentity
@@ -27,6 +27,7 @@ from ..protocol.consts import (
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..secure import Secure
+from ..effector import Effector
 
 
 logger = logging.getLogger(__name__)
@@ -35,17 +36,17 @@ logger = logging.getLogger(__name__)
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
-    cache: Cache
+    effector: Effector
     identity: NodeIdentity
     secure: Secure
     
     def __init__(
         self, 
-        cache: Cache, 
+        effector: Effector,
         identity: NodeIdentity,
         secure: Secure
     ):
-        self.cache = cache
+        self.effector = effector
         self.identity = identity
         self.secure = secure
     
@@ -53,8 +54,11 @@ class RequestHandler:
         """Retrieves URL of a node."""
         
         print(node_rid)
-        # NOTE: can be replaced by deref
-        node_bundle = self.cache.read(node_rid)
+        
+        if node_rid == self.identity.rid:
+            raise Exception("Don't talk to yourself")
+        
+        node_bundle = self.effector.deref(node_rid)
         
         if not node_bundle:
             if node_rid == self.identity.config.koi_net.first_contact_rid:

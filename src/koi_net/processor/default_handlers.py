@@ -39,7 +39,6 @@ def basic_manifest_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     
     Blocks manifests with the same hash, or aren't newer than the cached version. Sets the normalized event type to `NEW` or `UPDATE` depending on whether the RID was previously known to this node.
     """
-    # NOTE: CANNOT be replaced by deref
     prev_bundle = ctx.cache.read(kobj.rid)
 
     if prev_bundle:
