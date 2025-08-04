@@ -23,7 +23,7 @@ class PrivateKey:
         return PublicKey(self.priv_key.public_key())
     
     @classmethod
-    def from_pem(cls, priv_key_pem: str, password: str | None = None):
+    def from_pem(cls, priv_key_pem: str, password: str):
         return cls(
             priv_key=serialization.load_pem_private_key(
                 data=priv_key_pem.encode(),
@@ -31,7 +31,7 @@ class PrivateKey:
             )
         )
 
-    def to_pem(self, password: str | None = None) -> str:
+    def to_pem(self, password: str) -> str:
         return self.priv_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -98,10 +98,10 @@ class PublicKey:
         logger.debug(f"hash: {hashed_message}")
         logger.debug(f"signature: {signature}")
         
+        # NOTE: throws cryptography.exceptions.InvalidSignature on failure
+        
         self.pub_key.verify(
             signature=urlsafe_b64decode(signature),
             data=message,
             signature_algorithm=ec.ECDSA(hashes.SHA256())
         )
-    
-        # throws cryptography.exceptions.InvalidSignature on failure
