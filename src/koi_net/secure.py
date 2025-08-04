@@ -1,3 +1,5 @@
+import logging
+from functools import wraps
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
 from .identity import NodeIdentity
@@ -7,6 +9,8 @@ from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
 from .effector import Effector
+
+logger = logging.getLogger(__name__)
 
 
 class Secure:
@@ -61,4 +65,20 @@ class Secure:
         # check that this node is the target of the envelope
         if envelope.target_node != self.identity.rid:
             raise Exception("I am not the target")
+        
+    def envelope_handler(self, func):
+        @wraps(func)
+        async def wrapper(req: SignedEnvelope, *args, **kwargs) -> SignedEnvelope | None:
+            logger.info("Validating envelope")
+            self.validate_envelope(req)
+            logger.info("Calling endpoint handler")
+            result = await func(req, *args, **kwargs)
+            
+            if result is not None:
+                logger.info("Creating response envelope")
+                return self.create_envelope(
+                    payload=result,
+                    target=req.source_node
+                )
+        return wrapper
 
