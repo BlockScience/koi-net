@@ -3,8 +3,7 @@ from base64 import urlsafe_b64decode, urlsafe_b64encode
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
-
-from koi_net.utils import sha256_hash
+from rid_lib.ext.utils import sha256_hash
 
 logger = logging.getLogger(__name__)
 

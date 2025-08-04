@@ -17,7 +17,7 @@ from ..protocol.api_models import (
     RequestModels,
     ResponseModels
 )
-from ..protocol.secure_models import SignedEnvelope
+from ..protocol.envelope import SignedEnvelope
 from ..protocol.consts import (
     BROADCAST_EVENTS_PATH,
     POLL_EVENTS_PATH,

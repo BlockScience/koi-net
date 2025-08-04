@@ -1,12 +1,11 @@
 import os
 from ruamel.yaml import YAML
-from koi_net.protocol.node import NodeProfile, NodeType
-from rid_lib.types import KoiNetNode
 from pydantic import BaseModel, Field, PrivateAttr
 from dotenv import load_dotenv
-
-from koi_net.utils import sha256_hash
-from .protocol.secure import PublicKey, PrivateKey
+from rid_lib.ext.utils import sha256_hash
+from rid_lib.types import KoiNetNode
+from .protocol.secure import PrivateKey
+from .protocol.node import NodeProfile, NodeType
 
 
 class ServerConfig(BaseModel):
