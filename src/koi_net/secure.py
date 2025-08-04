@@ -1,11 +1,11 @@
 from rid_lib.ext import Bundle
+from rid_lib.ext.utils import sha256_hash
 from .identity import NodeIdentity
-from .protocol.secure_models import UnsignedEnvelope, SignedEnvelope
+from .protocol.envelope import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
 from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
-from .utils import sha256_hash
 from .effector import Effector
 
 
