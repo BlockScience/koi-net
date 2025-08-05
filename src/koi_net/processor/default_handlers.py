@@ -6,7 +6,7 @@ from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.protocol.node import NodeType
 from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
-from .knowledge_object import KnowledgeObject, KnowledgeSource
+from .knowledge_object import KnowledgeObject
 from ..context import HandlerContext
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType, generate_edge_bundle
@@ -22,8 +22,7 @@ def basic_rid_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     
     Blocks external events about this node. Allows `FORGET` events if RID is known to this node.
     """
-    if (kobj.rid == ctx.identity.rid and 
-        kobj.source == KnowledgeSource.External):
+    if (kobj.rid == ctx.identity.rid and kobj.source):
         logger.debug("Don't let anyone else tell me who I am!")
         return STOP_CHAIN
     
@@ -77,13 +76,15 @@ def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 @KnowledgeHandler.create(
     handler_type=HandlerType.Bundle, 
     rid_types=[KoiNetEdge], 
-    source=KnowledgeSource.External,
     event_types=[EventType.NEW, EventType.UPDATE])
 def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     """Handles basic edge negotiation process.
     
     Automatically approves proposed edges if they request RID types this node can provide (or KOI nodes/edges). Validates the edge type is allowed for the node type (partial nodes cannot use webhooks). If edge is invalid, a `FORGET` event is sent to the other node.
     """
+
+    # only respond when source is another node
+    if kobj.source is None: return
     
     edge_profile = kobj.bundle.validate_contents(EdgeProfile)
 
@@ -192,7 +193,7 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
         
         # marked as external since we are handling RIDs from another node
         # will fetch remotely instead of checking local cache
-        ctx.handle(rid=rid, source=KnowledgeSource.External)
+        ctx.handle(rid=rid, source=kobj.rid)
     logger.info("Done")
     
 
@@ -203,7 +204,7 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
     Allows broadcasting of all RID types this node is an event provider for (set in node profile), and other nodes have subscribed to. All nodes will also broadcast about their own (internally sourced) KOI node, and KOI edges that they are part of, regardless of their node profile configuration. Finally, nodes will also broadcast about edges to the other node involved (regardless of if they are subscribed)."""
     
     involves_me = False
-    if kobj.source == KnowledgeSource.Internal:
+    if kobj.source is None:
         if (type(kobj.rid) == KoiNetNode):
             if (kobj.rid == ctx.identity.rid):
                 involves_me = True

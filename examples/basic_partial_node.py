@@ -3,7 +3,6 @@ import logging
 from pydantic import Field
 from rich.logging import RichHandler
 from koi_net import NodeInterface
-from koi_net.processor.knowledge_object import KnowledgeSource
 from koi_net.protocol.node import NodeProfile, NodeType
 from koi_net.config import NodeConfig, KoiNetConfig, NodeContact
 
@@ -39,8 +38,11 @@ node = NodeInterface(
 node.start()
 
 while True:
-    for event in node.resolver.poll_neighbors():
-        node.processor.handle(event=event, source=KnowledgeSource.External)
+    neighbors = node.resolver.poll_neighbors()
+    for node_rid in neighbors:
+        events = neighbors[node_rid]
+        for event in events:
+            node.processor.handle(event=event, source=node_rid)
     node.processor.flush_kobj_queue()
     
     time.sleep(5)

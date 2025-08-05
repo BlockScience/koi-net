@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net import NodeInterface
 from koi_net.config import NodeConfig, KoiNetConfig
-from koi_net.processor.knowledge_object import KnowledgeSource
 from koi_net.protocol.node import NodeProfile, NodeType, NodeProvides
 from koi_net.protocol.api_models import (
     PollEvents,
@@ -35,6 +34,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[RichHandler()]
 )
+
+# TODO: UPDATE OR REMOVE, THIS EXAMPLE IS OUT OF DATE
 
 logging.getLogger("koi_net").setLevel(logging.DEBUG)
 

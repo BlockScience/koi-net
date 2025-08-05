@@ -3,12 +3,9 @@ import queue
 import threading
 from rid_lib.core import RID
 from rid_lib.ext import Bundle, Manifest
+from rid_lib.types import KoiNetNode
 from ..protocol.event import Event
-from .knowledge_object import (
-    KnowledgeObject,
-    KnowledgeSource, 
-    KnowledgeEventType
-)
+from .knowledge_object import KnowledgeObject, KnowledgeEventType
 from .knowledge_pipeline import KnowledgePipeline
 
 
@@ -81,7 +78,7 @@ class ProcessorInterface:
         event: Event | None = None,
         kobj: KnowledgeObject | None = None,
         event_type: KnowledgeEventType = None,
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ):
         """Queues provided knowledge to be handled by processing pipeline.
         

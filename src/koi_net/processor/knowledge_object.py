@@ -9,10 +9,6 @@ from ..protocol.event import Event, EventType
 
 type KnowledgeEventType = EventType | None
 
-class KnowledgeSource(StrEnum):
-    Internal = "INTERNAL"
-    External = "EXTERNAL"
-
 class KnowledgeObject(BaseModel):
     """A normalized knowledge representation for internal processing.
     
@@ -31,7 +27,7 @@ class KnowledgeObject(BaseModel):
     contents: dict | None = None
     event_type: KnowledgeEventType = None
     normalized_event_type: KnowledgeEventType = None
-    source: KnowledgeSource
+    source: KoiNetNode | None = None
     network_targets: set[KoiNetNode] = set()
     
     def __repr__(self):
@@ -42,7 +38,7 @@ class KnowledgeObject(BaseModel):
         cls, 
         rid: RID, 
         event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=rid,
@@ -55,7 +51,7 @@ class KnowledgeObject(BaseModel):
         cls, 
         manifest: Manifest, 
         event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=manifest.rid,
@@ -69,7 +65,7 @@ class KnowledgeObject(BaseModel):
         cls, 
         bundle: Bundle, 
         event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=bundle.rid,
@@ -83,7 +79,7 @@ class KnowledgeObject(BaseModel):
     def from_event(
         cls,
         event: Event,
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=event.rid,

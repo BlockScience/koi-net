@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Callable
 from rid_lib import RIDType
 
-from .knowledge_object import KnowledgeSource, KnowledgeEventType
+from .knowledge_object import KnowledgeEventType
 
 
 class StopChain:
@@ -36,7 +36,6 @@ class KnowledgeHandler:
     func: Callable
     handler_type: HandlerType
     rid_types: list[RIDType] | None
-    source: KnowledgeSource | None = None
     event_types: list[KnowledgeEventType] | None = None
     
     @classmethod
@@ -44,7 +43,6 @@ class KnowledgeHandler:
         cls,
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None,
-        source: KnowledgeSource | None = None,
         event_types: list[KnowledgeEventType] | None = None
     ):
         """Special decorator that returns a KnowledgeHandler instead of a function.
@@ -52,7 +50,7 @@ class KnowledgeHandler:
         The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register default handlers.
         """
         def decorator(func: Callable) -> KnowledgeHandler:
-            handler = cls(func, handler_type, rid_types, source, event_types)
+            handler = cls(func, handler_type, rid_types, event_types)
             return handler
         return decorator
 
