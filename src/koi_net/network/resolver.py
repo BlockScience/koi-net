@@ -59,7 +59,7 @@ class NetworkResolver:
             node_profile = node_bundle.validate_contents(NodeProfile)
             
             if (node_profile.node_type == NodeType.FULL) and (rid_type in node_profile.provides.state):
-                logger.debug(f"Found provider '{node_rid}'")
+                logger.debug(f"Found provider {node_rid!r}")
                 provider_nodes.append(node_rid)
         
         if not provider_nodes:
@@ -69,7 +69,7 @@ class NetworkResolver:
     def fetch_remote_bundle(self, rid: RID):
         """Attempts to fetch a bundle by RID from known peer nodes."""
         
-        logger.debug(f"Fetching remote bundle '{rid}'")
+        logger.debug(f"Fetching remote bundle {rid!r}")
         remote_bundle = None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_bundles(
@@ -77,7 +77,7 @@ class NetworkResolver:
             
             if payload.bundles:
                 remote_bundle = payload.bundles[0]
-                logger.debug(f"Got bundle from '{node_rid}'")
+                logger.debug(f"Got bundle from {node_rid!r}")
                 break
         
         if not remote_bundle:
@@ -88,7 +88,7 @@ class NetworkResolver:
     def fetch_remote_manifest(self, rid: RID):
         """Attempts to fetch a manifest by RID from known peer nodes."""
         
-        logger.debug(f"Fetching remote manifest '{rid}'")
+        logger.debug(f"Fetching remote manifest {rid!r}")
         remote_manifest = None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_manifests(
@@ -96,7 +96,7 @@ class NetworkResolver:
             
             if payload.manifests:
                 remote_manifest = payload.manifests[0]
-                logger.debug(f"Got bundle from '{node_rid}'")
+                logger.debug(f"Got bundle from {node_rid!r}")
                 break
         
         if not remote_manifest:
@@ -134,7 +134,7 @@ class NetworkResolver:
                     logger.debug(f"Received {len(payload.events)} events from {node_rid!r}")
                 events.extend(payload.events)
             except httpx.ConnectError:
-                logger.debug(f"Failed to reach node '{node_rid}'")
+                logger.debug(f"Failed to reach node {node_rid!r}")
                 continue
             
         return events                

@@ -100,7 +100,7 @@ class NetworkEventQueue:
         
         Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
         """
-        logger.debug(f"Pushing event {event.event_type} {event.rid} to {node}")
+        logger.debug(f"Pushing event {event.event_type} {event.rid!r} to {node}")
         
         node_bundle = self.effector.deref(node)
         if not node_bundle:
@@ -143,7 +143,7 @@ class NetworkEventQueue:
         if queue:
             while not queue.empty():
                 event = queue.get()
-                logger.debug(f"Dequeued {event.event_type} '{event.rid}'")
+                logger.debug(f"Dequeued {event.event_type} {event.rid!r}")
                 events.append(event)
         
         return events

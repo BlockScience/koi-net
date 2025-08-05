@@ -1,6 +1,5 @@
 import logging
 import httpx
-from koi_net import identity
 from rid_lib import RID
 from rid_lib.types.koi_net_node import KoiNetNode
 
@@ -53,22 +52,31 @@ class RequestHandler:
     def get_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node."""
         
-        print(node_rid)
+        logger.debug(f"Getting URL for {node_rid!r}")
+        node_url = None
         
         if node_rid == self.identity.rid:
             raise Exception("Don't talk to yourself")
         
         node_bundle = self.effector.deref(node_rid)
+                
+        if node_bundle:
+            node_profile = node_bundle.validate_contents(NodeProfile)
+            logger.debug(f"Found node profile: {node_profile}")
+            if node_profile.node_type != NodeType.FULL:
+                raise Exception("Can't query partial node")
+            node_url = node_profile.base_url
         
-        if not node_bundle:
+        else:
             if node_rid == self.identity.config.koi_net.first_contact.rid:
-                return self.identity.config.koi_net.first_contact.url
+                logger.debug("Found URL of first contact")
+                node_url = self.identity.config.koi_net.first_contact.url
+        
+        if not node_url:
             raise Exception("Node not found")
-        node_profile = node_bundle.validate_contents(NodeProfile)
-        if node_profile.node_type != NodeType.FULL:
-            raise Exception("Can't query partial node")
-        logger.debug(f"Resolved {node_rid!r} to {node_profile.base_url}")
-        return node_profile.base_url
+        
+        logger.debug(f"Resolved {node_rid!r} to {node_url}")
+        return node_url
     
     def make_request(
         self,
@@ -86,9 +94,12 @@ class RequestHandler:
                 
         result = httpx.post(url, data=signed_envelope.model_dump_json())
         
+        if result.status_code != 200:
+            ...
+            # TODO: handle errors in response
+        
         if path == BROADCAST_EVENTS_PATH:
             return None
-        
         elif path == POLL_EVENTS_PATH:
             EnvelopeModel = SignedEnvelope[EventsPayload]
         elif path == FETCH_RIDS_PATH:

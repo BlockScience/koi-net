@@ -75,8 +75,7 @@ class Secure:
         node_profile = node_bundle.validate_contents(NodeProfile)
         
         # check that public key matches source node RID
-        hashed_pub_key = sha256_hash(node_profile.public_key)
-        if envelope.source_node.uuid != hashed_pub_key:
+        if envelope.source_node.uuid != sha256_hash(node_profile.public_key):
             raise Exception("Invalid public key on new node!")
         
         # check envelope signed by validated public key
@@ -85,7 +84,7 @@ class Secure:
         
         # check that this node is the target of the envelope
         if envelope.target_node != self.identity.rid:
-            raise Exception("I am not the target")
+            raise Exception(f"Envelope target {envelope.target_node!r} is not me")
         
     def envelope_handler(self, func):
         @wraps(func)

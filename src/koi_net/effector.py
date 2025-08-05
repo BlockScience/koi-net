@@ -77,10 +77,10 @@ class Effector:
                     
     def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         if type(rid) not in self._action_table:
-            logger.debug("No action found")
+            logger.debug("No action available")
             return None
         
-        logger.debug("Action found")
+        logger.debug("Action available")
         func = self._action_table[type(rid)]
         bundle = func(
             ctx=self.action_context, 
@@ -113,7 +113,7 @@ class Effector:
         use_network: bool = True,
         handle_result: bool = True
     ) -> Bundle | None:
-        logger.debug(f"Dereferencing {rid}")
+        logger.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (
             # if `refresh_cache`, skip try cache
