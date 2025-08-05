@@ -156,7 +156,7 @@ class NodeInterface:
         logger.debug("Done")
     
         if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid}")
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),

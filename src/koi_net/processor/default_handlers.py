@@ -1,7 +1,8 @@
 """Provides implementations of default knowledge handlers."""
 
 import logging
-from rid_lib.ext.bundle import Bundle
+from rid_lib.ext import Bundle
+from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.protocol.node import NodeType
 from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
@@ -61,6 +62,19 @@ def basic_manifest_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 # Bundle handlers
 
 @KnowledgeHandler.create(
+    handler_type=HandlerType.Bundle,
+    rid_types=[KoiNetNode],
+    event_types=[EventType.NEW, EventType.UPDATE]
+)
+def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
+    node_profile = kobj.bundle.validate_contents(NodeProfile)
+    node_rid: KoiNetNode = kobj.rid
+    
+    if sha256_hash(node_profile.public_key) != node_rid.uuid:
+        logger.warning(f"Public key hash mismatch for {node_rid!r}!")
+        return STOP_CHAIN
+
+@KnowledgeHandler.create(
     handler_type=HandlerType.Bundle, 
     rid_types=[KoiNetEdge], 
     source=KnowledgeSource.External,
@@ -84,7 +98,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         peer_bundle = ctx.effector.deref(peer_rid)
         
         if not peer_bundle:
-            logger.warning(f"Peer {peer_rid} unknown to me")
+            logger.warning(f"Peer {peer_rid!r} unknown to me")
             return STOP_CHAIN
         
         peer_profile = peer_bundle.validate_contents(NodeProfile)
@@ -173,7 +187,7 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
             logger.info("Skipping myself")
             continue
         if ctx.cache.exists(rid):
-            logger.info(f"Skipping known RID '{rid}'")
+            logger.info(f"Skipping known RID {rid!r}")
             continue
         
         # marked as external since we are handling RIDs from another node

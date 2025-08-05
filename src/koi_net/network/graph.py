@@ -29,7 +29,7 @@ class NetworkGraph:
         for rid in self.cache.list_rids():
             if type(rid) == KoiNetNode:                
                 self.dg.add_node(rid)
-                logger.debug(f"Added node {rid}")
+                logger.debug(f"Added node {rid!r}")
                 
             elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
@@ -38,7 +38,7 @@ class NetworkGraph:
                     continue
                 edge_profile = edge_bundle.validate_contents(EdgeProfile)
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
-                logger.debug(f"Added edge {rid} ({edge_profile.source} -> {edge_profile.target})")
+                logger.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
         logger.debug("Done")
         
     def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> EdgeProfile | None:
