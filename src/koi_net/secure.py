@@ -75,7 +75,7 @@ class Secure:
         node_profile = node_bundle.validate_contents(NodeProfile)
         
         # check that public key matches source node RID
-        if envelope.source_node.uuid != sha256_hash(node_profile.public_key):
+        if envelope.source_node.hash != sha256_hash(node_profile.public_key):
             raise Exception("Invalid public key on new node!")
         
         # check envelope signed by validated public key
