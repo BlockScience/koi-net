@@ -9,25 +9,30 @@ from .protocol.node import NodeProfile, NodeType
 
 
 class ServerConfig(BaseModel):
-    host: str | None = "127.0.0.1"
-    port: int | None = 8000
+    host: str = "127.0.0.1"
+    port: int = 8000
     path: str | None = "/koi-net"
     
     @property
     def url(self) -> str:
         return f"http://{self.host}:{self.port}{self.path or ''}"
 
+class NodeContact(BaseModel):
+    rid: KoiNetNode | None = None
+    url: str | None = None
+
 class KoiNetConfig(BaseModel):
     node_name: str
     node_rid: KoiNetNode | None = None
     node_profile: NodeProfile
     
-    cache_directory_path: str | None = ".rid_cache"
-    event_queues_path: str | None = "event_queues.json"
-    private_key_pem_path: str | None = "priv_key.pem"
-
-    first_contact_rid: KoiNetNode | None = None
-    first_contact_url: str | None = None
+    cache_directory_path: str = ".rid_cache"
+    event_queues_path: str = "event_queues.json"
+    private_key_pem_path: str = "priv_key.pem"
+    
+    first_contact: NodeContact = Field(default_factory=NodeContact)
+    
+    _priv_key: PrivateKey | None = PrivateAttr(default=None)
 
 class EnvConfig(BaseModel):
     priv_key_password: str | None = "PRIV_KEY_PASSWORD"
@@ -46,9 +51,10 @@ class EnvConfig(BaseModel):
         return value
 
 class NodeConfig(BaseModel):
-    server: ServerConfig | None = Field(default_factory=ServerConfig)
+    server: ServerConfig = Field(default_factory=ServerConfig)
     koi_net: KoiNetConfig
-    env: EnvConfig | None = Field(default_factory=EnvConfig)
+    env: EnvConfig = Field(default_factory=EnvConfig)
+    
     _file_path: str = PrivateAttr(default="config.yaml")
     _file_content: str | None = PrivateAttr(default=None)
     

@@ -8,7 +8,9 @@ from .protocol.secure import PublicKey
 from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
+from .protocol.secure import PrivateKey
 from .effector import Effector
+from .config import NodeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +18,30 @@ logger = logging.getLogger(__name__)
 class Secure:
     identity: NodeIdentity
     effector: Effector
+    config: NodeConfig
+    priv_key: PrivateKey
     
-    def __init__(self, identity: NodeIdentity, effector: Effector):
+    def __init__(
+        self, 
+        identity: NodeIdentity, 
+        effector: Effector,
+        config: NodeConfig
+    ):
         self.identity = identity
         self.effector = effector
-    
+        self.config = config
+
+        self.priv_key = self._load_priv_key()
+        
+    def _load_priv_key(self) -> PrivateKey:
+        with open(self.config.koi_net.private_key_pem_path, "r") as f:
+            priv_key_pem = f.read()
+        
+        return PrivateKey.from_pem(
+            priv_key_pem=priv_key_pem,
+            password=self.config.env.priv_key_password
+        )
+        
     def _handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
         if type(envelope.payload) != EventsPayload:
             return None
@@ -40,7 +61,7 @@ class Secure:
             payload=payload,
             source_node=self.identity.rid,
             target_node=target
-        ).sign_with(self.identity.priv_key)
+        ).sign_with(self.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
         node_bundle = (
