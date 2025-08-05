@@ -116,7 +116,7 @@ class NodeInterface:
         self.pipeline = KnowledgePipeline(
             handler_context=self.handler_context,
             cache=self.cache,
-            resolver=self.resolver,
+            request_handler=self.request_handler,
             event_queue=self.event_queue,
             graph=self.graph,
             default_handlers=handlers

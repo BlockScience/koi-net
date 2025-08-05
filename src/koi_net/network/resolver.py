@@ -2,7 +2,7 @@ import logging
 import httpx
 from rid_lib import RID
 from rid_lib.core import RIDType
-from rid_lib.ext import Cache
+from rid_lib.ext import Cache, Bundle
 from rid_lib.types import KoiNetNode
 
 from .graph import NetworkGraph
@@ -66,11 +66,11 @@ class NetworkResolver:
             logger.debug("Failed to find providers")
         return provider_nodes
             
-    def fetch_remote_bundle(self, rid: RID):
+    def fetch_remote_bundle(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
         """Attempts to fetch a bundle by RID from known peer nodes."""
         
         logger.debug(f"Fetching remote bundle {rid!r}")
-        remote_bundle = None
+        remote_bundle, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_bundles(
                 node=node_rid, rids=[rid])
@@ -83,13 +83,13 @@ class NetworkResolver:
         if not remote_bundle:
             logger.warning("Failed to fetch remote bundle")
             
-        return remote_bundle
+        return remote_bundle, node_rid
     
-    def fetch_remote_manifest(self, rid: RID):
+    def fetch_remote_manifest(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
         """Attempts to fetch a manifest by RID from known peer nodes."""
         
         logger.debug(f"Fetching remote manifest {rid!r}")
-        remote_manifest = None
+        remote_manifest, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_manifests(
                 node=node_rid, rids=[rid])
@@ -102,29 +102,32 @@ class NetworkResolver:
         if not remote_manifest:
             logger.warning("Failed to fetch remote bundle")
             
-        return remote_manifest
+        return remote_manifest, node_rid
     
-    def poll_neighbors(self) -> list[Event]:
+    def poll_neighbors(self) -> dict[KoiNetNode, list[Event]]:
         """Polls all neighboring nodes and returns compiled list of events.
         
         If this node has no neighbors, it will instead attempt to poll the provided first contact URL.
         """
         
-        neighbors = self.graph.get_neighbors()
+        graph_neighbors = self.graph.get_neighbors()
+        neighbors = []
         
-        if not neighbors and self.config.koi_net.first_contact.rid:
-            neighbors = [self.config.koi_net.first_contact.rid]
-        
-        print(neighbors)
-        
-        events = []
-        for node_rid in neighbors:
-            if node_rid != self.config.koi_net.first_contact.rid:
+        if graph_neighbors:
+            for node_rid in graph_neighbors:
                 node_bundle = self.cache.read(node_rid)
-                if not node_bundle: continue
+                if not node_bundle: 
+                    continue
                 node_profile = node_bundle.validate_contents(NodeProfile)
-                if node_profile.node_type != NodeType.FULL: continue
+                if node_profile.node_type != NodeType.FULL: 
+                    continue
+                neighbors.append(node_rid)
             
+        elif self.config.koi_net.first_contact.rid:
+            neighbors.append(self.config.koi_net.first_contact.rid)
+        
+        event_dict = dict()
+        for node_rid in neighbors:
             try:
                 payload = self.request_handler.poll_events(
                     node=node_rid, 
@@ -132,11 +135,11 @@ class NetworkResolver:
                 )
                 if payload.events:
                     logger.debug(f"Received {len(payload.events)} events from {node_rid!r}")
-                events.extend(payload.events)
+                    
+                    event_dict[node_rid] = payload.events
+                    
             except httpx.ConnectError:
                 logger.debug(f"Failed to reach node {node_rid!r}")
                 continue
-            
-        return events                
         
-        
+        return event_dict

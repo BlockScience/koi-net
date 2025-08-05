@@ -4,7 +4,7 @@ from rid_lib.core import RIDType
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 from ..protocol.event import EventType
-from ..network.resolver import NetworkResolver
+from ..network.request_handler import RequestHandler
 from ..network.event_queue import NetworkEventQueue
 from ..network.graph import NetworkGraph
 from ..identity import NodeIdentity
@@ -14,11 +14,7 @@ from .handler import (
     STOP_CHAIN,
     StopChain
 )
-from .knowledge_object import (
-    KnowledgeObject,
-    KnowledgeSource, 
-    KnowledgeEventType
-)
+from .knowledge_object import KnowledgeObject, KnowledgeEventType
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -31,7 +27,7 @@ class KnowledgePipeline:
     handler_context: "HandlerContext"
     cache: Cache
     identity: NodeIdentity
-    resolver: NetworkResolver
+    request_handler: RequestHandler
     event_queue: NetworkEventQueue
     graph: NetworkGraph
     handlers: list[KnowledgeHandler]
@@ -40,14 +36,14 @@ class KnowledgePipeline:
         self, 
         handler_context: "HandlerContext",
         cache: Cache, 
-        resolver: NetworkResolver,
+        request_handler: RequestHandler,
         event_queue: NetworkEventQueue,
         graph: NetworkGraph,
         default_handlers: list[KnowledgeHandler] = []
     ):
         self.handler_context = handler_context
         self.cache = cache
-        self.resolver = resolver
+        self.request_handler = request_handler
         self.event_queue = event_queue
         self.graph = graph
         self.handlers = default_handlers
@@ -59,12 +55,11 @@ class KnowledgePipeline:
         self,
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None,
-        source: KnowledgeSource | None = None,
         event_types: list[KnowledgeEventType] | None = None
     ):
         """Assigns decorated function as handler for this processor."""
         def decorator(func: Callable) -> Callable:
-            handler = KnowledgeHandler(func, handler_type, rid_types, source, event_types)
+            handler = KnowledgeHandler(func, handler_type, rid_types, event_types)
             self.add_handler(handler)
             return func
         return decorator
@@ -89,9 +84,6 @@ class KnowledgePipeline:
                 continue
             
             if handler.rid_types and type(kobj.rid) not in handler.rid_types:
-                continue
-            
-            if handler.source and handler.source != kobj.source:
                 continue
             
             if handler.event_types and kobj.event_type not in handler.event_types:
@@ -152,16 +144,20 @@ class KnowledgePipeline:
             # attempt to retrieve manifest
             if not kobj.manifest:
                 logger.debug("Manifest not found")
-                if kobj.source == KnowledgeSource.External:
-                    logger.debug("Attempting to fetch remote manifest")
-                    # TODO: fetch from source node (when integrated with secure protocol)
-                    manifest = self.resolver.fetch_remote_manifest(kobj.rid)
+                if not kobj.source:
+                    return
+            
+                logger.debug("Attempting to fetch remote manifest from source")
+                payload = self.request_handler.fetch_manifests(
+                    node=kobj.source,
+                    rids=[kobj.rid]
+                )
                     
-                if not manifest:
+                if not payload.manifests:
                     logger.debug("Failed to find manifest")
                     return
                 
-                kobj.manifest = manifest
+                kobj.manifest = payload.manifests[0]
                 
             kobj = self.call_handler_chain(HandlerType.Manifest, kobj)
             if kobj is STOP_CHAIN: return
@@ -169,14 +165,20 @@ class KnowledgePipeline:
             # attempt to retrieve bundle
             if not kobj.bundle:
                 logger.debug("Bundle not found")
-                if kobj.source == KnowledgeSource.External:
-                    logger.debug("Attempting to fetch remote bundle")
-                    # TODO: fetch from source node (when integrated with secure protocol)
-                    bundle = self.resolver.fetch_remote_bundle(kobj.rid)
+                if kobj.source is None:
+                    return
                 
-                if not bundle: 
+                logger.debug("Attempting to fetch remote bundle from source")
+                payload = self.request_handler.fetch_bundles(
+                    node=kobj.source,
+                    rids=[kobj.rid]
+                )
+                
+                if not payload.bundles:
                     logger.debug("Failed to find bundle")
                     return
+                
+                bundle = payload.bundles[0]                    
                 
                 if kobj.manifest != bundle.manifest:
                     logger.warning("Retrieved bundle contains a different manifest")

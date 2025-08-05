@@ -1,9 +1,9 @@
 import logging
 from typing import Callable
 from enum import StrEnum
-from koi_net.processor.knowledge_object import KnowledgeSource
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
+from rid_lib.types import KoiNetNode
 
 from typing import TYPE_CHECKING
 
@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class BundleSource(StrEnum):
     CACHE = "CACHE"
     ACTION = "ACTION"
-    NETWORK = "NETWORK"
 
 class Effector:
     cache: Cache
@@ -95,12 +94,12 @@ class Effector:
             return None
 
         
-    def _try_network(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
-        bundle = self.resolver.fetch_remote_bundle(rid)
+    def _try_network(self, rid: RID) -> tuple[Bundle, KoiNetNode] | None:
+        bundle, source = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
             logger.debug("Network hit")
-            return bundle, BundleSource.NETWORK
+            return bundle, source
         else:
             logger.debug("Network miss")
             return None
@@ -126,17 +125,12 @@ class Effector:
         
         if (
             handle_result 
-            and source is not None 
+            and bundle is not None 
             and source != BundleSource.CACHE
-        ):
-            knowledge_source = {
-                BundleSource.ACTION: KnowledgeSource.Internal,
-                BundleSource.NETWORK: KnowledgeSource.External
-            }[source]
-            
+        ):            
             self.processor.handle(
                 bundle=bundle, 
-                source=knowledge_source
+                source=source if type(source) is KoiNetNode else None
             )
 
             # TODO: refactor for general solution, param to write through to cache before continuing
