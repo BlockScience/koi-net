@@ -112,14 +112,14 @@ class NetworkResolver:
         
         neighbors = self.graph.get_neighbors()
         
-        if not neighbors:
-            neighbors = [self.config.koi_net.first_contact_rid]
+        if not neighbors and self.config.koi_net.first_contact.rid:
+            neighbors = [self.config.koi_net.first_contact.rid]
         
         print(neighbors)
         
         events = []
         for node_rid in neighbors:
-            if node_rid != self.config.koi_net.first_contact_rid:
+            if node_rid != self.config.koi_net.first_contact.rid:
                 node_bundle = self.cache.read(node_rid)
                 if not node_bundle: continue
                 node_profile = node_bundle.validate_contents(NodeProfile)

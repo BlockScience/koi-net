@@ -61,8 +61,8 @@ class RequestHandler:
         node_bundle = self.effector.deref(node_rid)
         
         if not node_bundle:
-            if node_rid == self.identity.config.koi_net.first_contact_rid:
-                return self.identity.config.koi_net.first_contact_url
+            if node_rid == self.identity.config.koi_net.first_contact.rid:
+                return self.identity.config.koi_net.first_contact.url
             raise Exception("Node not found")
         node_profile = node_bundle.validate_contents(NodeProfile)
         if node_profile.node_type != NodeType.FULL:

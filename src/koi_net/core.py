@@ -46,20 +46,28 @@ class NodeInterface:
     ):
         self.config = config
         self.cache = cache or Cache(
-            self.config.koi_net.cache_directory_path)
+            directory_path=self.config.koi_net.cache_directory_path
+        )
         
-        self.identity = NodeIdentity(self.config)
+        self.identity = NodeIdentity(config=self.config)
         
-        self.effector = Effector(self.cache)
+        self.effector = Effector(cache=self.cache)
 
-        self.graph = NetworkGraph(self.cache, self.identity)
+        self.graph = NetworkGraph(
+            cache=self.cache, 
+            identity=self.identity
+        )
         
-        self.secure = Secure(self.identity, self.effector)
+        self.secure = Secure(
+            identity=self.identity, 
+            effector=self.effector, 
+            config=self.config
+        )
         
         self.request_handler = RequestHandler(
-            self.effector, 
-            self.identity,
-            self.secure
+            effector=self.effector, 
+            identity=self.identity,
+            secure=self.secure
         )
         
         self.response_handler = ResponseHandler(self.cache, self.effector)
@@ -147,8 +155,8 @@ class NodeInterface:
             self.processor.flush_kobj_queue()
         logger.debug("Done")
     
-        if not self.graph.get_neighbors() and self.config.koi_net.first_contact_rid:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact_rid}")
+        if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
+            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid}")
             
             events = [
                 Event.from_rid(EventType.FORGET, self.identity.rid),
@@ -157,7 +165,7 @@ class NodeInterface:
             
             try:
                 self.request_handler.broadcast_events(
-                    node=self.config.koi_net.first_contact_rid,
+                    node=self.config.koi_net.first_contact.rid,
                     events=events
                 )
                 
