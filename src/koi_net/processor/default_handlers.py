@@ -69,7 +69,7 @@ def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     node_profile = kobj.bundle.validate_contents(NodeProfile)
     node_rid: KoiNetNode = kobj.rid
     
-    if sha256_hash(node_profile.public_key) != node_rid.uuid:
+    if sha256_hash(node_profile.public_key) != node_rid.hash:
         logger.warning(f"Public key hash mismatch for {node_rid!r}!")
         return STOP_CHAIN
 
