@@ -7,8 +7,6 @@ from rid_lib.types.koi_net_node import KoiNetNode
 from ..protocol.event import Event, EventType
 
 
-type KnowledgeEventType = EventType | None
-
 class KnowledgeObject(BaseModel):
     """A normalized knowledge representation for internal processing.
     
@@ -25,8 +23,8 @@ class KnowledgeObject(BaseModel):
     rid: RID
     manifest: Manifest | None = None
     contents: dict | None = None
-    event_type: KnowledgeEventType = None
-    normalized_event_type: KnowledgeEventType = None
+    event_type: EventType | None = None
+    normalized_event_type: EventType | None = None
     source: KoiNetNode | None = None
     network_targets: set[KoiNetNode] = set()
     
@@ -37,7 +35,7 @@ class KnowledgeObject(BaseModel):
     def from_rid(
         cls, 
         rid: RID, 
-        event_type: KnowledgeEventType = None, 
+        event_type: EventType | None = None, 
         source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
@@ -50,7 +48,7 @@ class KnowledgeObject(BaseModel):
     def from_manifest(
         cls, 
         manifest: Manifest, 
-        event_type: KnowledgeEventType = None, 
+        event_type: EventType | None = None, 
         source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
@@ -64,7 +62,7 @@ class KnowledgeObject(BaseModel):
     def from_bundle(
         cls, 
         bundle: Bundle, 
-        event_type: KnowledgeEventType = None, 
+        event_type: EventType | None = None, 
         source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
