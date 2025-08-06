@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable
 from rid_lib import RIDType
-
-from .knowledge_object import KnowledgeEventType
+from ..protocol.event import EventType
 
 
 class StopChain:
@@ -36,14 +35,14 @@ class KnowledgeHandler:
     func: Callable
     handler_type: HandlerType
     rid_types: list[RIDType] | None
-    event_types: list[KnowledgeEventType] | None = None
+    event_types: list[EventType | None] | None = None
     
     @classmethod
     def create(
         cls,
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None,
-        event_types: list[KnowledgeEventType] | None = None
+        event_types: list[EventType | None] | None = None
     ):
         """Special decorator that returns a KnowledgeHandler instead of a function.
         

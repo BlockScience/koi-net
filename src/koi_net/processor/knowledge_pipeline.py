@@ -14,7 +14,7 @@ from .handler import (
     STOP_CHAIN,
     StopChain
 )
-from .knowledge_object import KnowledgeObject, KnowledgeEventType
+from .knowledge_object import KnowledgeObject
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ class KnowledgePipeline:
         self,
         handler_type: HandlerType,
         rid_types: list[RIDType] | None = None,
-        event_types: list[KnowledgeEventType] | None = None
+        event_types: list[EventType | None] | None = None
     ):
         """Assigns decorated function as handler for this processor."""
         def decorator(func: Callable) -> Callable:
