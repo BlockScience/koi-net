@@ -1,4 +1,3 @@
-from enum import StrEnum
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Manifest
@@ -6,12 +5,6 @@ from rid_lib.ext.bundle import Bundle
 from rid_lib.types.koi_net_node import KoiNetNode
 from ..protocol.event import Event, EventType
 
-
-type KnowledgeEventType = EventType | None
-
-class KnowledgeSource(StrEnum):
-    Internal = "INTERNAL"
-    External = "EXTERNAL"
 
 class KnowledgeObject(BaseModel):
     """A normalized knowledge representation for internal processing.
@@ -29,9 +22,9 @@ class KnowledgeObject(BaseModel):
     rid: RID
     manifest: Manifest | None = None
     contents: dict | None = None
-    event_type: KnowledgeEventType = None
-    normalized_event_type: KnowledgeEventType = None
-    source: KnowledgeSource
+    event_type: EventType | None = None
+    normalized_event_type: EventType | None = None
+    source: KoiNetNode | None = None
     network_targets: set[KoiNetNode] = set()
     
     def __repr__(self):
@@ -41,8 +34,8 @@ class KnowledgeObject(BaseModel):
     def from_rid(
         cls, 
         rid: RID, 
-        event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        event_type: EventType | None = None, 
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=rid,
@@ -54,8 +47,8 @@ class KnowledgeObject(BaseModel):
     def from_manifest(
         cls, 
         manifest: Manifest, 
-        event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        event_type: EventType | None = None, 
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=manifest.rid,
@@ -68,8 +61,8 @@ class KnowledgeObject(BaseModel):
     def from_bundle(
         cls, 
         bundle: Bundle, 
-        event_type: KnowledgeEventType = None, 
-        source: KnowledgeSource = KnowledgeSource.Internal
+        event_type: EventType | None = None, 
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=bundle.rid,
@@ -83,7 +76,7 @@ class KnowledgeObject(BaseModel):
     def from_event(
         cls,
         event: Event,
-        source: KnowledgeSource = KnowledgeSource.Internal
+        source: KoiNetNode | None = None
     ) -> "KnowledgeObject":
         return cls(
             rid=event.rid,
