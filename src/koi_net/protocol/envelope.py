@@ -27,7 +27,6 @@ class SignedEnvelope(BaseModel, Generic[T]):
         )
         
         logger.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json()}")
-        logger.debug(f"Types: [{type(self.payload)}] -> [{type(unsigned_envelope.payload)}]")
         
         pub_key.verify(
             self.signature,

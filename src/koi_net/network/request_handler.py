@@ -3,7 +3,7 @@ import httpx
 from rid_lib import RID
 from rid_lib.types.koi_net_node import KoiNetNode
 
-from koi_net.identity import NodeIdentity
+from ..identity import NodeIdentity
 from ..protocol.api_models import (
     RidsPayload,
     ManifestsPayload,
@@ -14,7 +14,8 @@ from ..protocol.api_models import (
     FetchBundles,
     PollEvents,
     RequestModels,
-    ResponseModels
+    ResponseModels,
+    ErrorResponse
 )
 from ..protocol.envelope import SignedEnvelope
 from ..protocol.consts import (
@@ -22,11 +23,15 @@ from ..protocol.consts import (
     POLL_EVENTS_PATH,
     FETCH_RIDS_PATH,
     FETCH_MANIFESTS_PATH,
-    FETCH_BUNDLES_PATH,
+    FETCH_BUNDLES_PATH
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..secure import Secure
 from ..effector import Effector
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .error_handler import ErrorHandler
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +43,7 @@ class RequestHandler:
     effector: Effector
     identity: NodeIdentity
     secure: Secure
+    error_handler: "ErrorHandler"
     
     def __init__(
         self, 
@@ -48,6 +54,9 @@ class RequestHandler:
         self.effector = effector
         self.identity = identity
         self.secure = secure
+        
+    def set_error_handler(self, error_handler: "ErrorHandler"):
+        self.error_handler = error_handler
     
     def get_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node."""
@@ -91,12 +100,18 @@ class RequestHandler:
             payload=request,
             target=node
         )
-                
-        result = httpx.post(url, data=signed_envelope.model_dump_json())
+        
+        try:
+            result = httpx.post(url, data=signed_envelope.model_dump_json())
+        except httpx.ConnectError as err:
+            logger.debug("Failed to connect")
+            self.error_handler.handle_connection_error(node)
+            raise err
         
         if result.status_code != 200:
-            ...
-            # TODO: handle errors in response
+            resp = ErrorResponse.model_validate_json(result.text)
+            self.error_handler.handle_protocol_error(resp.error, node)
+            return resp
         
         if path == BROADCAST_EVENTS_PATH:
             return None
@@ -111,7 +126,7 @@ class RequestHandler:
         else:
             raise Exception(f"Unknown path '{path}'")
         
-        resp_envelope = EnvelopeModel.model_validate_json(result.text)        
+        resp_envelope = EnvelopeModel.model_validate_json(result.text)
         self.secure.validate_envelope(resp_envelope)
         
         return resp_envelope.payload
@@ -136,7 +151,8 @@ class RequestHandler:
         """See protocol.api_models.PollEvents for available kwargs."""
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
-        logger.info(f"Polled {len(resp.events)} events from {node!r}")
+        if type(resp) != ErrorResponse:
+            logger.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
     def fetch_rids(
@@ -148,7 +164,8 @@ class RequestHandler:
         """See protocol.api_models.FetchRids for available kwargs."""
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
-        logger.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
+        if type(resp) != ErrorResponse:
+            logger.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
     def fetch_manifests(
@@ -160,7 +177,8 @@ class RequestHandler:
         """See protocol.api_models.FetchManifests for available kwargs."""
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
-        logger.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
+        if type(resp) != ErrorResponse:
+            logger.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
     def fetch_bundles(
@@ -172,5 +190,6 @@ class RequestHandler:
         """See protocol.api_models.FetchBundles for available kwargs."""
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
-        logger.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
+        if type(resp) != ErrorResponse:
+            logger.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp

@@ -6,13 +6,14 @@ from .network.event_queue import NetworkEventQueue
 from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
 from .network.response_handler import ResponseHandler
+from .network.error_handler import ErrorHandler
+from .network.behavior import Actor
 from .processor.interface import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .processor.knowledge_pipeline import KnowledgePipeline
 from .identity import NodeIdentity
 from .secure import Secure
-from .protocol.event import Event, EventType
 from .config import NodeConfig
 from .context import HandlerContext, ActionContext
 from .effector import Effector
@@ -90,6 +91,12 @@ class NodeInterface:
             effector=self.effector
         )
         
+        self.actor = Actor(
+            identity=self.identity,
+            effector=self.effector,
+            event_queue=self.event_queue
+        )
+        
         # pull all handlers defined in default_handlers module
         if handlers is None:
             handlers = [
@@ -127,6 +134,13 @@ class NodeInterface:
             use_kobj_processor_thread=self.use_kobj_processor_thread
         )
         
+        self.error_handler = ErrorHandler(
+            processor=self.processor,
+            actor=self.actor
+        )
+        
+        self.request_handler.set_error_handler(self.error_handler)
+        
         self.handler_context.set_processor(self.processor)
         
         self.effector.set_processor(self.processor)
@@ -146,7 +160,8 @@ class NodeInterface:
         # self.network._load_event_queues()
         self.graph.generate()
         
-        self.effector.deref(self.identity.rid)
+        # refresh to reflect changes (if any) in config.yaml
+        self.effector.deref(self.identity.rid, refresh_cache=True)
                 
         logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:
@@ -158,20 +173,7 @@ class NodeInterface:
         if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
-            events = [
-                Event.from_rid(EventType.FORGET, self.identity.rid),
-                Event.from_bundle(EventType.NEW, self.effector.deref(self.identity.rid))
-            ]
-            
-            try:
-                self.request_handler.broadcast_events(
-                    node=self.config.koi_net.first_contact.rid,
-                    events=events
-                )
-                
-            except httpx.ConnectError:
-                logger.warning("Failed to reach first contact")
-                return
+            self.actor.handshake_with(self.config.koi_net.first_contact.rid)
             
                         
     def stop(self):

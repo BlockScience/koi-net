@@ -1,4 +1,3 @@
-from enum import StrEnum
 from pydantic import BaseModel
 from rid_lib import RID
 from rid_lib.ext import Manifest
