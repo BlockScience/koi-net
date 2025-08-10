@@ -1,32 +1,42 @@
 import os
-from typing import TypeVar
 from ruamel.yaml import YAML
-from koi_net.protocol.node import NodeProfile
-from rid_lib.types import KoiNetNode
 from pydantic import BaseModel, Field, PrivateAttr
 from dotenv import load_dotenv
+from rid_lib.ext.utils import sha256_hash
+from rid_lib.types import KoiNetNode
+from .protocol.secure import PrivateKey
+from .protocol.node import NodeProfile, NodeType
 
 
 class ServerConfig(BaseModel):
-    host: str | None = "127.0.0.1"
-    port: int | None = 8000
+    host: str = "127.0.0.1"
+    port: int = 8000
     path: str | None = "/koi-net"
     
     @property
     def url(self) -> str:
         return f"http://{self.host}:{self.port}{self.path or ''}"
 
+class NodeContact(BaseModel):
+    rid: KoiNetNode | None = None
+    url: str | None = None
+
 class KoiNetConfig(BaseModel):
     node_name: str
     node_rid: KoiNetNode | None = None
     node_profile: NodeProfile
     
-    cache_directory_path: str | None = ".rid_cache"
-    event_queues_path: str | None = "event_queues.json"
-
-    first_contact: str | None = None
+    cache_directory_path: str = ".rid_cache"
+    event_queues_path: str = "event_queues.json"
+    private_key_pem_path: str = "priv_key.pem"
+    
+    first_contact: NodeContact = Field(default_factory=NodeContact)
+    
+    _priv_key: PrivateKey | None = PrivateAttr(default=None)
 
 class EnvConfig(BaseModel):
+    priv_key_password: str | None = "PRIV_KEY_PASSWORD"
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         load_dotenv()
@@ -41,8 +51,10 @@ class EnvConfig(BaseModel):
         return value
 
 class NodeConfig(BaseModel):
-    server: ServerConfig | None = Field(default_factory=ServerConfig)
+    server: ServerConfig = Field(default_factory=ServerConfig)
     koi_net: KoiNetConfig
+    env: EnvConfig = Field(default_factory=EnvConfig)
+    
     _file_path: str = PrivateAttr(default="config.yaml")
     _file_content: str | None = PrivateAttr(default=None)
     
@@ -72,13 +84,27 @@ class NodeConfig(BaseModel):
             
         config._file_path = file_path
         
-        if generate_missing:            
-            config.koi_net.node_rid = (
-                config.koi_net.node_rid or KoiNetNode.generate(config.koi_net.node_name)
-            )   
-            config.koi_net.node_profile.base_url = (
-                config.koi_net.node_profile.base_url or config.server.url
-            )
+        if generate_missing:
+            if not config.koi_net.node_rid:
+                priv_key = PrivateKey.generate()
+                pub_key = priv_key.public_key()
+                
+                config.koi_net.node_rid = KoiNetNode(
+                    config.koi_net.node_name,
+                    sha256_hash(pub_key.to_der())
+                )
+                
+                with open(config.koi_net.private_key_pem_path, "w") as f:
+                    f.write(
+                        priv_key.to_pem(config.env.priv_key_password)
+                    )
+                
+                config.koi_net.node_profile.public_key = pub_key.to_der()
+            
+            if config.koi_net.node_profile.node_type == NodeType.FULL:
+                config.koi_net.node_profile.base_url = (
+                    config.koi_net.node_profile.base_url or config.server.url
+                )
                 
             config.save_to_yaml()
                     
@@ -98,4 +124,3 @@ class NodeConfig(BaseModel):
                     f.write(self._file_content)
                 raise e
                 
-ConfigType = TypeVar("ConfigType", bound=NodeConfig)
