@@ -1,5 +1,7 @@
 import logging
 from functools import wraps
+
+import cryptography.exceptions
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
 from .identity import NodeIdentity
@@ -9,6 +11,12 @@ from .protocol.api_models import EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
 from .protocol.secure import PrivateKey
+from .protocol.errors import (
+    UnknownNodeError,
+    InvalidKeyError,
+    InvalidSignatureError,
+    InvalidTargetError
+)
 from .effector import Effector
 from .config import NodeConfig
 
@@ -70,29 +78,34 @@ class Secure:
         )
         
         if not node_bundle:
-            raise Exception("Unknown node")
+            raise UnknownNodeError(f"Couldn't resolve {envelope.source_node}")
         
         node_profile = node_bundle.validate_contents(NodeProfile)
         
         # check that public key matches source node RID
         if envelope.source_node.hash != sha256_hash(node_profile.public_key):
-            raise Exception("Invalid public key on new node!")
+            raise InvalidKeyError("Invalid public key on new node!")
         
         # check envelope signed by validated public key
         pub_key = PublicKey.from_der(node_profile.public_key)
-        envelope.verify_with(pub_key)
+        try:
+            envelope.verify_with(pub_key)
+        except cryptography.exceptions.InvalidSignature as err:
+            raise InvalidSignatureError(f"Signature {envelope.signature} is invalid.")
         
         # check that this node is the target of the envelope
         if envelope.target_node != self.identity.rid:
-            raise Exception(f"Envelope target {envelope.target_node!r} is not me")
+            raise InvalidTargetError(f"Envelope target {envelope.target_node!r} is not me")
         
     def envelope_handler(self, func):
         @wraps(func)
         async def wrapper(req: SignedEnvelope, *args, **kwargs) -> SignedEnvelope | None:
             logger.info("Validating envelope")
-            self.validate_envelope(req)
+            
+            self.validate_envelope(req)            
             logger.info("Calling endpoint handler")
-            result = await func(req, *args, **kwargs)
+            
+            result = await func(req, *args, **kwargs)            
             
             if result is not None:
                 logger.info("Creating response envelope")

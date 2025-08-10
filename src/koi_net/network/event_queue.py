@@ -101,11 +101,8 @@ class NetworkEventQueue:
         Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid!r} to {node}")
-        
+                        
         node_bundle = self.effector.deref(node)
-        if not node_bundle:
-            logger.warning(f"Node {node!r} unknown to me")
-        node_profile = node_bundle.validate_contents(NodeProfile)
         
         # if there's an edge from me to the target node, override broadcast type
         edge_rid = self.graph.get_edge(
@@ -113,22 +110,32 @@ class NetworkEventQueue:
             target=node
         )
         
-        edge_bundle = None
-        if edge_rid:
-            edge_bundle = self.effector.deref(edge_rid)
+        edge_bundle = self.effector.deref(edge_rid) if edge_rid else None
         
         if edge_bundle:
+            logger.debug(f"Found edge from me to {node!r}")
             edge_profile = edge_bundle.validate_contents(EdgeProfile)
-            
             if edge_profile.edge_type == EdgeType.WEBHOOK:
                 event_queue = self.webhook_event_queue
             elif edge_profile.edge_type == EdgeType.POLL:
                 event_queue = self.poll_event_queue
-        else:
+                
+        elif node_bundle:
+            logger.debug(f"Found bundle for {node!r}")
+            node_profile = node_bundle.validate_contents(NodeProfile)
             if node_profile.node_type == NodeType.FULL:
                 event_queue = self.webhook_event_queue
             elif node_profile.node_type == NodeType.PARTIAL:
                 event_queue = self.poll_event_queue
+        
+        elif node == self.config.koi_net.first_contact.rid:
+            logger.debug(f"Node {node!r} is my first contact")
+            # first contact node is always a webhook node
+            event_queue = self.webhook_event_queue
+        
+        else:
+            logger.warning(f"Node {node!r} unknown to me")
+            return
         
         queue = event_queue.setdefault(node, Queue())
         queue.put(event)
@@ -153,7 +160,7 @@ class NetworkEventQueue:
         logger.debug(f"Flushing poll queue for {node}")
         return self._flush_queue(self.poll_event_queue, node)
     
-    def flush_webhook_queue(self, node: KoiNetNode):
+    def flush_webhook_queue(self, node: KoiNetNode, requeue_on_fail: bool = True):
         """Flushes a node's webhook queue, and broadcasts events.
         
         If node profile is unknown, or node type is not `FULL`, this operation will fail silently. If the remote node cannot be reached, all events will be requeued.
@@ -161,17 +168,17 @@ class NetworkEventQueue:
         
         logger.debug(f"Flushing webhook queue for {node}")
         
-        node_bundle = self.effector.deref(node)
+        # node_bundle = self.effector.deref(node)
         
-        if not node_bundle:
-            logger.warning(f"{node!r} not found")
-            return
+        # if not node_bundle:
+        #     logger.warning(f"{node!r} not found")
+        #     return
         
-        node_profile = node_bundle.validate_contents(NodeProfile)
+        # node_profile = node_bundle.validate_contents(NodeProfile)
         
-        if node_profile.node_type != NodeType.FULL:
-            logger.warning(f"{node!r} is a partial node!")
-            return
+        # if node_profile.node_type != NodeType.FULL:
+        #     logger.warning(f"{node!r} is a partial node!")
+        #     return
         
         events = self._flush_queue(self.webhook_event_queue, node)
         if not events: return
@@ -183,8 +190,8 @@ class NetworkEventQueue:
             return True
         except httpx.ConnectError:
             logger.warning("Broadcast failed")
-            for event in events:
-                self.push_event_to(event, node)
+            
+            if requeue_on_fail:
+                for event in events:
+                    self.push_event_to(event, node)
             return False
-        
-        

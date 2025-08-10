@@ -9,6 +9,7 @@ from .graph import NetworkGraph
 from .request_handler import RequestHandler
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
+from ..protocol.api_models import ErrorResponse
 from ..identity import NodeIdentity
 from ..config import NodeConfig
 from ..effector import Effector
@@ -133,6 +134,10 @@ class NetworkResolver:
                     node=node_rid, 
                     rid=self.identity.rid
                 )
+                
+                if type(payload) == ErrorResponse:
+                    continue
+                    
                 if payload.events:
                     logger.debug(f"Received {len(payload.events)} events from {node_rid!r}")
                     

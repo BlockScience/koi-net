@@ -109,7 +109,7 @@ class Effector:
         self, 
         rid: RID,
         refresh_cache: bool = False,
-        use_network: bool = True,
+        use_network: bool = False,
         handle_result: bool = True
     ) -> Bundle | None:
         logger.debug(f"Dereferencing {rid!r}")
