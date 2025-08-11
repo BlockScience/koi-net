@@ -1,10 +1,9 @@
-import time
 import logging
 from pydantic import Field
 from rich.logging import RichHandler
 from koi_net import NodeInterface
 from koi_net.protocol.node import NodeProfile, NodeType
-from koi_net.config import NodeConfig, KoiNetConfig, NodeContact
+from koi_net.config import NodeConfig, KoiNetConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,25 +23,15 @@ class PartialNodeConfig(NodeConfig):
             node_profile=NodeProfile(
                 node_type=NodeType.PARTIAL
             ),
-            cache_directory_path=".basic_partial_rid_cache",
-            event_queues_path="basic_partial_event_queues.json"
+            cache_directory_path=".partial_rid_cache",
+            event_queues_path="partial_event_queues.json",
+            private_key_pem_path="partial_priv_key.pem"
         )
     )
 
-
 node = NodeInterface(
-    config=PartialNodeConfig.load_from_yaml("basic_partial_config.yaml")
+    config=PartialNodeConfig.load_from_yaml("partial_config.yaml")
 )
 
-
-node.start()
-
-while True:
-    neighbors = node.resolver.poll_neighbors()
-    for node_rid in neighbors:
-        events = neighbors[node_rid]
-        for event in events:
-            node.processor.handle(event=event, source=node_rid)
-    node.processor.flush_kobj_queue()
-    
-    time.sleep(5)
+if __name__ == "__main__":
+    node.poller.run()

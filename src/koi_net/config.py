@@ -29,6 +29,7 @@ class KoiNetConfig(BaseModel):
     cache_directory_path: str = ".rid_cache"
     event_queues_path: str = "event_queues.json"
     private_key_pem_path: str = "priv_key.pem"
+    polling_interval: int = 5
     
     first_contact: NodeContact = Field(default_factory=NodeContact)
     
