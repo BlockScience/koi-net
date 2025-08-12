@@ -1,5 +1,6 @@
 import logging
 from rid_lib import RID
+from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
@@ -30,13 +31,13 @@ class ResponseHandler:
         self.cache = cache
         self.effector = effector
         
-    def fetch_rids(self, req: FetchRids) -> RidsPayload:
+    def fetch_rids(self, req: FetchRids, source: KoiNetNode) -> RidsPayload:
         logger.info(f"Request to fetch rids, allowed types {req.rid_types}")
         rids = self.cache.list_rids(req.rid_types)
         
         return RidsPayload(rids=rids)
         
-    def fetch_manifests(self, req: FetchManifests) -> ManifestsPayload:
+    def fetch_manifests(self, req: FetchManifests, source: KoiNetNode) -> ManifestsPayload:
         logger.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}")
         
         manifests: list[Manifest] = []
@@ -51,7 +52,7 @@ class ResponseHandler:
         
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
-    def fetch_bundles(self, req: FetchBundles) -> BundlesPayload:
+    def fetch_bundles(self, req: FetchBundles, source: KoiNetNode) -> BundlesPayload:
         logger.info(f"Request to fetch bundles, requested rids {req.rids}")
         
         bundles: list[Bundle] = []

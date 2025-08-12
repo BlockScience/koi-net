@@ -109,20 +109,20 @@ class NodeServer:
         self, req: SignedEnvelope[PollEvents]
     ) -> SignedEnvelope[EventsPayload] | ErrorResponse:
         logger.info(f"Request to {POLL_EVENTS_PATH}")
-        events = self.event_queue.flush_poll_queue(req.payload.rid)
+        events = self.event_queue.flush_poll_queue(req.source_node)
         return EventsPayload(events=events)
 
     async def fetch_rids(
         self, req: SignedEnvelope[FetchRids]
     ) -> SignedEnvelope[RidsPayload] | ErrorResponse:
-        return self.response_handler.fetch_rids(req.payload)
+        return self.response_handler.fetch_rids(req.payload, req.source_node)
 
     async def fetch_manifests(
         self, req: SignedEnvelope[FetchManifests]
     ) -> SignedEnvelope[ManifestsPayload] | ErrorResponse:
-        return self.response_handler.fetch_manifests(req.payload)
+        return self.response_handler.fetch_manifests(req.payload, req.source_node)
 
     async def fetch_bundles(
         self, req: SignedEnvelope[FetchBundles]
     ) -> SignedEnvelope[BundlesPayload] | ErrorResponse:
-        return self.response_handler.fetch_bundles(req.payload)
+        return self.response_handler.fetch_bundles(req.payload, req.source_node)
