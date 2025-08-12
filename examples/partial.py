@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PartialNodeConfig(NodeConfig):
-    koi_net: KoiNetConfig | None = Field(default_factory = lambda:
+    koi_net: KoiNetConfig = Field(default_factory = lambda:
         KoiNetConfig(
             node_name="partial",
             node_profile=NodeProfile(
@@ -34,4 +34,4 @@ node = NodeInterface(
 )
 
 if __name__ == "__main__":
-    node.poller.run()
+    node.lifecycle.start()
