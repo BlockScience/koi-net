@@ -1,5 +1,5 @@
 import logging
-from koi_net.protocol.node import NodeType
+from typing import Generic, TypeVar
 from rid_lib.ext import Cache
 from .network.resolver import NetworkResolver
 from .network.event_queue import NetworkEventQueue
@@ -25,9 +25,10 @@ from . import default_actions
 logger = logging.getLogger(__name__)
 
 
+T = TypeVar("T", bound=NodeConfig)
 
-class NodeInterface:
-    config: NodeConfig
+class NodeInterface(Generic[T]):
+    config: T
     cache: Cache
     identity: NodeIdentity
     resolver: NetworkResolver
@@ -41,7 +42,7 @@ class NodeInterface:
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: T,
         use_kobj_processor_thread: bool = False,
         handlers: list[KnowledgeHandler] | None = None,
         cache: Cache | None = None,

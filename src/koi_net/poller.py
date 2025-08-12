@@ -22,17 +22,19 @@ class NodePoller:
         self.resolver = resolver
         self.config = config
 
+    def poll(self):
+        neighbors = self.resolver.poll_neighbors()
+        for node_rid in neighbors:
+            for event in neighbors[node_rid]:
+                self.processor.handle(event=event, source=node_rid)
+        self.processor.flush_kobj_queue()
+
     def run(self):
         try:
             self.lifecycle.start()
             while True:
                 start_time = time.time()
-                neighbors = self.resolver.poll_neighbors()
-                for node_rid in neighbors:
-                    for event in neighbors[node_rid]:
-                        self.processor.handle(event=event, source=node_rid)
-                self.processor.flush_kobj_queue()
-                
+                self.poll()
                 elapsed = time.time() - start_time
                 sleep_time = self.config.koi_net.polling_interval - elapsed
                 if sleep_time > 0:
