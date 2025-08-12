@@ -233,4 +233,17 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
         kobj.network_targets.update(subscribers)
         
     return kobj
-            
+
+@KnowledgeHandler.create(HandlerType.Final, rid_types=[KoiNetNode])
+def forget_edge_on_node_deletion(ctx: HandlerContext, kobj: KnowledgeObject):
+    if kobj.normalized_event_type != EventType.FORGET:
+        return
+    
+    for edge_rid in ctx.graph.get_edges():
+        edge_bundle = ctx.cache.read(edge_rid)
+        if not edge_bundle: continue
+        edge_profile = edge_bundle.validate_contents(EdgeProfile)
+        
+        if kobj.rid in (edge_profile.source, edge_profile.target):
+            logger.debug("Identified edge with forgotten node")
+            ctx.handle(rid=edge_rid, event_type=EventType.FORGET)
