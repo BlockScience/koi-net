@@ -1,6 +1,6 @@
-
-from koi_net.effector import Effector
 from rid_lib.ext import Cache
+from .config import NodeConfig
+from .effector import Effector
 from .network.graph import NetworkGraph
 from .network.event_queue import NetworkEventQueue
 from .network.request_handler import RequestHandler
@@ -23,6 +23,7 @@ class ActionContext:
 
 class HandlerContext:
     identity: NodeIdentity
+    config: NodeConfig
     cache: Cache
     event_queue: NetworkEventQueue
     graph: NetworkGraph
@@ -33,6 +34,7 @@ class HandlerContext:
     def __init__(
         self,
         identity: NodeIdentity,
+        config: NodeConfig,
         cache: Cache,
         event_queue: NetworkEventQueue,
         graph: NetworkGraph,
@@ -40,6 +42,7 @@ class HandlerContext:
         effector: Effector
     ):
         self.identity = identity
+        self.config = config
         self.cache = cache
         self.event_queue = event_queue
         self.graph = graph
