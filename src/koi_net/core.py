@@ -1,5 +1,5 @@
 import logging
-from koi_net.protocol.node import NodeType
+from typing import Generic, TypeVar
 from rid_lib.ext import Cache
 from .network.resolver import NetworkResolver
 from .network.event_queue import NetworkEventQueue
@@ -25,9 +25,10 @@ from . import default_actions
 logger = logging.getLogger(__name__)
 
 
+T = TypeVar("T", bound=NodeConfig)
 
-class NodeInterface:
-    config: NodeConfig
+class NodeInterface(Generic[T]):
+    config: T
     cache: Cache
     identity: NodeIdentity
     resolver: NetworkResolver
@@ -41,58 +42,75 @@ class NodeInterface:
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: T,
         use_kobj_processor_thread: bool = False,
         handlers: list[KnowledgeHandler] | None = None,
-        cache: Cache | None = None,
-        processor: ProcessorInterface | None = None
+        
+        CacheOverride: type[Cache] | None = None,
+        NodeIdentityOverride: type[NodeIdentity] | None = None,
+        EffectorOverride: type[Effector] | None = None,
+        NetworkGraphOverride: type[NetworkGraph] | None = None,
+        SecureOverride: type[Secure] | None = None,
+        RequestHandlerOverride: type[RequestHandler] | None = None,
+        ResponseHandlerOverride: type[ResponseHandler] | None = None,
+        NetworkResolverOverride: type[NetworkResolver] | None = None,
+        NetworkEventQueueOverride: type[NetworkEventQueue] | None = None,
+        ActorOverride: type[Actor] | None = None,
+        ActionContextOverride: type[ActionContext] | None = None,
+        HandlerContextOverride: type[HandlerContext] | None = None,
+        KnowledgePipelineOverride: type[KnowledgePipeline] | None = None,
+        ProcessorInterfaceOverride: type[ProcessorInterface] | None = None,
+        ErrorHandlerOverride: type[ErrorHandler] | None = None,
+        NodeLifecycleOverride: type[NodeLifecycle] | None = None,
+        NodeServerOverride: type[NodeServer] | None = None,
+        NodePollerOverride: type[NodePoller] | None = None,        
     ):
         self.config = config
-        self.cache = cache or Cache(
+        self.cache = (CacheOverride or Cache)(
             directory_path=self.config.koi_net.cache_directory_path
         )
 
-        self.identity = NodeIdentity(config=self.config)
-        self.effector = Effector(cache=self.cache)
+        self.identity = (NodeIdentityOverride or NodeIdentity)(config=self.config)
+        self.effector = (EffectorOverride or Effector)(cache=self.cache)
 
-        self.graph = NetworkGraph(
-            cache=self.cache, 
+        self.graph = (NetworkGraphOverride or NetworkGraph)(
+            cache=self.cache,
             identity=self.identity
         )
-        
-        self.secure = Secure(
-            identity=self.identity, 
-            effector=self.effector, 
+
+        self.secure = (SecureOverride or Secure)(
+            identity=self.identity,
+            effector=self.effector,
             config=self.config
         )
-        
-        self.request_handler = RequestHandler(
-            effector=self.effector, 
+
+        self.request_handler = (RequestHandlerOverride or RequestHandler)(
+            effector=self.effector,
             identity=self.identity,
             secure=self.secure
         )
-        
-        self.response_handler = ResponseHandler(self.cache, self.effector)
-        
-        self.resolver = NetworkResolver(
+
+        self.response_handler = (ResponseHandlerOverride or ResponseHandler)(self.cache, self.effector)
+
+        self.resolver = (NetworkResolverOverride or NetworkResolver)(
             config=self.config,
-            cache=self.cache, 
+            cache=self.cache,
+            identity=self.identity,
+            graph=self.graph,
+            request_handler=self.request_handler,
+            effector=self.effector
+        )
+
+        self.event_queue = (NetworkEventQueueOverride or NetworkEventQueue)(
+            config=self.config,
+            cache=self.cache,
             identity=self.identity,
             graph=self.graph,
             request_handler=self.request_handler,
             effector=self.effector
         )
         
-        self.event_queue = NetworkEventQueue(
-            config=self.config,
-            cache=self.cache, 
-            identity=self.identity,
-            graph=self.graph,
-            request_handler=self.request_handler,
-            effector=self.effector
-        )
-        
-        self.actor = Actor(
+        self.actor = (ActorOverride or Actor)(
             identity=self.identity,
             effector=self.effector,
             event_queue=self.event_queue
@@ -107,12 +125,12 @@ class NodeInterface:
 
         self.use_kobj_processor_thread = use_kobj_processor_thread
         
-        self.action_context = ActionContext(
+        self.action_context = (ActionContextOverride or ActionContext)(
             identity=self.identity,
             effector=self.effector
         )
         
-        self.handler_context = HandlerContext(
+        self.handler_context = (HandlerContextOverride or HandlerContext)(
             identity=self.identity,
             cache=self.cache,
             event_queue=self.event_queue,
@@ -121,7 +139,7 @@ class NodeInterface:
             effector=self.effector
         )
         
-        self.pipeline = KnowledgePipeline(
+        self.pipeline = (KnowledgePipelineOverride or KnowledgePipeline)(
             handler_context=self.handler_context,
             cache=self.cache,
             request_handler=self.request_handler,
@@ -130,12 +148,12 @@ class NodeInterface:
             default_handlers=handlers
         )
         
-        self.processor = processor or ProcessorInterface(
+        self.processor = (ProcessorInterfaceOverride or ProcessorInterface)(
             pipeline=self.pipeline,
             use_kobj_processor_thread=self.use_kobj_processor_thread
         )
         
-        self.error_handler = ErrorHandler(
+        self.error_handler = (ErrorHandlerOverride or ErrorHandler)(
             processor=self.processor,
             actor=self.actor
         )
@@ -148,7 +166,7 @@ class NodeInterface:
         self.effector.set_resolver(self.resolver)
         self.effector.set_action_context(self.action_context)
         
-        self.lifecycle = NodeLifecycle(
+        self.lifecycle = (NodeLifecycleOverride or NodeLifecycle)(
             config=self.config,
             identity=self.identity,
             graph=self.graph,
@@ -159,7 +177,7 @@ class NodeInterface:
         )
         
         # if self.config.koi_net.node_profile.node_type == NodeType.FULL:
-        self.server = NodeServer(
+        self.server = (NodeServerOverride or NodeServer)(
             config=self.config,
             lifecycle=self.lifecycle,
             secure=self.secure,
@@ -168,7 +186,7 @@ class NodeInterface:
             response_handler=self.response_handler
         )
         
-        self.poller = NodePoller(
+        self.poller = (NodePollerOverride or NodePoller)(
             processor=self.processor,
             lifecycle=self.lifecycle,
             resolver=self.resolver,
