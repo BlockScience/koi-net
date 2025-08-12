@@ -132,6 +132,7 @@ class NodeInterface(Generic[T]):
         
         self.handler_context = (HandlerContextOverride or HandlerContext)(
             identity=self.identity,
+            config=self.config,
             cache=self.cache,
             event_queue=self.event_queue,
             graph=self.graph,
