@@ -37,6 +37,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Custom error types for request handling
+class SelfRequestError(Exception):
+    """Raised when a node tries to request itself."""
+    pass
+
+class PartialNodeQueryError(Exception):
+    """Raised when attempting to query a partial node."""
+    pass
+
+class NodeNotFoundError(Exception):
+    """Raised when a node URL cannot be found."""
+    pass
+
+class UnknownPathError(Exception):
+    """Raised when an unknown path is requested."""
+    pass
+
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
@@ -65,7 +82,7 @@ class RequestHandler:
         node_url = None
         
         if node_rid == self.identity.rid:
-            raise Exception("Don't talk to yourself")
+            raise SelfRequestError("Don't talk to yourself")
         
         node_bundle = self.effector.deref(node_rid)
                 
@@ -73,7 +90,7 @@ class RequestHandler:
             node_profile = node_bundle.validate_contents(NodeProfile)
             logger.debug(f"Found node profile: {node_profile}")
             if node_profile.node_type != NodeType.FULL:
-                raise Exception("Can't query partial node")
+                raise PartialNodeQueryError("Can't query partial node")
             node_url = node_profile.base_url
         
         else:
@@ -82,7 +99,7 @@ class RequestHandler:
                 node_url = self.identity.config.koi_net.first_contact.url
         
         if not node_url:
-            raise Exception("Node not found")
+            raise NodeNotFoundError("Node not found")
         
         logger.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
@@ -124,7 +141,7 @@ class RequestHandler:
         elif path == FETCH_BUNDLES_PATH:
             EnvelopeModel = SignedEnvelope[BundlesPayload]
         else:
-            raise Exception(f"Unknown path '{path}'")
+            raise UnknownPathError(f"Unknown path '{path}'")
         
         resp_envelope = EnvelopeModel.model_validate_json(result.text)
         self.secure.validate_envelope(resp_envelope)

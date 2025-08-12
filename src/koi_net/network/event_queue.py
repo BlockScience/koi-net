@@ -7,7 +7,7 @@ from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
 from .graph import NetworkGraph
-from .request_handler import RequestHandler
+from .request_handler import NodeNotFoundError, RequestHandler
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.edge import EdgeProfile, EdgeType
 from ..protocol.event import Event
@@ -187,11 +187,13 @@ class NetworkEventQueue:
         
         try:  
             self.request_handler.broadcast_events(node, events=events)
-            return True
+
+        except NodeNotFoundError:
+            logger.warning("Broadcast failed (node not found)")
+            
         except httpx.ConnectError:
-            logger.warning("Broadcast failed")
+            logger.warning("Broadcast failed (couldn't connect)")
             
             if requeue_on_fail:
                 for event in events:
                     self.push_event_to(event, node)
-            return False
