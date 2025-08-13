@@ -54,8 +54,14 @@ class NodeServer:
         self._build_app()
         
     def _build_app(self):
+        
+        @asynccontextmanager
+        async def lifespan(*args, **kwargs):
+            async with self.lifecycle.async_run():
+                yield
+        
         self.app = FastAPI(
-            lifespan=self.lifespan, 
+            lifespan=lifespan, 
             title="KOI-net Protocol API",
             version="1.0.0"
         )
@@ -85,12 +91,6 @@ class NodeServer:
             port=self.config.server.port
         )
         
-    @asynccontextmanager
-    async def lifespan(self, app: FastAPI):
-        self.lifecycle.start()
-        yield
-        self.lifecycle.stop()
-
     def protocol_error_handler(self, request, exc: ProtocolError):
         logger.info(f"caught protocol error: {exc}")
         resp = ErrorResponse(error=exc.error_type)
