@@ -34,4 +34,4 @@ node = NodeInterface(
 )
 
 if __name__ == "__main__":
-    node.lifecycle.start()
+    node.poller.run()
