@@ -174,6 +174,7 @@ class NodeInterface(Generic[T]):
             processor=self.processor,
             effector=self.effector,
             actor=self.actor,
+            handler_context=self.handler_context,
             use_kobj_processor_thread=use_kobj_processor_thread
         )
         

@@ -1,4 +1,7 @@
 import logging
+from contextlib import contextmanager, asynccontextmanager
+
+from koi_net.context import HandlerContext
 
 from .network.behavior import Actor
 from .effector import Effector
@@ -25,6 +28,7 @@ class NodeLifecycle:
         processor: ProcessorInterface,
         effector: Effector,
         actor: Actor,
+        handler_context: HandlerContext,
         use_kobj_processor_thread: bool
     ):
         self.config = config
@@ -33,9 +37,34 @@ class NodeLifecycle:
         self.processor = processor
         self.effector = effector
         self.actor = actor
+        self.handler_context = handler_context
         self.use_kobj_processor_thread = use_kobj_processor_thread
+        
+    @contextmanager
+    def run(self):
+        try:
+            logger.info("Starting node lifecycle...")
+            self.start()
+            yield
+        except KeyboardInterrupt:
+            logger.info("Keyboard interrupt!")
+        finally:
+            logger.info("Stopping node lifecycle...")
+            self.stop()
+
+    @asynccontextmanager
+    async def async_run(self):
+        try:
+            logger.info("Starting async node lifecycle...")
+            self.start()
+            yield
+        except KeyboardInterrupt:
+            logger.info("Keyboard interrupt!")
+        finally:
+            logger.info("Stopping async node lifecycle...")
+            self.stop()
     
-    def start(self) -> None:
+    def start(self):
         """Starts a node, call this method first.
         
         Starts the processor thread (if enabled). Loads event queues into memory. Generates network graph from nodes and edges in cache. Processes any state changes of node bundle. Initiates handshake with first contact (if provided) if node doesn't have any neighbors.
@@ -48,7 +77,7 @@ class NodeLifecycle:
         
         # refresh to reflect changes (if any) in config.yaml
         self.effector.deref(self.identity.rid, refresh_cache=True)
-                
+        
         logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:
             self.processor.kobj_queue.join()
@@ -66,9 +95,7 @@ class NodeLifecycle:
         """Stops a node, call this method last.
         
         Finishes processing knowledge object queue. Saves event queues to storage.
-        """
-        logger.info("Stopping node...")
-        
+        """        
         if self.use_kobj_processor_thread:
             logger.info(f"Waiting for kobj queue to empty ({self.processor.kobj_queue.unfinished_tasks} tasks remaining)")
             self.processor.kobj_queue.join()
