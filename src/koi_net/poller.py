@@ -30,8 +30,7 @@ class NodePoller:
         self.processor.flush_kobj_queue()
 
     def run(self):
-        try:
-            self.lifecycle.start()
+        with self.lifecycle.run():
             while True:
                 start_time = time.time()
                 self.poll()
@@ -39,9 +38,3 @@ class NodePoller:
                 sleep_time = self.config.koi_net.polling_interval - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)
-                    
-        except KeyboardInterrupt:
-            logger.info("Polling interrupted by user.")
-            
-        finally:
-            self.lifecycle.stop()
