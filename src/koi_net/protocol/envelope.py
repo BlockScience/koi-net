@@ -27,7 +27,7 @@ class SignedEnvelope(BaseModel, Generic[T]):
         )
         
         logger.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json()}")
-        
+                
         pub_key.verify(
             self.signature,
             unsigned_envelope.model_dump_json().encode()
