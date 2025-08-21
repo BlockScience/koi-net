@@ -1,5 +1,5 @@
 from logging import getLogger
-from koi_net.protocol.errors import ErrorTypes
+from koi_net.protocol.errors import ErrorType
 from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
 from ..processor.interface import ProcessorInterface
@@ -36,15 +36,15 @@ class ErrorHandler:
         
     def handle_protocol_error(
         self, 
-        error_type: ErrorTypes, 
+        error_type: ErrorType, 
         node: KoiNetNode
     ):
         logger.info(f"Handling protocol error {error_type} for node {node!r}")
         match error_type:
-            case ErrorTypes.UnknownNode:
+            case ErrorType.UnknownNode:
                 logger.info("Peer doesn't know me, attempting handshake...")
                 self.actor.handshake_with(node)
                 
-            case ErrorTypes.InvalidKey: ...
-            case ErrorTypes.InvalidSignature: ...
-            case ErrorTypes.InvalidTarget: ...
+            case ErrorType.InvalidKey: ...
+            case ErrorType.InvalidSignature: ...
+            case ErrorType.InvalidTarget: ...

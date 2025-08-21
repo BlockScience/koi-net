@@ -41,7 +41,7 @@ class NetworkGraph:
                 logger.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
         logger.debug("Done")
         
-    def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> EdgeProfile | None:
+    def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> KoiNetEdge | None:
         """Returns edge RID given the RIDs of a source and target node."""
         if (source, target) in self.dg.edges:
             edge_data = self.dg.get_edge_data(source, target)
