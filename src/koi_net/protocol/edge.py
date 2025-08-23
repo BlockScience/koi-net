@@ -2,6 +2,7 @@ from enum import StrEnum
 from pydantic import BaseModel
 from rid_lib import RIDType
 from rid_lib.ext.bundle import Bundle
+from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetEdge, KoiNetNode
 
 
@@ -27,7 +28,9 @@ def generate_edge_bundle(
     rid_types: list[RIDType],
     edge_type: EdgeType
 ) -> Bundle:
-    edge_rid = KoiNetEdge.generate(source, target)
+    edge_rid = KoiNetEdge(sha256_hash(
+        str(source) + str(target)
+    ))
     edge_profile = EdgeProfile(
         source=source,
         target=target,
