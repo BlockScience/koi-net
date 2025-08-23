@@ -28,7 +28,7 @@ class SignedEnvelope(BaseModel, Generic[T]):
             target_node=self.target_node 
         )
         
-        logger.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json()}")
+        logger.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json(exclude_none=True)}")
                 
         pub_key.verify(
             self.signature,
@@ -43,7 +43,7 @@ class UnsignedEnvelope(BaseModel, Generic[T]):
     target_node: KoiNetNode
     
     def sign_with(self, priv_key: PrivateKey) -> SignedEnvelope[T]:
-        logger.debug(f"Signing envelope: {self.model_dump_json()}")
+        logger.debug(f"Signing envelope: {self.model_dump_json(exclude_none=True)}")
         logger.debug(f"Type: [{type(self.payload)}]")
         
         signature = priv_key.sign(

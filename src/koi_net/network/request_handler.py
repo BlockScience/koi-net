@@ -119,7 +119,7 @@ class RequestHandler:
         )
         
         try:
-            result = httpx.post(url, data=signed_envelope.model_dump_json())
+            result = httpx.post(url, data=signed_envelope.model_dump_json(exclude_none=True))
         except httpx.ConnectError as err:
             logger.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
