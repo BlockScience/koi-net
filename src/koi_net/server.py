@@ -73,7 +73,8 @@ class NodeServer:
             self.router.add_api_route(
                 path=path,
                 endpoint=self.secure.envelope_handler(func),
-                methods=["POST"]
+                methods=["POST"],
+                response_model_exclude_none=True
             )
         
         _add_endpoint(BROADCAST_EVENTS_PATH, self.broadcast_events)
