@@ -1,6 +1,6 @@
 import logging
 from typing import Generic, TypeVar
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from rid_lib.types import KoiNetNode
 
 from .secure import PrivateKey, PublicKey
@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=RequestModels | ResponseModels)
 
 class SignedEnvelope(BaseModel, Generic[T]):
+    model_config = ConfigDict(exclude_none=True)
+    
     payload: T
     source_node: KoiNetNode
     target_node: KoiNetNode
@@ -30,10 +32,12 @@ class SignedEnvelope(BaseModel, Generic[T]):
                 
         pub_key.verify(
             self.signature,
-            unsigned_envelope.model_dump_json().encode()
+            unsigned_envelope.model_dump_json(exclude_none=True).encode()
         )
 
 class UnsignedEnvelope(BaseModel, Generic[T]):
+    model_config = ConfigDict(exclude_none=True)
+    
     payload: T
     source_node: KoiNetNode
     target_node: KoiNetNode
@@ -43,7 +47,7 @@ class UnsignedEnvelope(BaseModel, Generic[T]):
         logger.debug(f"Type: [{type(self.payload)}]")
         
         signature = priv_key.sign(
-            self.model_dump_json().encode()
+            self.model_dump_json(exclude_none=True).encode()
         )
         
         return SignedEnvelope(

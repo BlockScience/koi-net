@@ -15,9 +15,6 @@ class Event(BaseModel):
     manifest: Manifest | None = None
     contents: dict | None = None
     
-    class Config:
-        exclude_none = True
-    
     def __repr__(self):
         return f"<Event '{self.rid}' event type: '{self.event_type}'>"
     
