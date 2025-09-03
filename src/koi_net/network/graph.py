@@ -57,15 +57,15 @@ class NetworkGraph:
         """Returns edges this node belongs to.
         
         All edges returned by default, specify `direction` to restrict to incoming or outgoing edges only."""
-                
+                        
         edges = []
         if direction != "in" and self.dg.out_edges:
             out_edges = self.dg.out_edges(self.identity.rid)
-            edges.extend([e for e in out_edges])
+            edges.extend(out_edges)
                 
         if direction != "out" and self.dg.in_edges:
             in_edges = self.dg.in_edges(self.identity.rid)
-            edges.extend([e for e in in_edges])
+            edges.extend(in_edges)
                     
         edge_rids = []
         for edge in edges:
@@ -87,7 +87,7 @@ class NetworkGraph:
         
         All neighboring nodes returned by default, specify `direction` to restrict to neighbors connected by incoming or outgoing edges only."""
         
-        neighbors = []
+        neighbors = set()
         for edge_rid in self.get_edges(direction):
             edge_bundle = self.cache.read(edge_rid)
             
@@ -96,7 +96,7 @@ class NetworkGraph:
                 continue
             
             edge_profile = edge_bundle.validate_contents(EdgeProfile)
-            
+                        
             if status and edge_profile.status != status:
                 continue
             
@@ -104,9 +104,9 @@ class NetworkGraph:
                 continue
             
             if edge_profile.target == self.identity.rid:
-                neighbors.append(edge_profile.source)
+                neighbors.add(edge_profile.source)
             elif edge_profile.source == self.identity.rid:
-                neighbors.append(edge_profile.target)
+                neighbors.add(edge_profile.target)
                 
         return list(neighbors)
         

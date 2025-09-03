@@ -7,7 +7,7 @@ from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
 from .network.response_handler import ResponseHandler
 from .network.error_handler import ErrorHandler
-from .network.behavior import Actor
+from .actor import Actor
 from .processor.interface import ProcessorInterface
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
@@ -110,11 +110,7 @@ class NodeInterface(Generic[T]):
             effector=self.effector
         )
         
-        self.actor = (ActorOverride or Actor)(
-            identity=self.identity,
-            effector=self.effector,
-            event_queue=self.event_queue
-        )
+        self.actor = (ActorOverride or Actor)()
         
         # pull all handlers defined in default_handlers module
         if handlers is None:
@@ -137,6 +133,7 @@ class NodeInterface(Generic[T]):
             event_queue=self.event_queue,
             graph=self.graph,
             request_handler=self.request_handler,
+            resolver=self.resolver,
             effector=self.effector
         )
         
@@ -167,6 +164,8 @@ class NodeInterface(Generic[T]):
         self.effector.set_resolver(self.resolver)
         self.effector.set_action_context(self.action_context)
         
+        self.actor.set_ctx(self.handler_context)
+        
         self.lifecycle = (NodeLifecycleOverride or NodeLifecycle)(
             config=self.config,
             identity=self.identity,
@@ -174,7 +173,6 @@ class NodeInterface(Generic[T]):
             processor=self.processor,
             effector=self.effector,
             actor=self.actor,
-            handler_context=self.handler_context,
             use_kobj_processor_thread=use_kobj_processor_thread
         )
         

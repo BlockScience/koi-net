@@ -1,9 +1,9 @@
 import logging
 from contextlib import contextmanager, asynccontextmanager
 
-from koi_net.context import HandlerContext
+from rid_lib.types import KoiNetNode
 
-from .network.behavior import Actor
+from .actor import Actor
 from .effector import Effector
 from .config import NodeConfig
 from .processor.interface import ProcessorInterface
@@ -28,7 +28,6 @@ class NodeLifecycle:
         processor: ProcessorInterface,
         effector: Effector,
         actor: Actor,
-        handler_context: HandlerContext,
         use_kobj_processor_thread: bool
     ):
         self.config = config
@@ -37,7 +36,6 @@ class NodeLifecycle:
         self.processor = processor
         self.effector = effector
         self.actor = actor
-        self.handler_context = handler_context
         self.use_kobj_processor_thread = use_kobj_processor_thread
         
     @contextmanager
@@ -89,8 +87,11 @@ class NodeLifecycle:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
             self.actor.handshake_with(self.config.koi_net.first_contact.rid)
-            
-                        
+        
+        for coordinator in self.actor.identify_coordinators():
+            self.actor.catch_up_with(coordinator, rid_types=[KoiNetNode])
+        
+
     def stop(self):
         """Stops a node, call this method last.
         
