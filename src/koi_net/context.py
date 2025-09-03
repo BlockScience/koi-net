@@ -1,4 +1,6 @@
 from rid_lib.ext import Cache
+
+from koi_net.network.resolver import NetworkResolver
 from .config import NodeConfig
 from .effector import Effector
 from .network.graph import NetworkGraph
@@ -28,6 +30,7 @@ class HandlerContext:
     event_queue: NetworkEventQueue
     graph: NetworkGraph
     request_handler: RequestHandler
+    resolver: NetworkResolver
     effector: Effector
     _processor: ProcessorInterface | None
     
@@ -39,6 +42,7 @@ class HandlerContext:
         event_queue: NetworkEventQueue,
         graph: NetworkGraph,
         request_handler: RequestHandler,
+        resolver: NetworkResolver,
         effector: Effector
     ):
         self.identity = identity
@@ -47,6 +51,7 @@ class HandlerContext:
         self.event_queue = event_queue
         self.graph = graph
         self.request_handler = request_handler
+        self.resolver = resolver
         self.effector = effector
         self._processor = None
         

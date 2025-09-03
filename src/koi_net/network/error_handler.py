@@ -3,7 +3,7 @@ from koi_net.protocol.errors import ErrorType
 from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
 from ..processor.interface import ProcessorInterface
-from ..network.behavior import Actor
+from ..actor import Actor
 
 logger = getLogger(__name__)
 

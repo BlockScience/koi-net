@@ -49,7 +49,7 @@ class NetworkResolver:
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for the specified RID type."""
         
-        logger.debug(f"Looking for state providers of '{rid_type}'")
+        logger.debug(f"Looking for state providers of {rid_type}")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
             if node_rid == self.identity.rid:
