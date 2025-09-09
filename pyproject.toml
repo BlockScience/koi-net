@@ -30,5 +30,8 @@ examples = [
     "rich",
 ]
 
+[project.scripts]
+koi = "koi_net.cli:app"
+
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
