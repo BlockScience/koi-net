@@ -20,6 +20,8 @@ class BundleSource(StrEnum):
     ACTION = "ACTION"
 
 class Effector:
+    """Subsystem for dereferencing RIDs."""
+    
     cache: Cache
     resolver: "NetworkResolver | None"
     processor: "ProcessorInterface | None"
@@ -59,6 +61,16 @@ class Effector:
         return decorator
         
     def register_action(self, rid_type: RIDType):
+        """Registers a new dereference action for an RID type.
+        
+        Example:
+            This function should be used as a decorator on an action function::
+            
+                @node.register_action(KoiNetNode)
+                def deref_koi_net_node(ctx: ActionContext, rid: KoiNetNode):
+                    # return a Bundle or None
+                    return
+        """
         def decorator(func: Callable) -> Callable:
             self._action_table[rid_type] = func
             return func
@@ -112,6 +124,19 @@ class Effector:
         use_network: bool = False,
         handle_result: bool = True
     ) -> Bundle | None:
+        """Dereferences an RID.
+        
+        Attempts to dereference an RID by (in order) reading the cache, 
+        calling a bound action, or fetching from other nodes in the 
+        newtork.
+        
+        Args:
+            rid: RID to dereference
+            refresh_cache: skips cache read when `True` 
+            use_network: enables fetching from other nodes when `True`
+            handle_result: handles resulting bundle with knowledge pipeline when `True`
+        """
+        
         logger.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (

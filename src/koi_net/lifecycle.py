@@ -14,11 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class NodeLifecycle:
+    """Manages node startup and shutdown processes."""
+    
     config: NodeConfig
+    identity: NodeIdentity
     graph: NetworkGraph
     processor: ProcessorInterface
     effector: Effector
     actor: Actor
+    use_kobj_processor_thread: bool
     
     def __init__(
         self,
@@ -40,6 +44,7 @@ class NodeLifecycle:
         
     @contextmanager
     def run(self):
+        """Synchronous context manager for node startup and shutdown."""
         try:
             logger.info("Starting node lifecycle...")
             self.start()
@@ -52,6 +57,7 @@ class NodeLifecycle:
 
     @asynccontextmanager
     async def async_run(self):
+        """Asynchronous context manager for node startup and shutdown."""
         try:
             logger.info("Starting async node lifecycle...")
             self.start()
@@ -63,9 +69,12 @@ class NodeLifecycle:
             self.stop()
     
     def start(self):
-        """Starts a node, call this method first.
+        """Starts a node.
         
-        Starts the processor thread (if enabled). Loads event queues into memory. Generates network graph from nodes and edges in cache. Processes any state changes of node bundle. Initiates handshake with first contact (if provided) if node doesn't have any neighbors.
+        Starts the processor thread (if enabled). Generates network 
+        graph from nodes and edges in cache. Processes any state changes 
+        of node bundle. Initiates handshake with first contact if node 
+        doesn't have any neighbors. Catches up with coordinator state.
         """
         if self.use_kobj_processor_thread:
             logger.info("Starting processor worker thread")
@@ -93,9 +102,9 @@ class NodeLifecycle:
         
 
     def stop(self):
-        """Stops a node, call this method last.
+        """Stops a node.
         
-        Finishes processing knowledge object queue. Saves event queues to storage.
+        Finishes processing knowledge object queue.
         """        
         if self.use_kobj_processor_thread:
             logger.info(f"Waiting for kobj queue to empty ({self.processor.kobj_queue.unfinished_tasks} tasks remaining)")

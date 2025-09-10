@@ -34,7 +34,15 @@ logger = logging.getLogger(__name__)
 
 
 class NodeServer:
+    """Manages FastAPI server and event handling for full nodes."""
+    config: NodeConfig
     lifecycle: NodeLifecycle
+    secure: Secure
+    processor: ProcessorInterface
+    event_queue: NetworkEventQueue
+    response_handler: ResponseHandler
+    app: FastAPI
+    router: APIRouter
     
     def __init__(
         self,
@@ -54,7 +62,7 @@ class NodeServer:
         self._build_app()
         
     def _build_app(self):
-        
+        """Builds FastAPI app and adds endpoints."""
         @asynccontextmanager
         async def lifespan(*args, **kwargs):
             async with self.lifecycle.async_run():
@@ -86,6 +94,7 @@ class NodeServer:
         self.app.include_router(self.router)
     
     def run(self):
+        """Starts FastAPI server and event handler."""
         uvicorn.run(
             app=self.app,
             host=self.config.server.host,
@@ -93,6 +102,7 @@ class NodeServer:
         )
         
     def protocol_error_handler(self, request, exc: ProtocolError):
+        """Catches `ProtocolError` and returns as `ErrorResponse`."""
         logger.info(f"caught protocol error: {exc}")
         resp = ErrorResponse(error=exc.error_type)
         logger.info(f"returning error response: {resp}")
@@ -102,6 +112,7 @@ class NodeServer:
         )
 
     async def broadcast_events(self, req: SignedEnvelope[EventsPayload]):
+        """Handles events broadcast endpoint."""
         logger.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.payload.events)} event(s)")
         for event in req.payload.events:
             self.processor.handle(event=event, source=req.source_node)
@@ -109,6 +120,7 @@ class NodeServer:
     async def poll_events(
         self, req: SignedEnvelope[PollEvents]
     ) -> SignedEnvelope[EventsPayload] | ErrorResponse:
+        """Handles poll events endpoint."""
         logger.info(f"Request to {POLL_EVENTS_PATH}")
         events = self.event_queue.flush_poll_queue(req.source_node)
         return EventsPayload(events=events)
@@ -116,14 +128,17 @@ class NodeServer:
     async def fetch_rids(
         self, req: SignedEnvelope[FetchRids]
     ) -> SignedEnvelope[RidsPayload] | ErrorResponse:
+        """Handles fetch RIDs endpoint."""
         return self.response_handler.fetch_rids(req.payload, req.source_node)
 
     async def fetch_manifests(
         self, req: SignedEnvelope[FetchManifests]
     ) -> SignedEnvelope[ManifestsPayload] | ErrorResponse:
+        """Handles fetch manifests endpoint."""
         return self.response_handler.fetch_manifests(req.payload, req.source_node)
 
     async def fetch_bundles(
         self, req: SignedEnvelope[FetchBundles]
     ) -> SignedEnvelope[BundlesPayload] | ErrorResponse:
+        """Handles fetch bundles endpoint."""
         return self.response_handler.fetch_bundles(req.payload, req.source_node)

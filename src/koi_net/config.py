@@ -9,6 +9,8 @@ from .protocol.node import NodeProfile, NodeType
 
 
 class ServerConfig(BaseModel):
+    """Config for the node server (full node only)."""
+    
     host: str = "127.0.0.1"
     port: int = 8000
     path: str | None = "/koi-net"
@@ -22,6 +24,8 @@ class NodeContact(BaseModel):
     url: str | None = None
 
 class KoiNetConfig(BaseModel):
+    """Config for KOI-net."""
+    
     node_name: str
     node_rid: KoiNetNode | None = None
     node_profile: NodeProfile
@@ -36,6 +40,15 @@ class KoiNetConfig(BaseModel):
     _priv_key: PrivateKey | None = PrivateAttr(default=None)
 
 class EnvConfig(BaseModel):
+    """Config for environment variables.
+    
+    Values set in the config are the variables names, and are loaded
+    from the environment at runtime. For example, if the config YAML
+    sets `priv_key_password: PRIV_KEY_PASSWORD` accessing 
+    `priv_key_password` would retrieve the value of `PRIV_KEY_PASSWORD`
+    from the environment.
+    """
+    
     priv_key_password: str | None = "PRIV_KEY_PASSWORD"
     
     def __init__(self, **kwargs):
@@ -52,6 +65,12 @@ class EnvConfig(BaseModel):
         return value
 
 class NodeConfig(BaseModel):
+    """Base configuration class for all nodes.
+    
+    Designed to be extensible for custom node implementations. Classes
+    inheriting from `NodeConfig` may add additional config groups.
+    """
+    
     server: ServerConfig = Field(default_factory=ServerConfig)
     koi_net: KoiNetConfig
     env: EnvConfig = Field(default_factory=EnvConfig)
@@ -65,6 +84,12 @@ class NodeConfig(BaseModel):
         file_path: str = "config.yaml", 
         generate_missing: bool = True
     ):
+        """Loads config state from YAML file.
+        
+        Defaults to `config.yaml`. If `generate_missing` is set to 
+        `True`, a private key and RID will be generated if not already
+        present in the config.
+        """
         yaml = YAML()
         
         try:
@@ -112,6 +137,11 @@ class NodeConfig(BaseModel):
         return config
     
     def save_to_yaml(self):
+        """Saves config state to YAML file.
+        
+        File path is set by `load_from_yaml` class method.
+        """
+        
         yaml = YAML()
         
         with open(self._file_path, "w") as f:

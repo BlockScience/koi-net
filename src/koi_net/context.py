@@ -11,6 +11,8 @@ from .processor.interface import ProcessorInterface
 
 
 class ActionContext:
+    """Provides action handlers access to other subsystems."""
+    
     identity: NodeIdentity
     effector: Effector
 
@@ -24,6 +26,8 @@ class ActionContext:
     
 
 class HandlerContext:
+    """Provides knowledge handlers access to other subsystems."""
+    
     identity: NodeIdentity
     config: NodeConfig
     cache: Cache
