@@ -4,10 +4,11 @@ from functools import wraps
 import cryptography.exceptions
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
+from rid_lib.types import KoiNetNode
 from .identity import NodeIdentity
 from .protocol.envelope import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
-from .protocol.api_models import EventsPayload
+from .protocol.api_models import ApiModels, EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
 from .protocol.secure import PrivateKey
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class Secure:
+    """Subsystem handling secure protocol logic."""
     identity: NodeIdentity
     effector: Effector
     config: NodeConfig
@@ -42,6 +44,7 @@ class Secure:
         self.priv_key = self._load_priv_key()
         
     def _load_priv_key(self) -> PrivateKey:
+        """Loads private key from PEM file path in config."""
         with open(self.config.koi_net.private_key_pem_path, "r") as f:
             priv_key_pem = f.read()
         
@@ -51,6 +54,14 @@ class Secure:
         )
         
     def _handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
+        """Attempts to find node profile in proided envelope.
+        
+        If an unknown node sends an envelope, it may still be able to be
+        validated if that envelope contains their node profile. This is
+        essential for allowing unknown nodes to handshake and introduce
+        themselves. Only an `EventsPayload` contain a `NEW` event for a 
+        node profile for the source node is permissible.
+        """
         if type(envelope.payload) != EventsPayload:
             return None
             
@@ -64,7 +75,10 @@ class Secure:
             return event.bundle
         return None
         
-    def create_envelope(self, payload, target) -> SignedEnvelope:
+    def create_envelope(
+        self, payload: ApiModels, target: KoiNetNode
+    ) -> SignedEnvelope:
+        """Returns signed envelope to target from provided payload."""
         return UnsignedEnvelope(
             payload=payload,
             source_node=self.identity.rid,
@@ -72,6 +86,8 @@ class Secure:
         ).sign_with(self.priv_key)
         
     def validate_envelope(self, envelope: SignedEnvelope):
+        """Validates signed envelope from another node."""
+        
         node_bundle = (
             self.effector.deref(envelope.source_node) or
             self._handle_unknown_node(envelope)
@@ -98,6 +114,11 @@ class Secure:
             raise InvalidTargetError(f"Envelope target {envelope.target_node!r} is not me")
         
     def envelope_handler(self, func):
+        """Wrapper function validates envelopes for server endpoints.
+        
+        Validates incoming envelope and passes payload to endpoint
+        handler. Resulting payload is returned as a signed envelope.
+        """
         @wraps(func)
         async def wrapper(req: SignedEnvelope, *args, **kwargs) -> SignedEnvelope | None:
             logger.info("Validating envelope")

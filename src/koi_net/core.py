@@ -28,15 +28,35 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=NodeConfig)
 
 class NodeInterface(Generic[T]):
+    """Interface for a node's subsystems.
+    
+    This class embodies a node, and wires up all of its subsystems to 
+    work together. Currently, node implementations create an instance of
+    this class and override behavior where needed. Most commonly this
+    will be creating a new `Config` class, and adding additional knowledge
+    handlers to the `pipeline`, but all subsystems may be overriden by
+    passing new class implementations into `__init__`.
+    """
+    
     config: T
     cache: Cache
     identity: NodeIdentity
+    effector: Effector
+    graph: NetworkGraph
+    secure: Secure
+    request_handler: RequestHandler
+    response_handler: ResponseHandler
     resolver: NetworkResolver
     event_queue: NetworkEventQueue
-    graph: NetworkGraph
+    actor: Actor
+    action_context: ActionContext
+    handler_context: HandlerContext
+    pipeline: KnowledgePipeline
     processor: ProcessorInterface
-    secure: Secure
+    error_handler: ErrorHandler
+    lifecycle: NodeLifecycle
     server: NodeServer
+    poller: NodePoller
     
     use_kobj_processor_thread: bool
     
@@ -46,6 +66,7 @@ class NodeInterface(Generic[T]):
         use_kobj_processor_thread: bool = False,
         handlers: list[KnowledgeHandler] | None = None,
         
+        # optional overrides
         CacheOverride: type[Cache] | None = None,
         NodeIdentityOverride: type[NodeIdentity] | None = None,
         EffectorOverride: type[Effector] | None = None,
@@ -65,6 +86,8 @@ class NodeInterface(Generic[T]):
         NodeServerOverride: type[NodeServer] | None = None,
         NodePollerOverride: type[NodePoller] | None = None,        
     ):
+        self.use_kobj_processor_thread = use_kobj_processor_thread
+
         self.config = config
         self.cache = (CacheOverride or Cache)(
             directory_path=self.config.koi_net.cache_directory_path
@@ -118,8 +141,6 @@ class NodeInterface(Generic[T]):
                 obj for obj in vars(default_handlers).values() 
                 if isinstance(obj, KnowledgeHandler)
             ]
-
-        self.use_kobj_processor_thread = use_kobj_processor_thread
         
         self.action_context = (ActionContextOverride or ActionContext)(
             identity=self.identity,

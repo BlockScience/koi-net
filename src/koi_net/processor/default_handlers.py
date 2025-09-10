@@ -1,4 +1,4 @@
-"""Provides implementations of default knowledge handlers."""
+"""Implementation of default knowledge handlers."""
 
 import logging
 from rid_lib.ext import Bundle
@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 def basic_rid_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     """Default RID handler.
     
-    Blocks external events about this node. Allows `FORGET` events if RID is known to this node.
+    Blocks external events about this node. Allows `FORGET` events if 
+    RID is known to this node.
     """
     if (kobj.rid == ctx.identity.rid and kobj.source):
         logger.debug("Don't let anyone else tell me who I am!")
@@ -34,9 +35,11 @@ def basic_rid_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 
 @KnowledgeHandler.create(HandlerType.Manifest)
 def basic_manifest_handler(ctx: HandlerContext, kobj: KnowledgeObject):
-    """Default manifest handler.
+    """Decider based on incoming manifest and cache state.
     
-    Blocks manifests with the same hash, or aren't newer than the cached version. Sets the normalized event type to `NEW` or `UPDATE` depending on whether the RID was previously known to this node.
+    Blocks manifests which have the same hash, or aren't newer than the 
+    cached version. Sets the normalized event type to `NEW` or `UPDATE`
+    depending on whether the RID was previously known.
     """
     prev_bundle = ctx.cache.read(kobj.rid)
 
@@ -63,9 +66,14 @@ def basic_manifest_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 @KnowledgeHandler.create(
     handler_type=HandlerType.Bundle,
     rid_types=[KoiNetNode],
-    event_types=[EventType.NEW, EventType.UPDATE]
-)
+    event_types=[EventType.NEW, EventType.UPDATE])
 def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
+    """Maintains security of cached node profiles.
+    
+    Blocks bundles with a mismatching public keys in their node profile
+    and RID from continuing through the pipeline.
+    """
+    
     node_profile = kobj.bundle.validate_contents(NodeProfile)
     node_rid: KoiNetNode = kobj.rid
     
@@ -80,7 +88,10 @@ def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     """Handles basic edge negotiation process.
     
-    Automatically approves proposed edges if they request RID types this node can provide (or KOI nodes/edges). Validates the edge type is allowed for the node type (partial nodes cannot use webhooks). If edge is invalid, a `FORGET` event is sent to the other node.
+    Automatically approves proposed edges if they request RID types this 
+    node can provide (or KOI nodes/edges). Validates the edge type is 
+    allowed for the node type (partial nodes cannot use webhooks). If 
+    edge is invalid, a `FORGET` event is sent to the other node.
     """
 
     # only respond when source is another node
@@ -144,6 +155,13 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 
 @KnowledgeHandler.create(HandlerType.Network, rid_types=[KoiNetNode])
 def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
+    """Makes contact with identified coordinator nodes.
+    
+    When an incoming node knowledge object is identified as a provider
+    of `orn:koi-net.node`, and not already known to the node, this 
+    handler will propose a new edge subscribing to future node events, 
+    and fetch existing nodes to catch up to the current state.
+    """
     node_profile = kobj.bundle.validate_contents(NodeProfile)
             
     # looking for event provider of nodes
@@ -199,9 +217,16 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
 
 @KnowledgeHandler.create(HandlerType.Network)
 def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
-    """Default network handler.
+    """Adds subscriber nodes to network targetes.
     
-    Allows broadcasting of all RID types this node is an event provider for (set in node profile), and other nodes have subscribed to. All nodes will also broadcast about their own (internally sourced) KOI node, and KOI edges that they are part of, regardless of their node profile configuration. Finally, nodes will also broadcast about edges to the other node involved (regardless of if they are subscribed)."""
+    Allows broadcasting of all RID types this node is an event provider 
+    for (set in node profile), and other nodes have subscribed to. All 
+    nodes will also broadcast about their own (internally sourced) KOI 
+    node, and KOI edges that they are part of, regardless of their node 
+    profile configuration. Finally, nodes will also broadcast about 
+    edges to the other node involved (regardless of if they are 
+    subscribed).
+    """
     
     involves_me = False
     if kobj.source is None:
@@ -236,6 +261,8 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
 
 @KnowledgeHandler.create(HandlerType.Final, rid_types=[KoiNetNode])
 def forget_edge_on_node_deletion(ctx: HandlerContext, kobj: KnowledgeObject):
+    """Removes edges to forgotten nodes."""
+    
     if kobj.normalized_event_type != EventType.FORGET:
         return
     
