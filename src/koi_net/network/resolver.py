@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkResolver:
-    """A collection of functions and classes to interact with the KOI network."""
+    """Handles resolving nodes or knowledge objects from the network."""
     
     config: NodeConfig    
     identity: NodeIdentity
@@ -47,7 +47,7 @@ class NetworkResolver:
         self.webhook_event_queue = dict()
     
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
-        """Returns list of node RIDs which provide state for the specified RID type."""
+        """Returns list of node RIDs which provide state for specified RID type."""
         
         logger.debug(f"Looking for state providers of {rid_type}")
         provider_nodes = []
@@ -106,9 +106,10 @@ class NetworkResolver:
         return remote_manifest, node_rid
     
     def poll_neighbors(self) -> dict[KoiNetNode, list[Event]]:
-        """Polls all neighboring nodes and returns compiled list of events.
+        """Polls all neighbor nodes and returns compiled list of events.
         
-        If this node has no neighbors, it will instead attempt to poll the provided first contact URL.
+        Neighbor nodes also include the first contact, regardless of
+        whether the first contact profile is known to this node.
         """
         
         graph_neighbors = self.graph.get_neighbors()

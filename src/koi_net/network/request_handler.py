@@ -76,7 +76,7 @@ class RequestHandler:
         self.error_handler = error_handler
     
     def get_url(self, node_rid: KoiNetNode) -> str:
-        """Retrieves URL of a node."""
+        """Retrieves URL of a node from its RID."""
         
         logger.debug(f"Getting URL for {node_rid!r}")
         node_url = None
@@ -110,6 +110,7 @@ class RequestHandler:
         path: str, 
         request: RequestModels,
     ) -> ResponseModels | None:
+        """Makes a request to a node."""
         url = self.get_url(node) + path
         logger.info(f"Making request to {url}")
     
@@ -154,7 +155,10 @@ class RequestHandler:
         req: EventsPayload | None = None,
         **kwargs
     ) -> None:
-        """See protocol.api_models.EventsPayload for available kwargs."""
+        """Broadcasts events to a node.
+        
+        Pass `EventsPayload` object, or see `protocol.api_models.EventsPayload` for available kwargs.
+        """
         request = req or EventsPayload.model_validate(kwargs)
         self.make_request(node, BROADCAST_EVENTS_PATH, request)
         logger.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
@@ -165,7 +169,10 @@ class RequestHandler:
         req: PollEvents | None = None,
         **kwargs
     ) -> EventsPayload:
-        """See protocol.api_models.PollEvents for available kwargs."""
+        """Polls events from a node.
+        
+        Pass `PollEvents` object as `req` or fields as kwargs.
+        """
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
         if type(resp) != ErrorResponse:
@@ -178,7 +185,10 @@ class RequestHandler:
         req: FetchRids | None = None,
         **kwargs
     ) -> RidsPayload:
-        """See protocol.api_models.FetchRids for available kwargs."""
+        """Fetches RIDs from a node.
+        
+        Pass `FetchRids` object as `req` or fields as kwargs.
+        """
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
         if type(resp) != ErrorResponse:
@@ -191,7 +201,10 @@ class RequestHandler:
         req: FetchManifests | None = None,
         **kwargs
     ) -> ManifestsPayload:
-        """See protocol.api_models.FetchManifests for available kwargs."""
+        """Fetches manifests from a node.
+        
+        Pass `FetchManifests` object as `req` or fields as kwargs.
+        """
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
         if type(resp) != ErrorResponse:
@@ -204,7 +217,10 @@ class RequestHandler:
         req: FetchBundles | None = None,
         **kwargs
     ) -> BundlesPayload:
-        """See protocol.api_models.FetchBundles for available kwargs."""
+        """Fetches bundles from a node.
+        
+        Pass `FetchBundles` object as `req` or fields as kwargs.
+        """
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
         if type(resp) != ErrorResponse:

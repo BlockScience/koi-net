@@ -9,6 +9,7 @@ logger = getLogger(__name__)
 
 
 class ErrorHandler:
+    """Handles network errors that may occur during requests."""
     timeout_counter: dict[KoiNetNode, int]
     processor: ProcessorInterface
     actor: Actor
@@ -23,6 +24,7 @@ class ErrorHandler:
         self.timeout_counter = {}
         
     def handle_connection_error(self, node: KoiNetNode):
+        """Drops nodes after timing out three times."""
         self.timeout_counter.setdefault(node, 0)
         self.timeout_counter[node] += 1
         
@@ -39,6 +41,7 @@ class ErrorHandler:
         error_type: ErrorType, 
         node: KoiNetNode
     ):
+        """Attempts handshake when this node is unknown to target."""
         logger.info(f"Handling protocol error {error_type} for node {node!r}")
         match error_type:
             case ErrorType.UnknownNode:

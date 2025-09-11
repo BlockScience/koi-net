@@ -32,12 +32,14 @@ class ResponseHandler:
         self.effector = effector
         
     def fetch_rids(self, req: FetchRids, source: KoiNetNode) -> RidsPayload:
+        """Returns response to fetch RIDs request."""
         logger.info(f"Request to fetch rids, allowed types {req.rid_types}")
         rids = self.cache.list_rids(req.rid_types)
         
         return RidsPayload(rids=rids)
         
     def fetch_manifests(self, req: FetchManifests, source: KoiNetNode) -> ManifestsPayload:
+        """Returns response to fetch manifests request."""
         logger.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}")
         
         manifests: list[Manifest] = []
@@ -53,6 +55,7 @@ class ResponseHandler:
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
     def fetch_bundles(self, req: FetchBundles, source: KoiNetNode) -> BundlesPayload:
+        """Returns response to fetch bundles request."""
         logger.info(f"Request to fetch bundles, requested rids {req.rids}")
         
         bundles: list[Bundle] = []
