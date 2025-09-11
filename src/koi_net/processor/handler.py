@@ -44,9 +44,11 @@ class KnowledgeHandler:
         rid_types: list[RIDType] | None = None,
         event_types: list[EventType | None] | None = None
     ):
-        """Special decorator that returns a KnowledgeHandler instead of a function.
+        """Decorator wraps a function, returns a KnowledgeHandler.
         
-        The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register default handlers.
+        The function symbol will redefined as a `KnowledgeHandler`, 
+        which can be passed into the `ProcessorInterface` constructor. 
+        This is used to register default handlers.
         """
         def decorator(func: Callable) -> KnowledgeHandler:
             handler = cls(func, handler_type, rid_types, event_types)

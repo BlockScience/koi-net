@@ -37,7 +37,8 @@ class ProcessorInterface:
     def flush_kobj_queue(self):
         """Flushes all knowledge objects from queue and processes them.
         
-        NOTE: ONLY CALL THIS METHOD IN SINGLE THREADED NODES, OTHERWISE THIS WILL CAUSE RACE CONDITIONS.
+        NOTE: ONLY CALL THIS METHOD IN SINGLE THREADED NODES, OTHERWISE 
+        THIS WILL CAUSE RACE CONDITIONS.
         """
         if self.use_kobj_processor_thread:
             logger.warning("You are using a worker thread, calling this method can cause race conditions!")
@@ -80,9 +81,13 @@ class ProcessorInterface:
         event_type: EventType | None = None,
         source: KoiNetNode | None = None
     ):
-        """Queues provided knowledge to be handled by processing pipeline.
+        """Queues knowledge object to be handled by processing pipeline.
         
-        Knowledge may take the form of an RID, manifest, bundle, event, or knowledge object (with an optional event type for RID, manifest, or bundle objects). All objects will be normalized into knowledge objects and queued. If `flush` is `True`, the queue will be flushed immediately after adding the new knowledge.
+        Knowledge may take the form of an RID, manifest, bundle, event, 
+        or knowledge object (with an optional event type for RID, 
+        manifest, or bundle objects). All objects will be normalized 
+        to knowledge objects and queued. If `flush` is `True`, the queue 
+        will be flushed immediately after adding the new knowledge.
         """
         if rid:
             _kobj = KnowledgeObject.from_rid(rid, event_type, source)
