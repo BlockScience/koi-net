@@ -56,7 +56,9 @@ class NetworkGraph:
     ) -> list[KoiNetEdge]:
         """Returns edges this node belongs to.
         
-        All edges returned by default, specify `direction` to restrict to incoming or outgoing edges only."""
+        All edges returned by default, specify `direction` to restrict 
+        to incoming or outgoing edges only.
+        """
                         
         edges = []
         if direction != "in" and self.dg.out_edges:
@@ -85,7 +87,10 @@ class NetworkGraph:
     ) -> list[KoiNetNode]:
         """Returns neighboring nodes this node shares an edge with.
         
-        All neighboring nodes returned by default, specify `direction` to restrict to neighbors connected by incoming or outgoing edges only."""
+        All neighboring nodes returned by default, specify `direction` 
+        to restrict to neighbors connected by incoming or outgoing edges
+        only.
+        """
         
         neighbors = set()
         for edge_rid in self.get_edges(direction):

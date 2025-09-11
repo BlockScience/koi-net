@@ -1,4 +1,4 @@
-"""Pydantic models for request and response/payload objects in the KOI-net API."""
+"""Pydantic models for request and response objects in the KOI-net API."""
 
 from typing import Literal
 from pydantic import BaseModel, Field

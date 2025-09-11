@@ -25,7 +25,7 @@ class EventQueueModel(BaseModel):
 type EventQueue = dict[RID, Queue[Event]]
 
 class NetworkEventQueue:
-    """A collection of functions and classes to interact with the KOI network."""
+    """Handles out going network event queues."""
     
     config: NodeConfig    
     identity: NodeIdentity
@@ -75,7 +75,7 @@ class NetworkEventQueue:
             return
         
     def _save_event_queues(self):
-        """Writes event queues to storage."""
+        """Saves event queues to storage."""
         events_model = EventQueueModel(
             poll={
                 node: list(queue.queue) 
@@ -98,7 +98,10 @@ class NetworkEventQueue:
     def push_event_to(self, event: Event, node: KoiNetNode, flush=False):
         """Pushes event to queue of specified node.
         
-        Event will be sent to webhook or poll queue depending on the node type and edge type of the specified node. If `flush` is set to `True`, the webhook queued will be flushed after pushing the event.
+        Event will be sent to webhook or poll queue depending on the 
+        node type and edge type of the specified node. If `flush` is set 
+        to `True`, the webhook queued will be flushed after pushing the 
+        event.
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid!r} to {node}")
                         
@@ -163,7 +166,9 @@ class NetworkEventQueue:
     def flush_webhook_queue(self, node: KoiNetNode, requeue_on_fail: bool = True):
         """Flushes a node's webhook queue, and broadcasts events.
         
-        If node profile is unknown, or node type is not `FULL`, this operation will fail silently. If the remote node cannot be reached, all events will be requeued.
+        If node profile is unknown, or node type is not `FULL`, this 
+        operation will fail silently. If 'requeue_on_fail` is `True` and 
+        the remote node cannot be reached, all events will be requeued.
         """
         
         logger.debug(f"Flushing webhook queue for {node}")
