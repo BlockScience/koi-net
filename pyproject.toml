@@ -21,13 +21,17 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "cryptography>=45.0.3",
     "fastapi>=0.115.12",
-    "uvicorn>=0.34.2"
+    "uvicorn>=0.34.2",
+    "rich>=14.1.0",
 ]
 
 [project.optional-dependencies]
 dev = ["twine>=6.0", "build"]
-examples = [
-    "rich",
+docs = [
+    "sphinx",
+    "sphinx-autoapi>=3.6.0",
+    "sphinx-autodoc-typehints>=3.0.1",
+    "sphinx-rtd-theme>=3.0.2",
 ]
 
 [project.urls]
