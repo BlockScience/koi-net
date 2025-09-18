@@ -30,7 +30,6 @@ class NetworkEventQueue:
     config: NodeConfig    
     identity: NodeIdentity
     effector: Effector
-    cache: Cache
     graph: NetworkGraph
     request_handler: RequestHandler
     poll_event_queue: EventQueue
@@ -39,7 +38,6 @@ class NetworkEventQueue:
     def __init__(
         self, 
         config: NodeConfig,
-        cache: Cache, 
         identity: NodeIdentity,
         effector: Effector,
         graph: NetworkGraph,
@@ -47,7 +45,6 @@ class NetworkEventQueue:
     ):
         self.config = config
         self.identity = identity
-        self.cache = cache
         self.graph = graph
         self.request_handler = request_handler
         self.effector = effector

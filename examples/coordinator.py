@@ -4,7 +4,7 @@ from pydantic import Field
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.config import NodeConfig, KoiNetConfig
 from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
-from koi_net import NodeInterface
+from koi_net import NodeContainer
 from koi_net.context import HandlerContext
 from koi_net.processor.handler import HandlerType
 from koi_net.processor.knowledge_object import KnowledgeObject
@@ -38,7 +38,7 @@ class CoordinatorConfig(NodeConfig):
         )
     )
     
-node = NodeInterface(
+node = NodeContainer(
     config=CoordinatorConfig.load_from_yaml("coordinator_config.yaml"),
     use_kobj_processor_thread=True
 )

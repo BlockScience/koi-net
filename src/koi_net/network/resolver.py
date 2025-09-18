@@ -12,7 +12,6 @@ from ..protocol.event import Event
 from ..protocol.api_models import ErrorResponse
 from ..identity import NodeIdentity
 from ..config import NodeConfig
-from ..effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,6 @@ class NetworkResolver:
     
     config: NodeConfig    
     identity: NodeIdentity
-    effector: Effector
     cache: Cache
     graph: NetworkGraph
     request_handler: RequestHandler
@@ -32,7 +30,6 @@ class NetworkResolver:
         config: NodeConfig,
         cache: Cache, 
         identity: NodeIdentity,
-        effector: Effector,
         graph: NetworkGraph,
         request_handler: RequestHandler,
     ):
@@ -41,7 +38,6 @@ class NetworkResolver:
         self.cache = cache
         self.graph = graph
         self.request_handler = request_handler
-        self.effector = effector
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()

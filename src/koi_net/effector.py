@@ -4,11 +4,11 @@ from enum import StrEnum
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
+from .network.resolver import NetworkResolver
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .network.resolver import NetworkResolver
     from .processor.interface import ProcessorInterface
     from .context import ActionContext
 
@@ -23,7 +23,7 @@ class Effector:
     """Subsystem for dereferencing RIDs."""
     
     cache: Cache
-    resolver: "NetworkResolver | None"
+    resolver: NetworkResolver
     processor: "ProcessorInterface | None"
     action_context: "ActionContext | None"
     _action_table: dict[
@@ -37,21 +37,24 @@ class Effector:
     def __init__(
         self, 
         cache: Cache,
+        resolver: "NetworkResolver",
+        processor: "ProcessorInterface",
+        action_context: "ActionContext"
     ):
         self.cache = cache
-        self.resolver = None
-        self.processor = None
-        self.action_context = None
+        self.resolver = resolver
+        self.processor = processor
+        self.action_context = action_context
         self._action_table = self.__class__._action_table.copy()
         
-    def set_processor(self, processor: "ProcessorInterface"):
-        self.processor = processor
+    # def set_processor(self, processor: "ProcessorInterface"):
+    #     self.processor = processor
         
-    def set_resolver(self, resolver: "NetworkResolver"):
-        self.resolver = resolver
+    # def set_resolver(self, resolver: "NetworkResolver"):
+    #     self.resolver = resolver
         
-    def set_action_context(self, action_context: "ActionContext"):
-        self.action_context = action_context
+    # def set_action_context(self, action_context: "ActionContext"):
+    #     self.action_context = action_context
         
     @classmethod
     def register_default_action(cls, rid_type: RIDType):
