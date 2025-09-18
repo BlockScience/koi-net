@@ -15,9 +15,7 @@ class Actor:
     Functions defined here used by multiple subsystems.
     """
     
-    ctx: HandlerContext
-    
-    def set_ctx(self, ctx: HandlerContext):
+    def __init__(self, ctx: HandlerContext):
         self.ctx = ctx
     
     def handshake_with(self, target: KoiNetNode):
@@ -38,7 +36,7 @@ class Actor:
         self.ctx.event_queue.push_event_to(
             event=Event.from_bundle(
                 event_type=EventType.NEW, 
-                bundle=self.ctx.effector.deref(self.ctx.identity.rid)),
+                bundle=self.ctx.cache.read(self.ctx.identity.rid)),
             node=target
         )
         

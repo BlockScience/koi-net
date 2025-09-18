@@ -1,6 +1,6 @@
 import logging
 from typing import Generic, TypeVar
-from dependency_injector.providers import Factory, Self, Dependency
+from dependency_injector.providers import Factory, Self, Dependency, Callable, List, Object
 from dependency_injector.containers import DeclarativeContainer
 
 from rid_lib.ext import Cache
@@ -58,13 +58,13 @@ class NodeContainer(DeclarativeContainer):
         config=config
     )
     
-    effector = Factory(
-        Effector, 
-        cache=cache,
-        resolver=Self,
-        processor=Self,
-        action_context=Self
-    )
+    # effector = Factory(
+    #     Effector, 
+    #     cache=cache,
+    #     resolver=Self,
+    #     processor=Self,
+    #     action_context=Self
+    # )
     
     graph = Factory(
         NetworkGraph, 
@@ -75,23 +75,21 @@ class NodeContainer(DeclarativeContainer):
     secure = Factory(
         Secure, 
         identity=identity, 
-        effector=effector, 
+        cache=cache, 
         config=config
     )
     
     request_handler = Factory(
         RequestHandler, 
-        effector=effector, 
+        cache=cache, 
         identity=identity, 
         secure=secure
     )
     
     response_handler = Factory(
         ResponseHandler, 
-        cache=cache, 
-        effector=effector
+        cache=cache
     )
-    
     
     resolver = Factory(
         NetworkResolver,
@@ -108,17 +106,25 @@ class NodeContainer(DeclarativeContainer):
         cache=cache,
         identity=identity,
         graph=graph,
-        request_handler=request_handler,
-        effector=effector
+        request_handler=request_handler
     )
     
-    actor = Factory(Actor)
     
-    action_context = Factory(
-        ActionContext,
-        identity=identity,
-        effector=effector
+    knowledge_handlers = List(
+        Object(default_handlers.basic_rid_handler),
+        Object(default_handlers.basic_manifest_handler),
+        Object(default_handlers.secure_profile_handler),
+        Object(default_handlers.edge_negotiation_handler),
+        Object(default_handlers.coordinator_contact),
+        Object(default_handlers.basic_network_output_filter),
+        Object(default_handlers.forget_edge_on_node_deletion)
     )
+    
+    # action_context = Factory(
+    #     ActionContext,
+    #     identity=identity,
+    #     cache=cache
+    # )
     
     handler_context = Factory(
         HandlerContext,
@@ -128,8 +134,12 @@ class NodeContainer(DeclarativeContainer):
         event_queue=event_queue,
         graph=graph,
         request_handler=request_handler,
-        resolver=resolver,
-        effector=effector
+        resolver=resolver
+    )
+    
+    actor = Factory(
+        Actor,
+        ctx=handler_context
     )
     
     pipeline = Factory(
@@ -139,7 +149,7 @@ class NodeContainer(DeclarativeContainer):
         request_handler=request_handler,
         event_queue=event_queue,
         graph=graph,
-        default_handlers=[] # deal with default handlers
+        default_handlers=knowledge_handlers
     )
     
     processor = Factory(
@@ -160,7 +170,7 @@ class NodeContainer(DeclarativeContainer):
         identity=identity,
         graph=graph,
         processor=processor,
-        effector=effector,
+        cache=cache,
         actor=actor,
         use_kobj_processor_thread=True
     )

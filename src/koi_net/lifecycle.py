@@ -1,10 +1,10 @@
 import logging
 from contextlib import contextmanager, asynccontextmanager
 
+from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
 from .actor import Actor
-from .effector import Effector
 from .config import NodeConfig
 from .processor.interface import ProcessorInterface
 from .network.graph import NetworkGraph
@@ -20,7 +20,7 @@ class NodeLifecycle:
     identity: NodeIdentity
     graph: NetworkGraph
     processor: ProcessorInterface
-    effector: Effector
+    cache: Cache
     actor: Actor
     use_kobj_processor_thread: bool
     
@@ -30,7 +30,7 @@ class NodeLifecycle:
         identity: NodeIdentity,
         graph: NetworkGraph,
         processor: ProcessorInterface,
-        effector: Effector,
+        cache: Cache,
         actor: Actor,
         use_kobj_processor_thread: bool
     ):
@@ -38,7 +38,7 @@ class NodeLifecycle:
         self.identity = identity
         self.graph = graph
         self.processor = processor
-        self.effector = effector
+        self.cache = cache
         self.actor = actor
         self.use_kobj_processor_thread = use_kobj_processor_thread
         
@@ -82,8 +82,12 @@ class NodeLifecycle:
         
         self.graph.generate()
         
-        # refresh to reflect changes (if any) in config.yaml
-        self.effector.deref(self.identity.rid, refresh_cache=True)
+        # refresh to reflect changes (if any) in config.yaml                
+        
+        self.processor.handle(bundle=Bundle.generate(
+            rid=self.identity.rid,
+            contents=self.identity.profile.model_dump()
+        ))
         
         logger.debug("Waiting for kobj queue to empty")
         if self.use_kobj_processor_thread:

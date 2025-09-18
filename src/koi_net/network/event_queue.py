@@ -13,7 +13,6 @@ from ..protocol.edge import EdgeProfile, EdgeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
 from ..config import NodeConfig
-from ..effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class NetworkEventQueue:
     
     config: NodeConfig    
     identity: NodeIdentity
-    effector: Effector
+    cache: Cache
     graph: NetworkGraph
     request_handler: RequestHandler
     poll_event_queue: EventQueue
@@ -39,7 +38,7 @@ class NetworkEventQueue:
         self, 
         config: NodeConfig,
         identity: NodeIdentity,
-        effector: Effector,
+        cache: Cache,
         graph: NetworkGraph,
         request_handler: RequestHandler,
     ):
@@ -47,7 +46,7 @@ class NetworkEventQueue:
         self.identity = identity
         self.graph = graph
         self.request_handler = request_handler
-        self.effector = effector
+        self.cache = cache
         
         self.poll_event_queue = dict()
         self.webhook_event_queue = dict()
@@ -102,7 +101,7 @@ class NetworkEventQueue:
         """
         logger.debug(f"Pushing event {event.event_type} {event.rid!r} to {node}")
                         
-        node_bundle = self.effector.deref(node)
+        node_bundle = self.cache.read(node)
         
         # if there's an edge from me to the target node, override broadcast type
         edge_rid = self.graph.get_edge(
@@ -110,7 +109,7 @@ class NetworkEventQueue:
             target=node
         )
         
-        edge_bundle = self.effector.deref(edge_rid) if edge_rid else None
+        edge_bundle = self.cache.read(edge_rid) if edge_rid else None
         
         if edge_bundle:
             logger.debug(f"Found edge from me to {node!r}")

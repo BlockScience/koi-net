@@ -12,7 +12,6 @@ from ..protocol.api_models import (
     FetchManifests,
     FetchBundles,
 )
-from ..effector import Effector
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +20,12 @@ class ResponseHandler:
     """Handles generating responses to requests from other KOI nodes."""
     
     cache: Cache
-    effector: Effector
     
     def __init__(
         self, 
         cache: Cache, 
-        effector: Effector,
     ):
         self.cache = cache
-        self.effector = effector
         
     def fetch_rids(self, req: FetchRids, source: KoiNetNode) -> RidsPayload:
         """Returns response to fetch RIDs request."""
@@ -46,7 +42,7 @@ class ResponseHandler:
         not_found: list[RID] = []
         
         for rid in (req.rids or self.cache.list_rids(req.rid_types)):
-            bundle = self.effector.deref(rid)
+            bundle = self.cache.read(rid)
             if bundle:
                 manifests.append(bundle.manifest)
             else:
@@ -62,7 +58,7 @@ class ResponseHandler:
         not_found: list[RID] = []
 
         for rid in req.rids:
-            bundle = self.effector.deref(rid)
+            bundle = self.cache.read(rid)
             if bundle:
                 bundles.append(bundle)
             else:

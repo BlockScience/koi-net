@@ -107,7 +107,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         logger.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
-        peer_bundle = ctx.effector.deref(peer_rid)
+        peer_bundle = ctx.cache.read(peer_rid)
         
         if not peer_bundle:
             logger.warning(f"Peer {peer_rid!r} unknown to me")
