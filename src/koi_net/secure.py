@@ -2,7 +2,7 @@ import logging
 from functools import wraps
 
 import cryptography.exceptions
-from rid_lib.ext import Bundle
+from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode
 from .identity import NodeIdentity
@@ -18,7 +18,6 @@ from .protocol.errors import (
     InvalidSignatureError,
     InvalidTargetError
 )
-from .effector import Effector
 from .config import NodeConfig
 
 logger = logging.getLogger(__name__)
@@ -27,18 +26,18 @@ logger = logging.getLogger(__name__)
 class Secure:
     """Subsystem handling secure protocol logic."""
     identity: NodeIdentity
-    effector: Effector
+    cache: Cache
     config: NodeConfig
     priv_key: PrivateKey
     
     def __init__(
         self, 
         identity: NodeIdentity, 
-        effector: Effector,
+        cache: Cache,
         config: NodeConfig
     ):
         self.identity = identity
-        self.effector = effector
+        self.cache = cache
         self.config = config
 
         self.priv_key = self._load_priv_key()
@@ -89,7 +88,7 @@ class Secure:
         """Validates signed envelope from another node."""
         
         node_bundle = (
-            self.effector.deref(envelope.source_node) or
+            self.cache.read(envelope.source_node) or
             self._handle_unknown_node(envelope)
         )
         

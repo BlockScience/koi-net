@@ -2,7 +2,6 @@ from rid_lib.ext import Cache
 
 from koi_net.network.resolver import NetworkResolver
 from .config import NodeConfig
-from .effector import Effector
 from .network.graph import NetworkGraph
 from .network.event_queue import NetworkEventQueue
 from .network.request_handler import RequestHandler
@@ -14,15 +13,12 @@ class ActionContext:
     """Provides action handlers access to other subsystems."""
     
     identity: NodeIdentity
-    effector: Effector
 
     def __init__(
         self,
         identity: NodeIdentity,
-        effector: Effector
     ):
         self.identity = identity
-        self.effector = effector
     
 
 class HandlerContext:
@@ -35,7 +31,6 @@ class HandlerContext:
     graph: NetworkGraph
     request_handler: RequestHandler
     resolver: NetworkResolver
-    effector: Effector
     _processor: ProcessorInterface | None
     
     def __init__(
@@ -47,7 +42,6 @@ class HandlerContext:
         graph: NetworkGraph,
         request_handler: RequestHandler,
         resolver: NetworkResolver,
-        effector: Effector
     ):
         self.identity = identity
         self.config = config
@@ -56,7 +50,6 @@ class HandlerContext:
         self.graph = graph
         self.request_handler = request_handler
         self.resolver = resolver
-        self.effector = effector
         self._processor = None
         
     def set_processor(self, processor: ProcessorInterface):

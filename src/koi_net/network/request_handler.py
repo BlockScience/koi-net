@@ -1,6 +1,7 @@
 import logging
 import httpx
 from rid_lib import RID
+from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
 from ..identity import NodeIdentity
@@ -27,7 +28,6 @@ from ..protocol.consts import (
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..secure import Secure
-from ..effector import Effector
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -57,18 +57,18 @@ class UnknownPathError(Exception):
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
-    effector: Effector
+    cache: Cache
     identity: NodeIdentity
     secure: Secure
     error_handler: "ErrorHandler"
     
     def __init__(
         self, 
-        effector: Effector,
+        cache: Cache,
         identity: NodeIdentity,
         secure: Secure
     ):
-        self.effector = effector
+        self.cache = cache
         self.identity = identity
         self.secure = secure
         
@@ -84,7 +84,7 @@ class RequestHandler:
         if node_rid == self.identity.rid:
             raise SelfRequestError("Don't talk to yourself")
         
-        node_bundle = self.effector.deref(node_rid)
+        node_bundle = self.cache.read(node_rid)
                 
         if node_bundle:
             node_profile = node_bundle.validate_contents(NodeProfile)
