@@ -1,1 +1,1 @@
-from .core import NodeInterface
+from .core import NodeContainer
