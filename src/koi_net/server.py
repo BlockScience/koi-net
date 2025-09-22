@@ -3,9 +3,10 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
-from .network.event_queue import NetworkEventQueue
+
+from koi_net.poll_event_buffer import PollEventBuffer
 from .network.response_handler import ResponseHandler
-from .processor.interface import ProcessorInterface
+from .processor.kobj_queue import KobjQueue
 from .protocol.api_models import (
     PollEvents,
     FetchRids,
@@ -38,8 +39,8 @@ class NodeServer:
     config: NodeConfig
     lifecycle: NodeLifecycle
     secure: Secure
-    processor: ProcessorInterface
-    event_queue: NetworkEventQueue
+    kobj_queue: KobjQueue
+    poll_event_buf: PollEventBuffer
     response_handler: ResponseHandler
     app: FastAPI
     router: APIRouter
@@ -49,15 +50,15 @@ class NodeServer:
         config: NodeConfig,
         lifecycle: NodeLifecycle,
         secure: Secure,
-        processor: ProcessorInterface,
-        event_queue: NetworkEventQueue,
+        kobj_queue: KobjQueue,
+        poll_event_buf: PollEventBuffer,
         response_handler: ResponseHandler
     ):
         self.config = config
         self.lifecycle = lifecycle
         self.secure = secure
-        self.processor = processor
-        self.event_queue = event_queue
+        self.kobj_queue = kobj_queue
+        self.poll_event_buf = poll_event_buf
         self.response_handler = response_handler
         self._build_app()
         
@@ -115,14 +116,14 @@ class NodeServer:
         """Handles events broadcast endpoint."""
         logger.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.payload.events)} event(s)")
         for event in req.payload.events:
-            self.processor.handle(event=event, source=req.source_node)
+            self.kobj_queue.put_kobj(event=event, source=req.source_node)
         
     async def poll_events(
         self, req: SignedEnvelope[PollEvents]
     ) -> SignedEnvelope[EventsPayload] | ErrorResponse:
         """Handles poll events endpoint."""
         logger.info(f"Request to {POLL_EVENTS_PATH}")
-        events = self.event_queue.flush_poll_queue(req.source_node)
+        events = self.poll_event_buf.flush(req.source_node)
         return EventsPayload(events=events)
 
     async def fetch_rids(

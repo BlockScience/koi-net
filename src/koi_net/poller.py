@@ -1,7 +1,7 @@
 
 import time
 import logging
-from .processor.interface import ProcessorInterface
+from .processor.kobj_queue import KobjQueue
 from .lifecycle import NodeLifecycle
 from .network.resolver import NetworkResolver
 from .config import NodeConfig
@@ -11,19 +11,19 @@ logger = logging.getLogger(__name__)
 
 class NodePoller:
     """Manages polling based event loop for partial nodes."""
-    processor: ProcessorInterface
+    kobj_queue: KobjQueue
     lifecycle: NodeLifecycle
     resolver: NetworkResolver
     config: NodeConfig
     
     def __init__(
         self,
-        processor: ProcessorInterface,
+        kobj_queue: KobjQueue,
         lifecycle: NodeLifecycle,
         resolver: NetworkResolver,
         config: NodeConfig
     ):
-        self.processor = processor
+        self.kobj_queue = kobj_queue
         self.lifecycle = lifecycle
         self.resolver = resolver
         self.config = config
@@ -33,8 +33,7 @@ class NodePoller:
         neighbors = self.resolver.poll_neighbors()
         for node_rid in neighbors:
             for event in neighbors[node_rid]:
-                self.processor.handle(event=event, source=node_rid)
-        self.processor.flush_kobj_queue()
+                self.kobj_queue.put_kobj(event=event, source=node_rid)
 
     def run(self):
         """Runs polling event loop."""

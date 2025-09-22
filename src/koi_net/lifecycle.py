@@ -1,12 +1,17 @@
 import logging
 from contextlib import contextmanager, asynccontextmanager
+from typing import Callable
 
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
-from .actor import Actor
+from koi_net.kobj_worker import KnowledgeProcessingWorker
+from koi_net.models import END
+from koi_net.network.event_queue import EventQueue
+from koi_net.processor.event_worker import EventProcessingWorker
+
 from .config import NodeConfig
-from .processor.interface import ProcessorInterface
+from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
 from .identity import NodeIdentity
 
@@ -19,28 +24,38 @@ class NodeLifecycle:
     config: NodeConfig
     identity: NodeIdentity
     graph: NetworkGraph
-    processor: ProcessorInterface
+    kobj_queue: KobjQueue
+    kobj_worker: KnowledgeProcessingWorker
+    event_queue: EventQueue
+    event_worker: EventProcessingWorker
     cache: Cache
-    actor: Actor
-    use_kobj_processor_thread: bool
     
     def __init__(
         self,
         config: NodeConfig,
         identity: NodeIdentity,
         graph: NetworkGraph,
-        processor: ProcessorInterface,
+        kobj_queue: KobjQueue,
+        kobj_worker: KnowledgeProcessingWorker,
+        event_queue: EventQueue,
+        event_worker: EventProcessingWorker,
         cache: Cache,
-        actor: Actor,
-        use_kobj_processor_thread: bool
+        handshake_with: Callable,
+        catch_up_with: Callable,
+        identify_coordinators: Callable
     ):
         self.config = config
         self.identity = identity
         self.graph = graph
-        self.processor = processor
+        self.kobj_queue = kobj_queue
+        self.kobj_worker = kobj_worker
+        self.event_queue = event_queue
+        self.event_worker = event_worker
         self.cache = cache
-        self.actor = actor
-        self.use_kobj_processor_thread = use_kobj_processor_thread
+        
+        self.handshake_with = handshake_with
+        self.catch_up_with = catch_up_with
+        self.identify_coordinators = identify_coordinators
         
     @contextmanager
     def run(self):
@@ -76,33 +91,32 @@ class NodeLifecycle:
         of node bundle. Initiates handshake with first contact if node 
         doesn't have any neighbors. Catches up with coordinator state.
         """
-        if self.use_kobj_processor_thread:
-            logger.info("Starting processor worker thread")
-            self.processor.worker_thread.start()
+        logger.info("Starting processor worker thread")
         
+        self.kobj_worker.thread.start()
+        self.event_worker.thread.start()
         self.graph.generate()
         
         # refresh to reflect changes (if any) in config.yaml                
         
-        self.processor.handle(bundle=Bundle.generate(
+        self.kobj_queue.put_kobj(bundle=Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
         ))
         
         logger.debug("Waiting for kobj queue to empty")
-        if self.use_kobj_processor_thread:
-            self.processor.kobj_queue.join()
-        else:
-            self.processor.flush_kobj_queue()
-        logger.debug("Done")
-    
+        
+        # TODO: REFACTOR
+        self.kobj_queue.q.join()
+        
+        # TODO: FACTOR OUT BEHAVIOR
         if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
-            self.actor.handshake_with(self.config.koi_net.first_contact.rid)
+            self.handshake_with(self.config.koi_net.first_contact.rid)
         
-        for coordinator in self.actor.identify_coordinators():
-            self.actor.catch_up_with(coordinator, rid_types=[KoiNetNode])
+        for coordinator in self.identify_coordinators():
+            self.catch_up_with(coordinator, rid_types=[KoiNetNode])
         
 
     def stop(self):
@@ -110,8 +124,7 @@ class NodeLifecycle:
         
         Finishes processing knowledge object queue.
         """        
-        if self.use_kobj_processor_thread:
-            logger.info(f"Waiting for kobj queue to empty ({self.processor.kobj_queue.unfinished_tasks} tasks remaining)")
-            self.processor.kobj_queue.join()
-        else:
-            self.processor.flush_kobj_queue()
+        logger.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
+        
+        self.kobj_queue.q.put(END)
+        self.event_queue.q.put(END)

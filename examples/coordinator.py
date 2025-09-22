@@ -43,7 +43,7 @@ node = NodeContainer(
     use_kobj_processor_thread=True
 )
 
-@node.processor.pipeline.register_handler(HandlerType.Network, rid_types=[KoiNetNode])
+@node.kobj_queue_manager.pipeline.register_handler(HandlerType.Network, rid_types=[KoiNetNode])
 def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     logger.info("Handling node handshake")
 
@@ -55,7 +55,7 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     identity_bundle = ctx.effector.deref(ctx.identity.rid)
     ctx.event_queue.push_event_to(
         event=Event.from_bundle(EventType.NEW, identity_bundle),
-        node=kobj.rid,
+        target=kobj.rid,
         flush=True
     )
     

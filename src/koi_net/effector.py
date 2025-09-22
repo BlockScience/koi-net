@@ -9,7 +9,7 @@ from .network.resolver import NetworkResolver
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .processor.interface import ProcessorInterface
+    from .processor.kobj_queue import KobjQueue
     from .context import ActionContext
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class Effector:
     
     cache: Cache
     resolver: NetworkResolver
-    processor: "ProcessorInterface | None"
+    processor: "KobjQueue | None"
     action_context: "ActionContext | None"
     _action_table: dict[
         type[RID], 
@@ -38,7 +38,7 @@ class Effector:
         self, 
         cache: Cache,
         resolver: "NetworkResolver",
-        processor: "ProcessorInterface",
+        processor: "KobjQueue",
         action_context: "ActionContext"
     ):
         self.cache = cache
@@ -156,7 +156,7 @@ class Effector:
             and bundle is not None 
             and source != BundleSource.CACHE
         ):            
-            self.processor.handle(
+            self.processor.put_kobj(
                 bundle=bundle, 
                 source=source if type(source) is KoiNetNode else None
             )
