@@ -3,10 +3,10 @@ from rid_lib.ext import Cache
 from koi_net.network.resolver import NetworkResolver
 from .config import NodeConfig
 from .network.graph import NetworkGraph
-from .network.event_queue import NetworkEventQueue
+from .network.event_queue import EventQueue
 from .network.request_handler import RequestHandler
 from .identity import NodeIdentity
-from .processor.interface import ProcessorInterface
+from .processor.kobj_queue import KobjQueue
 
 
 class ActionContext:
@@ -27,18 +27,18 @@ class HandlerContext:
     identity: NodeIdentity
     config: NodeConfig
     cache: Cache
-    event_queue: NetworkEventQueue
+    event_queue: EventQueue
     graph: NetworkGraph
     request_handler: RequestHandler
     resolver: NetworkResolver
-    _processor: ProcessorInterface | None
+    _processor: KobjQueue | None
     
     def __init__(
         self,
         identity: NodeIdentity,
         config: NodeConfig,
         cache: Cache,
-        event_queue: NetworkEventQueue,
+        event_queue: EventQueue,
         graph: NetworkGraph,
         request_handler: RequestHandler,
         resolver: NetworkResolver,
@@ -52,9 +52,9 @@ class HandlerContext:
         self.resolver = resolver
         self._processor = None
         
-    def set_processor(self, processor: ProcessorInterface):
+    def set_processor(self, processor: KobjQueue):
         self._processor = processor
         
     @property
     def handle(self):
-        return self._processor.handle
+        return self._processor.put_kobj

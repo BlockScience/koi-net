@@ -1,9 +1,9 @@
 from logging import getLogger
+from typing import Callable
 from koi_net.protocol.errors import ErrorType
 from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
-from ..processor.interface import ProcessorInterface
-from ..actor import Actor
+from ..processor.kobj_queue import KobjQueue
 
 logger = getLogger(__name__)
 
@@ -11,16 +11,15 @@ logger = getLogger(__name__)
 class ErrorHandler:
     """Handles network errors that may occur during requests."""
     timeout_counter: dict[KoiNetNode, int]
-    processor: ProcessorInterface
-    actor: Actor
+    kobj_queue: KobjQueue
     
     def __init__(
         self, 
-        processor: ProcessorInterface,
-        actor: Actor
+        kobj_queue: KobjQueue,
+        handshake_with: Callable
     ):
-        self.processor = processor
-        self.actor = actor
+        self.kobj_queue = kobj_queue
+        self.handshake_with = handshake_with
         self.timeout_counter = {}
         
     def handle_connection_error(self, node: KoiNetNode):
@@ -32,7 +31,7 @@ class ErrorHandler:
         
         if self.timeout_counter[node] > 3:
             logger.debug(f"Exceeded time out limit, forgetting node")
-            self.processor.handle(rid=node, event_type=EventType.FORGET)
+            self.kobj_queue.put_kobj(rid=node, event_type=EventType.FORGET)
             # do something
         
         
@@ -46,7 +45,7 @@ class ErrorHandler:
         match error_type:
             case ErrorType.UnknownNode:
                 logger.info("Peer doesn't know me, attempting handshake...")
-                self.actor.handshake_with(node)
+                self.handshake_with(node)
                 
             case ErrorType.InvalidKey: ...
             case ErrorType.InvalidSignature: ...

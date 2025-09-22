@@ -5,7 +5,7 @@ from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 from ..protocol.event import EventType
 from ..network.request_handler import RequestHandler
-from ..network.event_queue import NetworkEventQueue
+from ..network.event_queue import EventQueue
 from ..network.graph import NetworkGraph
 from ..identity import NodeIdentity
 from .handler import (
@@ -28,7 +28,7 @@ class KnowledgePipeline:
     cache: Cache
     identity: NodeIdentity
     request_handler: RequestHandler
-    event_queue: NetworkEventQueue
+    event_queue: EventQueue
     graph: NetworkGraph
     handlers: list[KnowledgeHandler]
     
@@ -37,7 +37,7 @@ class KnowledgePipeline:
         handler_context: "HandlerContext",
         cache: Cache, 
         request_handler: RequestHandler,
-        event_queue: NetworkEventQueue,
+        event_queue: EventQueue,
         graph: NetworkGraph,
         default_handlers: list[KnowledgeHandler] = []
     ):

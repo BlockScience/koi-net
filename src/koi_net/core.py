@@ -1,20 +1,21 @@
 import logging
-from typing import Generic, TypeVar
-from dependency_injector.providers import Factory, Self, Dependency, Callable, List, Object
-from dependency_injector.containers import DeclarativeContainer
+from dependency_injector.providers import Factory, Callable, List, Object, Singleton
+from dependency_injector.containers import DeclarativeContainer, WiringConfiguration
 
 from rid_lib.ext import Cache
 
 from koi_net.cache_adapter import CacheProvider
+from koi_net.poll_event_buffer import PollEventBuffer
+from koi_net.processor.event_worker import EventProcessingWorker
+from koi_net.kobj_worker import KnowledgeProcessingWorker
 
 from .network.resolver import NetworkResolver
-from .network.event_queue import NetworkEventQueue
+from .network.event_queue import EventQueue
 from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
 from .network.response_handler import ResponseHandler
 from .network.error_handler import ErrorHandler
-from .actor import Actor
-from .processor.interface import ProcessorInterface
+from .processor.kobj_queue import KobjQueue
 from .processor import default_handlers
 from .processor.handler import KnowledgeHandler
 from .processor.knowledge_pipeline import KnowledgePipeline
@@ -27,6 +28,8 @@ from .server import NodeServer
 from .lifecycle import NodeLifecycle
 from .poller import NodePoller
 from . import default_actions
+from . import behaviors
+from .behaviors import handshake_with, identify_coordinators, catch_up_with
 
 logger = logging.getLogger(__name__)
 
@@ -44,21 +47,30 @@ class NodeContainer(DeclarativeContainer):
     passing new class implementations into `__init__`.
     """
     
-    config = Factory(
+    wiring_config = WiringConfiguration(
+        modules=["koi_net.behaviors"]
+    )
+    
+    poll_event_buf = Singleton(PollEventBuffer)
+
+    kobj_queue = Singleton(KobjQueue)
+    event_queue = Singleton(EventQueue)
+
+    config = Singleton(
         NodeConfig.load_from_yaml
     )
     
-    cache = Factory(
+    cache = Singleton(
         CacheProvider, 
         config=config
     )
     
-    identity = Factory(
+    identity = Singleton(
         NodeIdentity, 
         config=config
     )
     
-    # effector = Factory(
+    # effector = Singleton(
     #     Effector, 
     #     cache=cache,
     #     resolver=Self,
@@ -66,32 +78,32 @@ class NodeContainer(DeclarativeContainer):
     #     action_context=Self
     # )
     
-    graph = Factory(
+    graph = Singleton(
         NetworkGraph, 
         cache=cache, 
         identity=identity
     )
     
-    secure = Factory(
+    secure = Singleton(
         Secure, 
         identity=identity, 
         cache=cache, 
         config=config
     )
     
-    request_handler = Factory(
+    request_handler = Singleton(
         RequestHandler, 
         cache=cache, 
         identity=identity, 
         secure=secure
     )
     
-    response_handler = Factory(
+    response_handler = Singleton(
         ResponseHandler, 
         cache=cache
     )
     
-    resolver = Factory(
+    resolver = Singleton(
         NetworkResolver,
         config=config,
         cache=cache,
@@ -99,16 +111,6 @@ class NodeContainer(DeclarativeContainer):
         graph=graph,
         request_handler=request_handler
     )
-
-    event_queue = Factory(
-        NetworkEventQueue,
-        config=config,
-        cache=cache,
-        identity=identity,
-        graph=graph,
-        request_handler=request_handler
-    )
-    
     
     knowledge_handlers = List(
         Object(default_handlers.basic_rid_handler),
@@ -120,13 +122,13 @@ class NodeContainer(DeclarativeContainer):
         Object(default_handlers.forget_edge_on_node_deletion)
     )
     
-    # action_context = Factory(
+    # action_context = Singleton(
     #     ActionContext,
     #     identity=identity,
     #     cache=cache
     # )
     
-    handler_context = Factory(
+    handler_context = Singleton(
         HandlerContext,
         identity=identity,
         config=config,
@@ -137,12 +139,12 @@ class NodeContainer(DeclarativeContainer):
         resolver=resolver
     )
     
-    actor = Factory(
-        Actor,
-        ctx=handler_context
-    )
+    # actor = Singleton(
+    #     Actor,
+    #     ctx=handler_context
+    # )
     
-    pipeline = Factory(
+    pipeline = Singleton(
         KnowledgePipeline,
         handler_context=handler_context,
         cache=cache,
@@ -152,42 +154,74 @@ class NodeContainer(DeclarativeContainer):
         default_handlers=knowledge_handlers
     )
     
-    processor = Factory(
-        ProcessorInterface,
-        pipeline=pipeline,
-        use_kobj_processor_thread=True # resolve this with to implementations?
+    kobj_worker = Singleton(
+        KnowledgeProcessingWorker,
+        kobj_queue=kobj_queue,
+        pipeline=pipeline
     )
     
-    error_handler = Factory(
+    event_worker = Singleton(
+        EventProcessingWorker,
+        config=config,
+        cache=cache,
+        event_queue=event_queue,
+        request_handler=request_handler,
+        poll_event_buf=poll_event_buf
+    )
+    
+    handshake_with = Callable(
+        handshake_with,
+        cache=cache,
+        identity=identity,
+        event_queue=event_queue
+    )
+    
+    identify_coordinators = Callable(
+        identify_coordinators,
+        resolver=resolver
+    )
+    
+    catch_up_with = Callable(
+        catch_up_with,
+        request_handler=request_handler,
+        identity=identity,
+        kobj_queue=kobj_queue
+    )
+    
+    error_handler = Singleton(
         ErrorHandler,
-        processor=processor,
-        actor=actor
+        kobj_queue=kobj_queue,
+        handshake_with=handshake_with
     )
     
-    lifecycle = Factory(
+    lifecycle = Singleton(
         NodeLifecycle,
         config=config,
         identity=identity,
         graph=graph,
-        processor=processor,
+        kobj_queue=kobj_queue,
+        kobj_worker=kobj_worker,
+        event_queue=event_queue,
+        event_worker=event_worker,
         cache=cache,
-        actor=actor,
-        use_kobj_processor_thread=True
+        handshake_with=handshake_with,
+        catch_up_with=catch_up_with,
+        identify_coordinators=identify_coordinators
     )
     
-    server = Factory(
+    server = Singleton(
         NodeServer,
         config=config,
         lifecycle=lifecycle,
         secure=secure,
-        processor=processor,
-        event_queue=event_queue,
-        response_handler=response_handler    
+        kobj_queue=kobj_queue,
+        response_handler=response_handler,
+        poll_event_buf=poll_event_buf
     )
     
-    poller = Factory(
+    poller = Singleton(
         NodePoller,
-        processor=processor,
+        kobj_queue=kobj_queue,
         lifecycle=lifecycle,
         resolver=resolver,
         config=config
