@@ -143,7 +143,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             edge_profile.status = EdgeStatus.APPROVED
             updated_bundle = Bundle.generate(kobj.rid, edge_profile.model_dump())
       
-            ctx.handle(bundle=updated_bundle, event_type=EventType.UPDATE)
+            ctx.kobj_queue.put_kobj(bundle=updated_bundle, event_type=EventType.UPDATE)
             return
               
     elif edge_profile.target == ctx.identity.rid:
@@ -162,44 +162,66 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
     handler will propose a new edge subscribing to future node events, 
     and fetch existing nodes to catch up to the current state.
     """
-    node_profile = kobj.bundle.validate_contents(NodeProfile)
-            
-    # looking for event provider of nodes
-    if KoiNetNode not in node_profile.provides.event:
-        return
-    
-    # prevents coordinators from attempting to form a self loop
+    # prevents nodes from attempting to form a self loop
     if kobj.rid == ctx.identity.rid:
         return
     
-    # already have an edge established
-    if ctx.graph.get_edge(
-        source=kobj.rid,
-        target=ctx.identity.rid,
-    ) is not None:
+    node_profile = kobj.bundle.validate_contents(NodeProfile)
+    
+    available_rid_types = list(
+        set(ctx.config.koi_net.rid_types_of_interest) & 
+        set(node_profile.provides.event)
+    )
+    
+    if not available_rid_types:
         return
     
     logger.info("Identified a coordinator!")
     logger.info("Proposing new edge")
     
-    if ctx.identity.profile.node_type == NodeType.FULL:
-        edge_type = EdgeType.WEBHOOK
-    else:
-        edge_type = EdgeType.POLL
-    
-    # queued for processing
-    ctx.handle(bundle=generate_edge_bundle(
+    # already have an edge established
+    edge_rid = ctx.graph.get_edge(
         source=kobj.rid,
         target=ctx.identity.rid,
-        edge_type=edge_type,
-        rid_types=[KoiNetNode]
-    ))
+    )
+    
+    if edge_rid:
+        prev_edge_bundle = ctx.cache.read(edge_rid)
+        edge_profile = prev_edge_bundle.validate_contents(EdgeProfile)
+        
+        if set(edge_profile.rid_types) == set(available_rid_types):
+            # no change in rid types
+            return
+        
+        edge_profile.rid_types = available_rid_types
+        edge_profile.status = EdgeStatus.PROPOSED
+        
+    else:
+        source = kobj.rid
+        target = ctx.identity.rid
+        if ctx.identity.profile.node_type == NodeType.FULL:
+            edge_type = EdgeType.WEBHOOK
+        else:
+            edge_type = EdgeType.POLL
+        
+        edge_rid = KoiNetEdge(sha256_hash(str(source) + str(target)))
+        edge_profile = EdgeProfile(
+            source=source,
+            target=target,
+            rid_types=available_rid_types,
+            edge_type=edge_type,
+            status=EdgeStatus.PROPOSED
+        )
+    
+    # queued for processing
+    edge_bundle = Bundle.generate(edge_rid, edge_profile.model_dump())
+    ctx.kobj_queue.put_kobj(bundle=edge_bundle)
     
     logger.info("Catching up on network state")
     
     payload = ctx.request_handler.fetch_rids(
         node=kobj.rid, 
-        rid_types=[KoiNetNode]
+        rid_types=available_rid_types
     )
     for rid in payload.rids:
         if rid == ctx.identity.rid:
@@ -211,7 +233,7 @@ def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
         
         # marked as external since we are handling RIDs from another node
         # will fetch remotely instead of checking local cache
-        ctx.handle(rid=rid, source=kobj.rid)
+        ctx.kobj_queue.put_kobj(rid=rid, source=kobj.rid)
     logger.info("Done")
     
 
