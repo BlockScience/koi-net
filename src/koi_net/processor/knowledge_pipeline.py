@@ -1,6 +1,4 @@
 import logging
-from typing import Callable
-from rid_lib.core import RIDType
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 from ..protocol.event import EventType
@@ -199,6 +197,5 @@ class KnowledgePipeline:
         
         for node in kobj.network_targets:
             self.event_queue.push_event_to(kobj.normalized_event, node)
-            self.event_queue.flush_webhook_queue(node)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)
