@@ -39,6 +39,7 @@ class HandlerContext:
         config: NodeConfig,
         cache: Cache,
         event_queue: EventQueue,
+        kobj_queue: KobjQueue,
         graph: NetworkGraph,
         request_handler: RequestHandler,
         resolver: NetworkResolver,
@@ -47,14 +48,7 @@ class HandlerContext:
         self.config = config
         self.cache = cache
         self.event_queue = event_queue
+        self.kobj_queue = kobj_queue
         self.graph = graph
         self.request_handler = request_handler
         self.resolver = resolver
-        self._processor = None
-        
-    def set_processor(self, processor: KobjQueue):
-        self._processor = processor
-        
-    @property
-    def handle(self):
-        return self._processor.put_kobj

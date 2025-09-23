@@ -42,7 +42,6 @@ class Behaviors:
                 bundle=self.cache.read(self.identity.rid)),
             target=target
         )
-        # self.ctx.event_queue.flush_webhook_queue(target)
 
     def identify_coordinators(self) -> list[KoiNetNode]:
         """Returns node's providing state for `orn:koi-net.node`."""

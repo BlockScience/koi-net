@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from rid_lib.ext import Cache
 from koi_net.behaviors import Behaviors
 from koi_net.config import NodeConfig
-from koi_net.context import HandlerContext
+from koi_net.context import ActionContext, HandlerContext
+from koi_net.effector import Effector
 from koi_net.identity import NodeIdentity
 from koi_net.kobj_worker import KnowledgeProcessingWorker
 from koi_net.lifecycle import NodeLifecycle
@@ -75,6 +76,8 @@ class NodeAssembler:
         forget_edge_on_node_deletion
     ]
     handler_context = HandlerContext
+    action_context = ActionContext
+    effector = Effector
     behaviors = Behaviors
     pipeline = KnowledgePipeline
     kobj_worker = KnowledgeProcessingWorker
@@ -125,9 +128,19 @@ class NodeAssembler:
             config=config,
             cache=cache,
             event_queue=event_queue,
+            kobj_queue=kobj_queue,
             graph=graph,
             request_handler=request_handler,
             resolver=resolver
+        )
+        action_context = cls.action_context(
+            identity=identity
+        )
+        effector = cls.effector(
+            cache=cache,
+            resolver=resolver,
+            kobj_queue=kobj_queue,
+            action_context=action_context
         )
         behaviors = cls.behaviors(
             cache=cache,

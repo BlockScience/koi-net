@@ -5,12 +5,8 @@ from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
 from .network.resolver import NetworkResolver
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .processor.kobj_queue import KobjQueue
-    from .context import ActionContext
+from .processor.kobj_queue import KobjQueue
+from .context import ActionContext
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +20,12 @@ class Effector:
     
     cache: Cache
     resolver: NetworkResolver
-    processor: "KobjQueue | None"
-    action_context: "ActionContext | None"
+    kobj_queue: KobjQueue | None
+    action_context: ActionContext | None
     _action_table: dict[
         type[RID], 
         Callable[
-            ["ActionContext", RID], 
+            [ActionContext, RID], 
             Bundle | None
         ]
     ] = dict()
@@ -37,25 +33,16 @@ class Effector:
     def __init__(
         self, 
         cache: Cache,
-        resolver: "NetworkResolver",
-        processor: "KobjQueue",
-        action_context: "ActionContext"
+        resolver: NetworkResolver,
+        kobj_queue: KobjQueue,
+        action_context: ActionContext
     ):
         self.cache = cache
         self.resolver = resolver
-        self.processor = processor
+        self.kobj_queue = kobj_queue
         self.action_context = action_context
         self._action_table = self.__class__._action_table.copy()
-        
-    # def set_processor(self, processor: "ProcessorInterface"):
-    #     self.processor = processor
-        
-    # def set_resolver(self, resolver: "NetworkResolver"):
-    #     self.resolver = resolver
-        
-    # def set_action_context(self, action_context: "ActionContext"):
-    #     self.action_context = action_context
-        
+    
     @classmethod
     def register_default_action(cls, rid_type: RIDType):
         def decorator(func: Callable) -> Callable:
@@ -156,7 +143,7 @@ class Effector:
             and bundle is not None 
             and source != BundleSource.CACHE
         ):            
-            self.processor.put_kobj(
+            self.kobj_queue.put_kobj(
                 bundle=bundle, 
                 source=source if type(source) is KoiNetNode else None
             )
