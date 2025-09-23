@@ -1,10 +1,10 @@
 import logging
 from contextlib import contextmanager, asynccontextmanager
-from typing import Callable
 
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
+from koi_net.behaviors import Behaviors
 from koi_net.kobj_worker import KnowledgeProcessingWorker
 from koi_net.models import END
 from koi_net.network.event_queue import EventQueue
@@ -40,9 +40,7 @@ class NodeLifecycle:
         event_queue: EventQueue,
         event_worker: EventProcessingWorker,
         cache: Cache,
-        handshake_with: Callable,
-        catch_up_with: Callable,
-        identify_coordinators: Callable
+        behaviors: Behaviors
     ):
         self.config = config
         self.identity = identity
@@ -53,9 +51,7 @@ class NodeLifecycle:
         self.event_worker = event_worker
         self.cache = cache
         
-        self.handshake_with = handshake_with
-        self.catch_up_with = catch_up_with
-        self.identify_coordinators = identify_coordinators
+        self.behaviors = behaviors
         
     @contextmanager
     def run(self):
@@ -113,10 +109,10 @@ class NodeLifecycle:
         if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
-            self.handshake_with(self.config.koi_net.first_contact.rid)
+            self.behaviors.handshake_with(self.config.koi_net.first_contact.rid)
         
-        for coordinator in self.identify_coordinators():
-            self.catch_up_with(coordinator, rid_types=[KoiNetNode])
+        for coordinator in self.behaviors.identify_coordinators():
+            self.behaviors.catch_up_with(coordinator, rid_types=[KoiNetNode])
         
 
     def stop(self):
