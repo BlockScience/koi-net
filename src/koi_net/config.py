@@ -1,4 +1,5 @@
 import os
+from rid_lib import RIDType
 from ruamel.yaml import YAML
 from pydantic import BaseModel, Field, PrivateAttr
 from dotenv import load_dotenv
@@ -29,6 +30,9 @@ class KoiNetConfig(BaseModel):
     node_name: str
     node_rid: KoiNetNode | None = None
     node_profile: NodeProfile
+    
+    rid_types_of_interest: list[RIDType] = Field(
+        default_factory=lambda: [KoiNetNode])
     
     cache_directory_path: str = ".rid_cache"
     event_queues_path: str = "event_queues.json"
