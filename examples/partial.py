@@ -1,8 +1,8 @@
 import logging
 from pydantic import Field
-from dependency_injector.providers import Factory
 from rich.logging import RichHandler
 from koi_net import NodeContainer
+from koi_net.core import NodeAssembler
 from koi_net.protocol.node import NodeProfile, NodeType
 from koi_net.config import NodeConfig, KoiNetConfig
 
@@ -30,12 +30,10 @@ class PartialNodeConfig(NodeConfig):
         )
     )
 
-class PartialNodeContainer(NodeContainer):
-    config = Factory(
-        PartialNodeConfig.load_from_yaml,
-        "partial_config.yaml"
-    )
+class PartialNodeAssembler(NodeAssembler):
+    config = PartialNodeConfig
 
 
 if __name__ == "__main__":
-    PartialNodeContainer().poller().run()
+    node = PartialNodeAssembler.create()
+    node.server.run()

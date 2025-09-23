@@ -30,7 +30,7 @@ class KnowledgePipeline:
     request_handler: RequestHandler
     event_queue: EventQueue
     graph: NetworkGraph
-    handlers: list[KnowledgeHandler]
+    knowledge_handlers: list[KnowledgeHandler]
     
     def __init__(
         self, 
@@ -39,31 +39,15 @@ class KnowledgePipeline:
         request_handler: RequestHandler,
         event_queue: EventQueue,
         graph: NetworkGraph,
-        default_handlers: list[KnowledgeHandler] = []
+        knowledge_handlers: list[KnowledgeHandler] = []
     ):
         self.handler_context = handler_context
         self.cache = cache
         self.request_handler = request_handler
         self.event_queue = event_queue
         self.graph = graph
-        self.handlers = default_handlers
+        self.knowledge_handlers = knowledge_handlers
     
-    def add_handler(self, handler: KnowledgeHandler):
-        self.handlers.append(handler)
-            
-    def register_handler(
-        self,
-        handler_type: HandlerType,
-        rid_types: list[RIDType] | None = None,
-        event_types: list[EventType | None] | None = None
-    ):
-        """Assigns decorated function as handler for this processor."""
-        def decorator(func: Callable) -> Callable:
-            handler = KnowledgeHandler(func, handler_type, rid_types, event_types)
-            self.add_handler(handler)
-            return func
-        return decorator
-            
     def call_handler_chain(
         self, 
         handler_type: HandlerType,
@@ -79,7 +63,7 @@ class KnowledgePipeline:
         Handlers will only be called in the chain if their handler and RID type match that of the inputted knowledge object. 
         """
         
-        for handler in self.handlers:
+        for handler in self.knowledge_handlers:
             if handler_type != handler.handler_type: 
                 continue
             
