@@ -1,7 +1,6 @@
 import logging
 from pydantic import Field
 from rich.logging import RichHandler
-from koi_net import NodeContainer
 from koi_net.core import NodeAssembler
 from koi_net.protocol.node import NodeProfile, NodeType
 from koi_net.config import NodeConfig, KoiNetConfig
@@ -23,10 +22,7 @@ class PartialNodeConfig(NodeConfig):
             node_name="partial",
             node_profile=NodeProfile(
                 node_type=NodeType.PARTIAL
-            ),
-            cache_directory_path=".partial_rid_cache",
-            event_queues_path="partial_event_queues.json",
-            private_key_pem_path="partial_priv_key.pem"
+            )
         )
     )
 
@@ -36,4 +32,4 @@ class PartialNodeAssembler(NodeAssembler):
 
 if __name__ == "__main__":
     node = PartialNodeAssembler.create()
-    node.server.run()
+    node.poller.run()

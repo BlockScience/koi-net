@@ -1,0 +1,23 @@
+{
+    "title": "Error Response",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "error_response"
+        },
+        "error": {
+            "type": "string",
+            "enum": [
+                "unknown_node",
+                "invalid_key",
+                "invalid_signature",
+                "invalid_target"
+            ]
+        }
+    },
+    "required": [
+        "type",
+        "error"
+    ]
+}

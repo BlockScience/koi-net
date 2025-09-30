@@ -4,6 +4,7 @@ from koi_net.behaviors import Behaviors
 from koi_net.config import NodeConfig
 from koi_net.context import ActionContext, HandlerContext
 from koi_net.effector import Effector
+from koi_net.handshaker import Handshaker
 from koi_net.identity import NodeIdentity
 from koi_net.kobj_worker import KnowledgeProcessingWorker
 from koi_net.lifecycle import NodeLifecycle
@@ -19,7 +20,7 @@ from koi_net.processor.default_handlers import (
     basic_manifest_handler, 
     basic_network_output_filter, 
     basic_rid_handler, 
-    coordinator_contact, 
+    node_contact_handler, 
     edge_negotiation_handler, 
     forget_edge_on_node_deletion, 
     secure_profile_handler
@@ -29,6 +30,7 @@ from koi_net.processor.knowledge_pipeline import KnowledgePipeline
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.secure import Secure
 from koi_net.server import NodeServer
+
 
 @dataclass
 class NodeContainer:
@@ -63,6 +65,7 @@ class NodeAssembler:
     identity = NodeIdentity
     graph = NetworkGraph
     secure = Secure
+    handshaker = Handshaker
     request_handler = RequestHandler
     response_handler = ResponseHandler
     resolver = NetworkResolver
@@ -71,7 +74,7 @@ class NodeAssembler:
         basic_manifest_handler,
         secure_profile_handler,
         edge_negotiation_handler,
-        coordinator_contact,
+        node_contact_handler,
         basic_network_output_filter,
         forget_edge_on_node_deletion
     ]
@@ -108,10 +111,20 @@ class NodeAssembler:
             cache=cache,
             config=config
         )
+        handshaker = cls.handshaker(
+            cache=cache,
+            identity=identity,
+            event_queue=event_queue
+        )
+        error_handler = cls.error_handler(
+            kobj_queue=kobj_queue,
+            handshaker=handshaker
+        )
         request_handler = cls.request_handler(
             cache=cache,
             identity=identity,
-            secure=secure
+            secure=secure,
+            error_handler=error_handler
         )
         response_handler = cls.response_handler(
             cache=cache
@@ -169,10 +182,6 @@ class NodeAssembler:
             request_handler=request_handler,
             poll_event_buf=poll_event_buffer
         )
-        error_handler = cls.error_handler(
-            kobj_queue=kobj_queue,
-            behaviors=behaviors
-        )
         lifecycle = cls.lifecycle(
             config=config,
             identity=identity,
@@ -182,7 +191,7 @@ class NodeAssembler:
             event_queue=event_queue,
             event_worker=event_worker,
             cache=cache,
-            behaviors=behaviors
+            handshaker=behaviors
         )
         server = cls.server(
             config=config,

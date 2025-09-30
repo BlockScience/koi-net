@@ -24,25 +24,6 @@ class Behaviors:
         self.request_handler = request_handler
         self.kobj_queue = kobj_queue
 
-    def handshake_with(self, target: KoiNetNode):
-        """Initiates a handshake with target node.
-        Pushes successive `FORGET` and `NEW` events to target node to
-        reset the target's cache in case it already knew this node. 
-        """
-        logger.debug(f"Initiating handshake with {target}")
-        self.event_queue.push_event_to(
-            Event.from_rid(
-                event_type=EventType.FORGET, 
-                rid=self.identity.rid),
-            target=target
-        )
-        self.event_queue.push_event_to(
-            event=Event.from_bundle(
-                event_type=EventType.NEW, 
-                bundle=self.cache.read(self.identity.rid)),
-            target=target
-        )
-
     def identify_coordinators(self) -> list[KoiNetNode]:
         """Returns node's providing state for `orn:koi-net.node`."""
         return self.resolver.get_state_providers(KoiNetNode)

@@ -4,7 +4,7 @@ from contextlib import contextmanager, asynccontextmanager
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
-from koi_net.behaviors import Behaviors
+from koi_net.handshaker import Handshaker
 from koi_net.kobj_worker import KnowledgeProcessingWorker
 from koi_net.models import END
 from koi_net.network.event_queue import EventQueue
@@ -40,7 +40,7 @@ class NodeLifecycle:
         event_queue: EventQueue,
         event_worker: EventProcessingWorker,
         cache: Cache,
-        behaviors: Behaviors
+        handshaker: Handshaker
     ):
         self.config = config
         self.identity = identity
@@ -50,8 +50,7 @@ class NodeLifecycle:
         self.event_queue = event_queue
         self.event_worker = event_worker
         self.cache = cache
-        
-        self.behaviors = behaviors
+        self.handshaker = handshaker
         
     @contextmanager
     def run(self):
@@ -93,7 +92,7 @@ class NodeLifecycle:
         self.event_worker.thread.start()
         self.graph.generate()
         
-        # refresh to reflect changes (if any) in config.yaml                
+        # refresh to reflect changes (if any) in config.yaml
         
         self.kobj_queue.put_kobj(bundle=Bundle.generate(
             rid=self.identity.rid,
@@ -101,18 +100,18 @@ class NodeLifecycle:
         ))
         
         logger.debug("Waiting for kobj queue to empty")
-        
-        # TODO: REFACTOR
         self.kobj_queue.q.join()
         
         # TODO: FACTOR OUT BEHAVIOR
         if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
             logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
-            self.behaviors.handshake_with(self.config.koi_net.first_contact.rid)
+            self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
         
-        for coordinator in self.behaviors.identify_coordinators():
-            self.behaviors.catch_up_with(coordinator, rid_types=[KoiNetNode])
+        
+        
+        for coordinator in self.handshaker.identify_coordinators():
+            self.handshaker.catch_up_with(coordinator, rid_types=[KoiNetNode])
         
 
     def stop(self):
