@@ -1,6 +1,5 @@
 from logging import getLogger
-from typing import Callable
-from koi_net.behaviors import Behaviors
+from koi_net.handshaker import Handshaker
 from koi_net.protocol.errors import ErrorType
 from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
@@ -17,10 +16,10 @@ class ErrorHandler:
     def __init__(
         self, 
         kobj_queue: KobjQueue,
-        behaviors: Behaviors
+        handshaker: Handshaker
     ):
         self.kobj_queue = kobj_queue
-        self.behaviors = behaviors
+        self.handshaker = handshaker
         self.timeout_counter = {}
         
     def handle_connection_error(self, node: KoiNetNode):
@@ -46,7 +45,7 @@ class ErrorHandler:
         match error_type:
             case ErrorType.UnknownNode:
                 logger.info("Peer doesn't know me, attempting handshake...")
-                self.behaviors.handshake_with(node)
+                self.handshaker.handshake_with(node)
                 
             case ErrorType.InvalidKey: ...
             case ErrorType.InvalidSignature: ...

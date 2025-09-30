@@ -1,0 +1,16 @@
+{
+  "title": "Bundle",
+  "type": "object",
+  "properties": {
+    "manifest": {
+      "$ref": "./manifest.schema.json"
+    },
+    "contents": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "manifest",
+    "contents"
+  ]
+}

@@ -154,7 +154,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 # Network handlers
 
 @KnowledgeHandler.create(HandlerType.Network, rid_types=[KoiNetNode])
-def coordinator_contact(ctx: HandlerContext, kobj: KnowledgeObject):
+def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     """Makes contact with identified coordinator nodes.
     
     When an incoming node knowledge object is identified as a provider

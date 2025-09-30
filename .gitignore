@@ -1,6 +1,5 @@
 rid-lib
 __pycache__
-*.json
 *.pem
 *.yaml
 venv
@@ -10,3 +9,4 @@ prototypes
 dist/
 docs/
 tests/
+.rid_cache/

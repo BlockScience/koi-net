@@ -1,0 +1,26 @@
+{
+    "title": "Manifests Payload",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "manifests_payload"
+        },
+        "manifests": {
+            "type": "array",
+            "items": {
+                "$ref": "./manifest.schema.json"
+            }
+        },
+        "not_found": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "type",
+        "manifests"
+    ]
+}

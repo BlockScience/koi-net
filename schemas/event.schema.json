@@ -1,0 +1,33 @@
+{
+    "$defs": {
+        "EventType": {
+            "title": "EventType",
+            "type": "string",
+            "enum": [
+                "NEW",
+                "UPDATE",
+                "FORGET"
+            ]
+        }
+    },
+    "title": "Event",
+    "type": "object",
+    "properties": {
+        "rid": {
+            "type": "string"
+        },
+        "event_type": {
+            "$ref": "#/$defs/EventType"
+        },
+        "manifest": {
+            "$ref": "./manifest.schema.json"
+        },
+        "contents": {
+            "type": "object"
+        }
+    },
+    "required": [
+        "rid",
+        "event_type"
+    ]
+}
