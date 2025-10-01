@@ -28,10 +28,10 @@ class HandlerContext:
     config: NodeConfig
     cache: Cache
     event_queue: EventQueue
+    kobj_queue: KobjQueue
     graph: NetworkGraph
     request_handler: RequestHandler
     resolver: NetworkResolver
-    _processor: KobjQueue | None
     
     def __init__(
         self,

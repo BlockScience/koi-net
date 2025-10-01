@@ -4,6 +4,7 @@ from contextlib import contextmanager, asynccontextmanager
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
+from koi_net.behaviors import Behaviors
 from koi_net.handshaker import Handshaker
 from koi_net.kobj_worker import KnowledgeProcessingWorker
 from koi_net.models import END
@@ -29,6 +30,8 @@ class NodeLifecycle:
     event_queue: EventQueue
     event_worker: EventProcessingWorker
     cache: Cache
+    handshaker: Handshaker
+    behaviors: Behaviors
     
     def __init__(
         self,
@@ -40,7 +43,8 @@ class NodeLifecycle:
         event_queue: EventQueue,
         event_worker: EventProcessingWorker,
         cache: Cache,
-        handshaker: Handshaker
+        handshaker: Handshaker,
+        behaviors: Behaviors
     ):
         self.config = config
         self.identity = identity
@@ -51,6 +55,7 @@ class NodeLifecycle:
         self.event_worker = event_worker
         self.cache = cache
         self.handshaker = handshaker
+        self.behaviors = behaviors
         
     @contextmanager
     def run(self):
@@ -110,8 +115,8 @@ class NodeLifecycle:
         
         
         
-        for coordinator in self.handshaker.identify_coordinators():
-            self.handshaker.catch_up_with(coordinator, rid_types=[KoiNetNode])
+        for coordinator in self.behaviors.identify_coordinators():
+            self.behaviors.catch_up_with(coordinator, rid_types=[KoiNetNode])
         
 
     def stop(self):

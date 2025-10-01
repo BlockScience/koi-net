@@ -28,10 +28,7 @@ from ..protocol.consts import (
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..secure import Secure
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .error_handler import ErrorHandler
+from .error_handler import ErrorHandler
 
 
 logger = logging.getLogger(__name__)
@@ -60,19 +57,18 @@ class RequestHandler:
     cache: Cache
     identity: NodeIdentity
     secure: Secure
-    error_handler: "ErrorHandler"
+    error_handler: ErrorHandler
     
     def __init__(
         self, 
         cache: Cache,
         identity: NodeIdentity,
-        secure: Secure
+        secure: Secure,
+        error_handler: ErrorHandler
     ):
         self.cache = cache
         self.identity = identity
         self.secure = secure
-        
-    def set_error_handler(self, error_handler: "ErrorHandler"):
         self.error_handler = error_handler
     
     def get_url(self, node_rid: KoiNetNode) -> str:
