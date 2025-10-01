@@ -108,8 +108,11 @@ class NodeLifecycle:
         self.kobj_queue.q.join()
         
         # TODO: FACTOR OUT BEHAVIOR
-        if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
+        
+        coordinators = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
+        
+        if len(coordinators) == 0 and self.config.koi_net.first_contact.rid:
+            logger.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
             self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
         
