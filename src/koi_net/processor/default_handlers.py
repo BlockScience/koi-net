@@ -295,4 +295,4 @@ def forget_edge_on_node_deletion(ctx: HandlerContext, kobj: KnowledgeObject):
         
         if kobj.rid in (edge_profile.source, edge_profile.target):
             logger.debug("Identified edge with forgotten node")
-            ctx.handle(rid=edge_rid, event_type=EventType.FORGET)
+            ctx.kobj_queue.put_kobj(rid=edge_rid, event_type=EventType.FORGET)

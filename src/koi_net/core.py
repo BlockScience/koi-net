@@ -191,7 +191,8 @@ class NodeAssembler:
             event_queue=event_queue,
             event_worker=event_worker,
             cache=cache,
-            handshaker=behaviors
+            handshaker=handshaker,
+            behaviors=behaviors
         )
         server = cls.server(
             config=config,
