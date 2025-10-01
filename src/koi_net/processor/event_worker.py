@@ -87,7 +87,9 @@ class EventProcessingWorker(ThreadWorker):
                 
                 try:
                     if item is END:
-                        logger.info("Received 'END' signal, shutting down...")
+                        logger.info("Received 'END' signal, flushing buffer...")
+                        for target in self.event_buffer.keys():
+                            self.flush_buffer(target, self.event_buffer[target])
                         return
                     
                     logger.info(f"Dequeued {item.event!r} -> {item.target!r}")
