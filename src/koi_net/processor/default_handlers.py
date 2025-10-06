@@ -155,12 +155,12 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 
 @KnowledgeHandler.create(HandlerType.Network, rid_types=[KoiNetNode])
 def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
-    """Makes contact with identified coordinator nodes.
+    """Makes contact with providers of RID types of interest.
     
     When an incoming node knowledge object is identified as a provider
-    of `orn:koi-net.node`, and not already known to the node, this 
-    handler will propose a new edge subscribing to future node events, 
-    and fetch existing nodes to catch up to the current state.
+    of an RID type of interest, this handler will propose a new edge 
+    subscribing to future node events, and fetch existing nodes to catch 
+    up to the current state.
     """
     # prevents nodes from attempting to form a self loop
     if kobj.rid == ctx.identity.rid:
