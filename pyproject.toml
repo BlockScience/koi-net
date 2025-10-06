@@ -34,5 +34,8 @@ docs = [
     "sphinx-rtd-theme>=3.0.2",
 ]
 
+[project.scripts]
+koi = "koi_net.cli:app"
+
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
