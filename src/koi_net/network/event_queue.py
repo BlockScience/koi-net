@@ -1,4 +1,4 @@
-import logging
+import structlog
 from queue import Queue
 
 from rid_lib.types import KoiNetNode
@@ -6,7 +6,7 @@ from rid_lib.types import KoiNetNode
 from ..models import QueuedEvent
 from ..protocol.event import Event
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class EventQueue:

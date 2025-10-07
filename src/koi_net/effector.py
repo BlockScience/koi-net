@@ -1,4 +1,4 @@
-import logging
+import structlog
 from typing import Callable
 from enum import StrEnum
 from rid_lib.ext import Cache, Bundle
@@ -8,7 +8,7 @@ from .network.resolver import NetworkResolver
 from .processor.kobj_queue import KobjQueue
 from .context import ActionContext
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class BundleSource(StrEnum):
@@ -70,18 +70,18 @@ class Effector:
         bundle = self.cache.read(rid)
         
         if bundle:
-            logger.debug("Cache hit")
+            log.debug("Cache hit")
             return bundle, BundleSource.CACHE
         else:
-            logger.debug("Cache miss")
+            log.debug("Cache miss")
             return None
                     
     def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         if type(rid) not in self._action_table:
-            logger.debug("No action available")
+            log.debug("No action available")
             return None
         
-        logger.debug("Action available")
+        log.debug("Action available")
         func = self._action_table[type(rid)]
         bundle = func(
             ctx=self.action_context, 
@@ -89,10 +89,10 @@ class Effector:
         )
         
         if bundle:
-            logger.debug("Action hit")
+            log.debug("Action hit")
             return bundle, BundleSource.ACTION
         else:
-            logger.debug("Action miss")
+            log.debug("Action miss")
             return None
 
         
@@ -100,10 +100,10 @@ class Effector:
         bundle, source = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
-            logger.debug("Network hit")
+            log.debug("Network hit")
             return bundle, source
         else:
-            logger.debug("Network miss")
+            log.debug("Network miss")
             return None
         
     
@@ -127,7 +127,7 @@ class Effector:
             handle_result: handles resulting bundle with knowledge pipeline when `True`
         """
         
-        logger.debug(f"Dereferencing {rid!r}")
+        log.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (
             # if `refresh_cache`, skip try cache

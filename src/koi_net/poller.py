@@ -1,12 +1,12 @@
 
 import time
-import logging
+import structlog
 from .processor.kobj_queue import KobjQueue
 from .lifecycle import NodeLifecycle
 from .network.resolver import NetworkResolver
 from .config import NodeConfig
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class NodePoller:

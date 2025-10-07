@@ -1,4 +1,4 @@
-import logging
+import structlog
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
@@ -31,7 +31,7 @@ from .secure import Secure
 from .lifecycle import NodeLifecycle
 from .config import NodeConfig
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class NodeServer:
@@ -104,9 +104,9 @@ class NodeServer:
         
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns as `ErrorResponse`."""
-        logger.info(f"caught protocol error: {exc}")
+        log.info(f"caught protocol error: {exc}")
         resp = ErrorResponse(error=exc.error_type)
-        logger.info(f"returning error response: {resp}")
+        log.info(f"returning error response: {resp}")
         return JSONResponse(
             status_code=400,
             content=resp.model_dump(mode="json")
@@ -114,7 +114,7 @@ class NodeServer:
 
     async def broadcast_events(self, req: SignedEnvelope[EventsPayload]):
         """Handles events broadcast endpoint."""
-        logger.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.payload.events)} event(s)")
+        log.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.payload.events)} event(s)")
         for event in req.payload.events:
             self.kobj_queue.put_kobj(event=event, source=req.source_node)
         
@@ -122,7 +122,7 @@ class NodeServer:
         self, req: SignedEnvelope[PollEvents]
     ) -> SignedEnvelope[EventsPayload] | ErrorResponse:
         """Handles poll events endpoint."""
-        logger.info(f"Request to {POLL_EVENTS_PATH}")
+        log.info(f"Request to {POLL_EVENTS_PATH}")
         events = self.poll_event_buf.flush(req.source_node)
         return EventsPayload(events=events)
 

@@ -1,11 +1,11 @@
-from logging import getLogger
+import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from koi_net.identity import NodeIdentity
 from koi_net.network.event_queue import EventQueue
 from .protocol.event import Event, EventType
 
-logger = getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class Handshaker:
@@ -24,7 +24,7 @@ class Handshaker:
         Pushes successive `FORGET` and `NEW` events to target node to
         reset the target's cache in case it already knew this node. 
         """
-        logger.debug(f"Initiating handshake with {target}")
+        log.debug(f"Initiating handshake with {target}")
         self.event_queue.push_event_to(
             Event.from_rid(
                 event_type=EventType.FORGET, 

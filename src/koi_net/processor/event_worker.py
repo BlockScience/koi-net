@@ -1,7 +1,7 @@
 import queue
 import traceback
 import time
-import logging
+import structlog
 
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
@@ -15,7 +15,7 @@ from koi_net.protocol.event import Event
 from koi_net.protocol.node import NodeProfile, NodeType
 from koi_net.worker import ThreadWorker
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class EventProcessingWorker(ThreadWorker):
@@ -74,12 +74,12 @@ class EventProcessingWorker(ThreadWorker):
             return True
         
         else:
-            logger.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
+            log.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
             return False
         
 
     def run(self):
-        logger.info("Started event worker")
+        log.info("Started event worker")
         while True:
             now = time.time()
             try:
@@ -87,12 +87,12 @@ class EventProcessingWorker(ThreadWorker):
                 
                 try:
                     if item is END:
-                        logger.info("Received 'END' signal, flushing buffer...")
+                        log.info("Received 'END' signal, flushing buffer...")
                         for target in self.event_buffer.keys():
                             self.flush_buffer(target, self.event_buffer[target])
                         return
                     
-                    logger.info(f"Dequeued {item.event!r} -> {item.target!r}")
+                    log.info(f"Dequeued {item.event!r} -> {item.target!r}")
                     
                     if not self.decide_event(item):
                         continue

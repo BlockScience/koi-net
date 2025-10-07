@@ -1,10 +1,9 @@
-import logging
+import structlog
 from rid_lib.types.koi_net_node import KoiNetNode
 from .config import NodeConfig
 from .protocol.node import NodeProfile
 
-
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
     
 class NodeIdentity:
