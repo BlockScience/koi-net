@@ -1,4 +1,4 @@
-from logging import getLogger
+import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 from rid_lib import RIDType
@@ -8,11 +8,8 @@ from koi_net.network.request_handler import RequestHandler
 from koi_net.network.resolver import NetworkResolver
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.protocol.api_models import ErrorResponse
-from .protocol.event import Event, EventType
 
-
-logger = getLogger(__name__)
-
+log = structlog.stdlib.get_logger()
 
 
 class Behaviors:
@@ -34,13 +31,13 @@ class Behaviors:
             target: Node to catch up with
             rid_types: RID types to fetch from target (all types if list is empty)
         """
-        logger.debug(f"catching up with {target} on {rid_types or 'all types'}")
+        log.debug(f"catching up with {target} on {rid_types or 'all types'}")
         payload = self.request_handler.fetch_manifests(
             node=target,
             rid_types=rid_types
         )
         if type(payload) == ErrorResponse:
-            logger.debug("failed to reach node")
+            log.debug("failed to reach node")
             return
         for manifest in payload.manifests:
             if manifest.rid == self.identity.rid:

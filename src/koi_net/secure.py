@@ -1,4 +1,4 @@
-import logging
+import structlog
 from functools import wraps
 
 import cryptography.exceptions
@@ -20,7 +20,7 @@ from .protocol.errors import (
 )
 from .config import NodeConfig
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class Secure:
@@ -120,15 +120,15 @@ class Secure:
         """
         @wraps(func)
         async def wrapper(req: SignedEnvelope, *args, **kwargs) -> SignedEnvelope | None:
-            logger.info("Validating envelope")
+            log.info("Validating envelope")
             
             self.validate_envelope(req)            
-            logger.info("Calling endpoint handler")
+            log.info("Calling endpoint handler")
             
             result = await func(req, *args, **kwargs)            
             
             if result is not None:
-                logger.info("Creating response envelope")
+                log.info("Creating response envelope")
                 return self.create_envelope(
                     payload=result,
                     target=req.source_node

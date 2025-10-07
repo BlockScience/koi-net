@@ -1,11 +1,11 @@
-from logging import getLogger
+import structlog
 from koi_net.handshaker import Handshaker
 from koi_net.protocol.errors import ErrorType
 from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
 from ..processor.kobj_queue import KobjQueue
 
-logger = getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class ErrorHandler:
@@ -27,10 +27,10 @@ class ErrorHandler:
         self.timeout_counter.setdefault(node, 0)
         self.timeout_counter[node] += 1
         
-        logger.debug(f"{node} has timed out {self.timeout_counter[node]} time(s)")
+        log.debug(f"{node} has timed out {self.timeout_counter[node]} time(s)")
         
         if self.timeout_counter[node] > 3:
-            logger.debug(f"Exceeded time out limit, forgetting node")
+            log.debug(f"Exceeded time out limit, forgetting node")
             self.kobj_queue.put_kobj(rid=node, event_type=EventType.FORGET)
             # do something
         
@@ -41,10 +41,10 @@ class ErrorHandler:
         node: KoiNetNode
     ):
         """Attempts handshake when this node is unknown to target."""
-        logger.info(f"Handling protocol error {error_type} for node {node!r}")
+        log.info(f"Handling protocol error {error_type} for node {node!r}")
         match error_type:
             case ErrorType.UnknownNode:
-                logger.info("Peer doesn't know me, attempting handshake...")
+                log.info("Peer doesn't know me, attempting handshake...")
                 self.handshaker.handshake_with(node)
                 
             case ErrorType.InvalidKey: ...

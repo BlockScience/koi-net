@@ -1,13 +1,13 @@
 import queue
 import traceback
-import logging
+import structlog
 
 from koi_net.models import END
 from koi_net.processor.knowledge_pipeline import KnowledgePipeline
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.worker import ThreadWorker
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class KnowledgeProcessingWorker(ThreadWorker):
@@ -23,16 +23,16 @@ class KnowledgeProcessingWorker(ThreadWorker):
         super().__init__()
         
     def run(self):
-        logger.info("Started kobj worker")
+        log.info("Started kobj worker")
         while True:
             try:
                 item = self.kobj_queue.q.get(timeout=self.timeout)
                 try:
                     if item is END:
-                        logger.info("Received 'END' signal, shutting down...")
+                        log.info("Received 'END' signal, shutting down...")
                         return
                     
-                    logger.info(f"Dequeued {item!r}")
+                    log.info(f"Dequeued {item!r}")
                     
                     self.pipeline.process(item)
                 finally:

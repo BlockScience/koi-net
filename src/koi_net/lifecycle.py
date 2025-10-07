@@ -1,4 +1,4 @@
-import logging
+import structlog
 from contextlib import contextmanager, asynccontextmanager
 
 from rid_lib.ext import Bundle, Cache
@@ -16,7 +16,7 @@ from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
 from .identity import NodeIdentity
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class NodeLifecycle:
@@ -61,26 +61,26 @@ class NodeLifecycle:
     def run(self):
         """Synchronous context manager for node startup and shutdown."""
         try:
-            logger.info("Starting node lifecycle...")
+            log.info("Starting node lifecycle...")
             self.start()
             yield
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt!")
+            log.info("Keyboard interrupt!")
         finally:
-            logger.info("Stopping node lifecycle...")
+            log.info("Stopping node lifecycle...")
             self.stop()
 
     @asynccontextmanager
     async def async_run(self):
         """Asynchronous context manager for node startup and shutdown."""
         try:
-            logger.info("Starting async node lifecycle...")
+            log.info("Starting async node lifecycle...")
             self.start()
             yield
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt!")
+            log.info("Keyboard interrupt!")
         finally:
-            logger.info("Stopping async node lifecycle...")
+            log.info("Stopping async node lifecycle...")
             self.stop()
     
     def start(self):
@@ -91,7 +91,7 @@ class NodeLifecycle:
         of node bundle. Initiates handshake with first contact if node 
         doesn't have any neighbors. Catches up with coordinator state.
         """
-        logger.info("Starting processor worker thread")
+        log.info("Starting processor worker thread")
         
         self.kobj_worker.thread.start()
         self.event_worker.thread.start()
@@ -104,7 +104,7 @@ class NodeLifecycle:
             contents=self.identity.profile.model_dump()
         ))
         
-        logger.debug("Waiting for kobj queue to empty")
+        log.debug("Waiting for kobj queue to empty")
         self.kobj_queue.q.join()
         
         # TODO: FACTOR OUT BEHAVIOR
@@ -112,7 +112,7 @@ class NodeLifecycle:
         coordinators = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
         
         if len(coordinators) == 0 and self.config.koi_net.first_contact.rid:
-            logger.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
+            log.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
             self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
         
@@ -127,7 +127,7 @@ class NodeLifecycle:
         
         Finishes processing knowledge object queue.
         """        
-        logger.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
+        log.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
         
         self.kobj_queue.q.put(END)
         self.event_queue.q.put(END)
