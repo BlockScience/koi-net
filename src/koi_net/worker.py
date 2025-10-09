@@ -1,5 +1,12 @@
 import threading
 
+
+class End:
+    """Class for a sentinel value by knowledge handlers."""
+    pass
+
+STOP_WORKER = End()
+
 class ThreadWorker:
     thread: threading.Thread
     

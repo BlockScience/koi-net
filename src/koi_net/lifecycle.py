@@ -4,13 +4,13 @@ from contextlib import contextmanager, asynccontextmanager
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
-from koi_net.behaviors import Behaviors
-from koi_net.handshaker import Handshaker
-from koi_net.kobj_worker import KnowledgeProcessingWorker
-from koi_net.models import END
-from koi_net.network.event_queue import EventQueue
-from koi_net.processor.event_worker import EventProcessingWorker
-
+from .handshaker import Handshaker
+from .network.request_handler import RequestHandler
+from .processor.kobj_worker import KnowledgeProcessingWorker
+from .network.event_queue import EventQueue
+from .processor.event_worker import EventProcessingWorker
+from .protocol.api_models import ErrorResponse
+from .worker import STOP_WORKER
 from .config import NodeConfig
 from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
@@ -31,7 +31,7 @@ class NodeLifecycle:
     event_worker: EventProcessingWorker
     cache: Cache
     handshaker: Handshaker
-    behaviors: Behaviors
+    request_handler: RequestHandler
     
     def __init__(
         self,
@@ -44,7 +44,7 @@ class NodeLifecycle:
         event_worker: EventProcessingWorker,
         cache: Cache,
         handshaker: Handshaker,
-        behaviors: Behaviors
+        request_handler: RequestHandler
     ):
         self.config = config
         self.identity = identity
@@ -55,7 +55,7 @@ class NodeLifecycle:
         self.event_worker = event_worker
         self.cache = cache
         self.handshaker = handshaker
-        self.behaviors = behaviors
+        self.request_handler = request_handler
         
     @contextmanager
     def run(self):
@@ -107,19 +107,27 @@ class NodeLifecycle:
         log.debug("Waiting for kobj queue to empty")
         self.kobj_queue.q.join()
         
-        # TODO: FACTOR OUT BEHAVIOR
-        
         coordinators = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
         
-        if len(coordinators) == 0 and self.config.koi_net.first_contact.rid:
+        if len(coordinators) > 0:
+            for coordinator in coordinators:
+                payload = self.request_handler.fetch_manifests(
+                    node=coordinator,
+                    rid_types=[KoiNetNode]
+                )
+                if type(payload) is ErrorResponse:
+                    continue
+                
+                for manifest in payload.manifests:
+                    self.kobj_queue.put_kobj(
+                        manifest=manifest,
+                        source=coordinator
+                    )
+                    
+        elif self.config.koi_net.first_contact.rid:
             log.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
             self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
-        
-        
-        
-        for coordinator in self.behaviors.identify_coordinators():
-            self.behaviors.catch_up_with(coordinator, rid_types=[KoiNetNode])
         
 
     def stop(self):
@@ -129,5 +137,5 @@ class NodeLifecycle:
         """        
         log.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
         
-        self.kobj_queue.q.put(END)
-        self.event_queue.q.put(END)
+        self.kobj_queue.q.put(STOP_WORKER)
+        self.event_queue.q.put(STOP_WORKER)

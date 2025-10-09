@@ -4,13 +4,32 @@ from logging.handlers import RotatingFileHandler
 import colorama
 import structlog
 import sys
+# from sentry_sdk import logger as sentry_logger
 
 
 def my_processor(_, __, event: dict):
     # print(_, __, event)
-    event["path"] = event["logger"] + "." + event.pop("func_name")
+    event["path"] = event["module"] + "." + event["func_name"]
     return event
 
+# def sentry_processor(_, method, event: dict):
+#     print(event)
+#     if method == "critical":
+#         sentry_logger.fatal(
+#             event["event"],
+#             attributes=event
+#         )
+#     elif method == "info":
+#         sentry_logger.info(
+#             event["event"],
+#             attributes=event
+#         )
+#     elif method == "debug":
+#         sentry_logger.debug(
+#             event["event"],
+#             attributes=event
+#         )
+#     return event
 
 console_renderer = structlog.dev.ConsoleRenderer(
     columns=[
@@ -45,6 +64,31 @@ console_renderer = structlog.dev.ConsoleRenderer(
             )
         ),
         # Render the event without the key name in bright magenta.
+        
+        # Default formatter for all keys not explicitly mentioned. The key is
+        # cyan, the value is green.
+        structlog.dev.Column(
+            "path",
+            structlog.dev.KeyValueColumnFormatter(
+                key_style=None,
+                value_style=colorama.Fore.MAGENTA,
+                reset_style=colorama.Style.RESET_ALL,
+                value_repr=str,
+                width=30
+            ),
+        ),
+        # structlog.dev.Column(
+        #     "func_name",
+        #     structlog.dev.KeyValueColumnFormatter(
+        #         key_style=None,
+        #         value_style=colorama.Fore.MAGENTA,
+        #         reset_style=colorama.Style.RESET_ALL,
+        #         value_repr=str,
+        #         prefix="(",
+        #         postfix=")",
+        #         width=15
+        #     ),
+        # ),
         structlog.dev.Column(
             "event",
             structlog.dev.KeyValueColumnFormatter(
@@ -55,27 +99,6 @@ console_renderer = structlog.dev.ConsoleRenderer(
                 width=30
             ),
         ),
-        # Default formatter for all keys not explicitly mentioned. The key is
-        # cyan, the value is green.
-        structlog.dev.Column(
-            "path",
-            structlog.dev.KeyValueColumnFormatter(
-                key_style=None,
-                value_style=colorama.Fore.MAGENTA,
-                reset_style=colorama.Style.RESET_ALL,
-                value_repr=str,
-                postfix=":"
-            ),
-        ),
-        # structlog.dev.Column(
-        #     "func_name",
-        #     structlog.dev.KeyValueColumnFormatter(
-        #         key_style=None,
-        #         value_style=colorama.Fore.MAGENTA,
-        #         reset_style=colorama.Style.RESET_ALL,
-        #         value_repr=str,
-        #     ),
-        # ),
         structlog.dev.Column(
             "",
             structlog.dev.KeyValueColumnFormatter(
@@ -119,6 +142,7 @@ structlog.configure(
         ),
         my_processor,
         # Render the final event dict as JSON.
+        # sentry_processor,
         console_renderer
         # structlog.processors.JSONRenderer()
         
