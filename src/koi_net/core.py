@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 from rid_lib.ext import Cache
-from koi_net.behaviors import Behaviors
 from koi_net.config import NodeConfig
 from koi_net.context import ActionContext, HandlerContext
 from koi_net.effector import Effector
 from koi_net.handshaker import Handshaker
 from koi_net.identity import NodeIdentity
-from koi_net.kobj_worker import KnowledgeProcessingWorker
+from koi_net.processor.kobj_worker import KnowledgeProcessingWorker
 from koi_net.lifecycle import NodeLifecycle
 from koi_net.network.error_handler import ErrorHandler
 from koi_net.network.event_queue import EventQueue
@@ -14,9 +13,9 @@ from koi_net.network.graph import NetworkGraph
 from koi_net.network.request_handler import RequestHandler
 from koi_net.network.resolver import NetworkResolver
 from koi_net.network.response_handler import ResponseHandler
-from koi_net.poll_event_buffer import PollEventBuffer
+from koi_net.network.poll_event_buffer import PollEventBuffer
 from koi_net.poller import NodePoller
-from koi_net.processor.default_handlers import (
+from koi_net.processor.handlers import (
     basic_manifest_handler, 
     basic_network_output_filter, 
     basic_rid_handler, 
@@ -26,7 +25,7 @@ from koi_net.processor.default_handlers import (
     secure_profile_handler
 )
 from koi_net.processor.event_worker import EventProcessingWorker
-from koi_net.processor.knowledge_pipeline import KnowledgePipeline
+from koi_net.processor.pipeline import KnowledgePipeline
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.secure import Secure
 from koi_net.server import NodeServer
@@ -45,8 +44,8 @@ class NodeContainer:
     request_handler: RequestHandler
     response_handler: ResponseHandler
     resolver: NetworkResolver
+    effector: Effector
     handler_context: HandlerContext
-    behaviors: Behaviors
     pipeline: KnowledgePipeline
     kobj_worker: KnowledgeProcessingWorker
     event_worker: EventProcessingWorker
@@ -54,7 +53,6 @@ class NodeContainer:
     lifecycle: NodeLifecycle
     server: NodeServer
     poller: NodePoller
-    
 
 class NodeAssembler:
     poll_event_buf = PollEventBuffer
@@ -81,7 +79,6 @@ class NodeAssembler:
     handler_context = HandlerContext
     action_context = ActionContext
     effector = Effector
-    behaviors = Behaviors
     pipeline = KnowledgePipeline
     kobj_worker = KnowledgeProcessingWorker
     event_worker = EventProcessingWorker
@@ -136,16 +133,6 @@ class NodeAssembler:
             graph=graph,
             request_handler=request_handler
         )
-        handler_context = cls.handler_context(
-            identity=identity,
-            config=config,
-            cache=cache,
-            event_queue=event_queue,
-            kobj_queue=kobj_queue,
-            graph=graph,
-            request_handler=request_handler,
-            resolver=resolver
-        )
         action_context = cls.action_context(
             identity=identity
         )
@@ -155,13 +142,15 @@ class NodeAssembler:
             kobj_queue=kobj_queue,
             action_context=action_context
         )
-        behaviors = cls.behaviors(
-            cache=cache,
+        handler_context = cls.handler_context(
             identity=identity,
+            config=config,
+            cache=cache,
             event_queue=event_queue,
-            resolver=resolver,
+            kobj_queue=kobj_queue,
+            graph=graph,
             request_handler=request_handler,
-            kobj_queue=kobj_queue
+            resolver=resolver
         )
         pipeline = cls.pipeline(
             handler_context=handler_context,
@@ -192,7 +181,7 @@ class NodeAssembler:
             event_worker=event_worker,
             cache=cache,
             handshaker=handshaker,
-            behaviors=behaviors
+            request_handler=request_handler
         )
         server = cls.server(
             config=config,
@@ -221,8 +210,8 @@ class NodeAssembler:
             request_handler=request_handler,
             response_handler=response_handler,
             resolver=resolver,
+            effector=effector,
             handler_context=handler_context,
-            behaviors=behaviors,
             pipeline=pipeline,
             kobj_worker=kobj_worker,
             event_worker=event_worker,

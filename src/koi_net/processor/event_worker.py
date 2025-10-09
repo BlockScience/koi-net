@@ -7,13 +7,12 @@ from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
 from koi_net.config import NodeConfig
-from koi_net.models import END, QueuedEvent
-from koi_net.network.event_queue import EventQueue
+from koi_net.network.event_queue import EventQueue, QueuedEvent
 from koi_net.network.request_handler import RequestHandler
-from koi_net.poll_event_buffer import PollEventBuffer
+from koi_net.network.poll_event_buffer import PollEventBuffer
 from koi_net.protocol.event import Event
 from koi_net.protocol.node import NodeProfile, NodeType
-from koi_net.worker import ThreadWorker
+from koi_net.worker import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
 
@@ -86,8 +85,8 @@ class EventProcessingWorker(ThreadWorker):
                 item = self.event_queue.q.get(timeout=self.timeout)
                 
                 try:
-                    if item is END:
-                        log.info("Received 'END' signal, flushing buffer...")
+                    if item is STOP_WORKER:
+                        log.info(f"Received 'STOP_WORKER' signal, flushing buffer...")
                         for target in self.event_buffer.keys():
                             self.flush_buffer(target, self.event_buffer[target])
                         return

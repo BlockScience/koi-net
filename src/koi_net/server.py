@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
-from koi_net.poll_event_buffer import PollEventBuffer
+from koi_net.network.poll_event_buffer import PollEventBuffer
 from .network.response_handler import ResponseHandler
 from .processor.kobj_queue import KobjQueue
 from .protocol.api_models import (
@@ -99,7 +99,9 @@ class NodeServer:
         uvicorn.run(
             app=self.app,
             host=self.config.server.host,
-            port=self.config.server.port
+            port=self.config.server.port,
+            log_config=None,
+            access_log=False
         )
         
     def protocol_error_handler(self, request, exc: ProtocolError):

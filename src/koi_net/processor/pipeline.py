@@ -13,16 +13,13 @@ from .handler import (
     StopChain
 )
 from .knowledge_object import KnowledgeObject
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..context import HandlerContext
+from ..context import HandlerContext
 
 log = structlog.stdlib.get_logger()
 
 
 class KnowledgePipeline:
-    handler_context: "HandlerContext"
+    handler_context: HandlerContext
     cache: Cache
     identity: NodeIdentity
     request_handler: RequestHandler
@@ -32,7 +29,7 @@ class KnowledgePipeline:
     
     def __init__(
         self, 
-        handler_context: "HandlerContext",
+        handler_context: HandlerContext,
         cache: Cache, 
         request_handler: RequestHandler,
         event_queue: EventQueue,

@@ -9,7 +9,7 @@ from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject
 from ..context import HandlerContext
 from ..protocol.event import Event, EventType
-from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType, generate_edge_bundle
+from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType
 from ..protocol.node import NodeProfile
 
 log = structlog.stdlib.get_logger()

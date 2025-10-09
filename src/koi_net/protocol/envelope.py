@@ -6,7 +6,6 @@ from rid_lib.types import KoiNetNode
 from .secure import PrivateKey, PublicKey
 from .api_models import RequestModels, ResponseModels
 
-
 log = structlog.stdlib.get_logger()
 
 
