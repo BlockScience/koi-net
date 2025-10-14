@@ -18,10 +18,10 @@ class NodePoller:
     
     def __init__(
         self,
-        kobj_queue: KobjQueue,
+        config: NodeConfig,
         lifecycle: NodeLifecycle,
+        kobj_queue: KobjQueue,
         resolver: NetworkResolver,
-        config: NodeConfig
     ):
         self.kobj_queue = kobj_queue
         self.lifecycle = lifecycle

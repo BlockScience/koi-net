@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from rid_lib.ext import Cache
 from koi_net.config import NodeConfig
-from koi_net.context import ActionContext, HandlerContext
+from koi_net.context import HandlerContext
 from koi_net.effector import Effector
 from koi_net.handshaker import Handshaker
 from koi_net.identity import NodeIdentity
@@ -77,7 +77,6 @@ class NodeAssembler:
         forget_edge_on_node_deletion
     ]
     handler_context = HandlerContext
-    action_context = ActionContext
     effector = Effector
     pipeline = KnowledgePipeline
     kobj_worker = KnowledgeProcessingWorker
@@ -89,7 +88,7 @@ class NodeAssembler:
     
     @classmethod
     def create(cls) -> NodeContainer:
-        poll_event_buffer = cls.poll_event_buf()
+        poll_event_buf = cls.poll_event_buf()
         kobj_queue = cls.kobj_queue()
         event_queue = cls.event_queue()
         config = cls.config.load_from_yaml()
@@ -124,7 +123,10 @@ class NodeAssembler:
             error_handler=error_handler
         )
         response_handler = cls.response_handler(
-            cache=cache
+            cache=cache,
+            kobj_queue=kobj_queue,
+            poll_event_buf=poll_event_buf,
+            secure=secure
         )
         resolver = cls.resolver(
             config=config,
@@ -133,14 +135,11 @@ class NodeAssembler:
             graph=graph,
             request_handler=request_handler
         )
-        action_context = cls.action_context(
-            identity=identity
-        )
         effector = cls.effector(
             cache=cache,
             resolver=resolver,
             kobj_queue=kobj_queue,
-            action_context=action_context
+            identity=identity
         )
         handler_context = cls.handler_context(
             identity=identity,
@@ -150,7 +149,8 @@ class NodeAssembler:
             kobj_queue=kobj_queue,
             graph=graph,
             request_handler=request_handler,
-            resolver=resolver
+            resolver=resolver,
+            effector=effector
         )
         pipeline = cls.pipeline(
             handler_context=handler_context,
@@ -169,7 +169,7 @@ class NodeAssembler:
             cache=cache,
             event_queue=event_queue,
             request_handler=request_handler,
-            poll_event_buf=poll_event_buffer
+            poll_event_buf=poll_event_buf
         )
         lifecycle = cls.lifecycle(
             config=config,
@@ -186,10 +186,7 @@ class NodeAssembler:
         server = cls.server(
             config=config,
             lifecycle=lifecycle,
-            secure=secure,
-            kobj_queue=kobj_queue,
-            response_handler=response_handler,
-            poll_event_buf=poll_event_buffer
+            response_handler=response_handler
         )
         poller = cls.poller(
             kobj_queue=kobj_queue,
@@ -199,7 +196,7 @@ class NodeAssembler:
         )
         
         return NodeContainer(
-            poll_event_buf=poll_event_buffer,
+            poll_event_buf=poll_event_buf,
             kobj_queue=kobj_queue,
             event_queue=event_queue,
             config=config,

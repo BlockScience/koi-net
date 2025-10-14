@@ -12,7 +12,7 @@ from koi_net.network.request_handler import RequestHandler
 from koi_net.network.poll_event_buffer import PollEventBuffer
 from koi_net.protocol.event import Event
 from koi_net.protocol.node import NodeProfile, NodeType
-from koi_net.worker import ThreadWorker, STOP_WORKER
+from koi_net.interfaces.worker import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
 

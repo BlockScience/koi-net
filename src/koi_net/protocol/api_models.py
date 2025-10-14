@@ -1,6 +1,6 @@
 """Pydantic models for request and response objects in the KOI-net API."""
 
-from typing import Literal
+from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from rid_lib import RID, RIDType
 from rid_lib.ext import Bundle, Manifest
@@ -60,4 +60,7 @@ class ErrorResponse(BaseModel):
 
 type RequestModels = EventsPayload | PollEvents | FetchRids | FetchManifests | FetchBundles
 type ResponseModels = RidsPayload | ManifestsPayload | BundlesPayload | EventsPayload | ErrorResponse
-type ApiModels = RequestModels | ResponseModels
+type ApiModels = Annotated[
+    RequestModels | ResponseModels,
+    Field(discriminator="type")
+]

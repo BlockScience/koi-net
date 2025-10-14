@@ -10,7 +10,7 @@ from .processor.kobj_worker import KnowledgeProcessingWorker
 from .network.event_queue import EventQueue
 from .processor.event_worker import EventProcessingWorker
 from .protocol.api_models import ErrorResponse
-from .worker import STOP_WORKER
+from .interfaces.worker import STOP_WORKER
 from .config import NodeConfig
 from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph

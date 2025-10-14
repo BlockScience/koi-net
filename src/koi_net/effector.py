@@ -6,10 +6,22 @@ from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
 from .network.resolver import NetworkResolver
 from .processor.kobj_queue import KobjQueue
-from .context import ActionContext
+from .identity import NodeIdentity
 
 log = structlog.stdlib.get_logger()
 
+
+class ActionContext:
+    """Provides action handlers access to other subsystems."""
+    
+    identity: NodeIdentity
+
+    def __init__(
+        self,
+        identity: NodeIdentity,
+    ):
+        self.identity = identity
+    
 
 class BundleSource(StrEnum):
     CACHE = "CACHE"
@@ -35,12 +47,12 @@ class Effector:
         cache: Cache,
         resolver: NetworkResolver,
         kobj_queue: KobjQueue,
-        action_context: ActionContext
+        identity: NodeIdentity
     ):
         self.cache = cache
         self.resolver = resolver
         self.kobj_queue = kobj_queue
-        self.action_context = action_context
+        self.action_context = ActionContext(identity)
         self._action_table = self.__class__._action_table.copy()
     
     @classmethod
