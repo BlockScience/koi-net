@@ -4,7 +4,7 @@ import structlog
 
 from .pipeline import KnowledgePipeline
 from .kobj_queue import KobjQueue
-from koi_net.worker import ThreadWorker, STOP_WORKER
+from koi_net.interfaces.worker import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
 

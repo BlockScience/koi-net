@@ -10,18 +10,6 @@ from .identity import NodeIdentity
 from .processor.kobj_queue import KobjQueue
 
 
-class ActionContext:
-    """Provides action handlers access to other subsystems."""
-    
-    identity: NodeIdentity
-
-    def __init__(
-        self,
-        identity: NodeIdentity,
-    ):
-        self.identity = identity
-    
-
 class HandlerContext:
     """Provides knowledge handlers access to other subsystems."""
     

@@ -4,30 +4,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
-from koi_net.network.poll_event_buffer import PollEventBuffer
 from .network.response_handler import ResponseHandler
-from .processor.kobj_queue import KobjQueue
-from .protocol.api_models import (
-    PollEvents,
-    FetchRids,
-    FetchManifests,
-    FetchBundles,
-    EventsPayload,
-    RidsPayload,
-    ManifestsPayload,
-    BundlesPayload,
-    ErrorResponse
-)
+from .protocol.model_map import API_MODEL_MAP
+from .protocol.api_models import ErrorResponse
 from .protocol.errors import ProtocolError
-from .protocol.envelope import SignedEnvelope
-from .protocol.consts import (
-    BROADCAST_EVENTS_PATH,
-    POLL_EVENTS_PATH,
-    FETCH_RIDS_PATH,
-    FETCH_MANIFESTS_PATH,
-    FETCH_BUNDLES_PATH
-)
-from .secure import Secure
 from .lifecycle import NodeLifecycle
 from .config import NodeConfig
 
@@ -38,9 +18,6 @@ class NodeServer:
     """Manages FastAPI server and event handling for full nodes."""
     config: NodeConfig
     lifecycle: NodeLifecycle
-    secure: Secure
-    kobj_queue: KobjQueue
-    poll_event_buf: PollEventBuffer
     response_handler: ResponseHandler
     app: FastAPI
     router: APIRouter
@@ -49,16 +26,10 @@ class NodeServer:
         self,
         config: NodeConfig,
         lifecycle: NodeLifecycle,
-        secure: Secure,
-        kobj_queue: KobjQueue,
-        poll_event_buf: PollEventBuffer,
-        response_handler: ResponseHandler
+        response_handler: ResponseHandler,
     ):
         self.config = config
         self.lifecycle = lifecycle
-        self.secure = secure
-        self.kobj_queue = kobj_queue
-        self.poll_event_buf = poll_event_buf
         self.response_handler = response_handler
         self._build_app()
         
@@ -75,22 +46,29 @@ class NodeServer:
             version="1.0.0"
         )
         
-        self.router = APIRouter(prefix="/koi-net")
         self.app.add_exception_handler(ProtocolError, self.protocol_error_handler)
         
-        def _add_endpoint(path, func):
+        self.router = APIRouter(prefix="/koi-net")
+        
+        for path, models in API_MODEL_MAP.items():
+            def create_endpoint(path: str):
+                async def endpoint(req):
+                    return self.response_handler.handle_response(path, req)
+                
+                # programmatically setting type hint annotations for FastAPI's model validation 
+                endpoint.__annotations__ = {
+                    "req": models.request_envelope,
+                    "return": models.response_envelope
+                }
+                
+                return endpoint
+            
             self.router.add_api_route(
                 path=path,
-                endpoint=self.secure.envelope_handler(func),
+                endpoint=create_endpoint(path),
                 methods=["POST"],
                 response_model_exclude_none=True
             )
-        
-        _add_endpoint(BROADCAST_EVENTS_PATH, self.broadcast_events)
-        _add_endpoint(POLL_EVENTS_PATH, self.poll_events)
-        _add_endpoint(FETCH_RIDS_PATH, self.fetch_rids)
-        _add_endpoint(FETCH_MANIFESTS_PATH, self.fetch_manifests)
-        _add_endpoint(FETCH_BUNDLES_PATH, self.fetch_bundles)
         
         self.app.include_router(self.router)
     
@@ -113,35 +91,3 @@ class NodeServer:
             status_code=400,
             content=resp.model_dump(mode="json")
         )
-
-    async def broadcast_events(self, req: SignedEnvelope[EventsPayload]):
-        """Handles events broadcast endpoint."""
-        log.info(f"Request to {BROADCAST_EVENTS_PATH}, received {len(req.payload.events)} event(s)")
-        for event in req.payload.events:
-            self.kobj_queue.put_kobj(event=event, source=req.source_node)
-        
-    async def poll_events(
-        self, req: SignedEnvelope[PollEvents]
-    ) -> SignedEnvelope[EventsPayload] | ErrorResponse:
-        """Handles poll events endpoint."""
-        log.info(f"Request to {POLL_EVENTS_PATH}")
-        events = self.poll_event_buf.flush(req.source_node)
-        return EventsPayload(events=events)
-
-    async def fetch_rids(
-        self, req: SignedEnvelope[FetchRids]
-    ) -> SignedEnvelope[RidsPayload] | ErrorResponse:
-        """Handles fetch RIDs endpoint."""
-        return self.response_handler.fetch_rids(req.payload, req.source_node)
-
-    async def fetch_manifests(
-        self, req: SignedEnvelope[FetchManifests]
-    ) -> SignedEnvelope[ManifestsPayload] | ErrorResponse:
-        """Handles fetch manifests endpoint."""
-        return self.response_handler.fetch_manifests(req.payload, req.source_node)
-
-    async def fetch_bundles(
-        self, req: SignedEnvelope[FetchBundles]
-    ) -> SignedEnvelope[BundlesPayload] | ErrorResponse:
-        """Handles fetch bundles endpoint."""
-        return self.response_handler.fetch_bundles(req.payload, req.source_node)

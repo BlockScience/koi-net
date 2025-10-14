@@ -4,6 +4,8 @@ from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
+from koi_net.protocol.model_map import API_MODEL_MAP
+
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
     RidsPayload,
@@ -115,7 +117,10 @@ class RequestHandler:
         )
         
         try:
-            result = httpx.post(url, data=signed_envelope.model_dump_json(exclude_none=True))
+            result = httpx.post(
+                url, 
+                data=signed_envelope.model_dump_json(exclude_none=True)
+            )
         except httpx.ConnectError as err:
             log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
@@ -126,20 +131,11 @@ class RequestHandler:
             self.error_handler.handle_protocol_error(resp.error, node)
             return resp
         
-        if path == BROADCAST_EVENTS_PATH:
-            return None
-        elif path == POLL_EVENTS_PATH:
-            EnvelopeModel = SignedEnvelope[EventsPayload]
-        elif path == FETCH_RIDS_PATH:
-            EnvelopeModel = SignedEnvelope[RidsPayload]
-        elif path == FETCH_MANIFESTS_PATH:
-            EnvelopeModel = SignedEnvelope[ManifestsPayload]
-        elif path == FETCH_BUNDLES_PATH:
-            EnvelopeModel = SignedEnvelope[BundlesPayload]
-        else:
-            raise UnknownPathError(f"Unknown path '{path}'")
+        resp_env_model = API_MODEL_MAP[path].response_envelope
+        if resp_env_model is None:
+            return
         
-        resp_envelope = EnvelopeModel.model_validate_json(result.text)
+        resp_envelope = resp_env_model.model_validate_json(result.text)
         self.secure.validate_envelope(resp_envelope)
         
         return resp_envelope.payload

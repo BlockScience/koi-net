@@ -13,5 +13,14 @@ class PollEventBuffer:
         event_buf = self.buffers.setdefault(node, [])
         event_buf.append(event)
         
-    def flush(self, node: KoiNetNode):
-        return self.buffers.pop(node, [])
+    def flush(self, node: KoiNetNode, limit: int = 0):
+        event_buf = self.buffers.get(node, [])
+        
+        if limit and len(event_buf) > limit:
+            to_return = event_buf[:limit]
+            self.buffers[node] = event_buf[limit:]
+        else:
+            to_return = event_buf.copy()
+            self.buffers[node] = []
+        
+        return to_return
