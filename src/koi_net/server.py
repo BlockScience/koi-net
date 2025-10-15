@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
+from koi_net.interfaces.entrypoint import EntryPoint
+
 from .network.response_handler import ResponseHandler
 from .protocol.model_map import API_MODEL_MAP
 from .protocol.api_models import ErrorResponse
@@ -14,7 +16,7 @@ from .config import NodeConfig
 log = structlog.stdlib.get_logger()
 
 
-class NodeServer:
+class NodeServer(EntryPoint):
     """Manages FastAPI server and event handling for full nodes."""
     config: NodeConfig
     lifecycle: NodeLifecycle
@@ -71,16 +73,6 @@ class NodeServer:
             )
         
         self.app.include_router(self.router)
-    
-    def run(self):
-        """Starts FastAPI server and event handler."""
-        uvicorn.run(
-            app=self.app,
-            host=self.config.server.host,
-            port=self.config.server.port,
-            log_config=None,
-            access_log=False
-        )
         
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns as `ErrorResponse`."""
@@ -90,4 +82,14 @@ class NodeServer:
         return JSONResponse(
             status_code=400,
             content=resp.model_dump(mode="json")
+        )
+    
+    def run(self):
+        """Starts FastAPI server and event handler."""
+        uvicorn.run(
+            app=self.app,
+            host=self.config.server.host,
+            port=self.config.server.port,
+            log_config=None,
+            access_log=False
         )

@@ -27,10 +27,7 @@ class EventProcessingWorker(ThreadWorker):
         request_handler: RequestHandler,
         config: NodeConfig,
         cache: Cache,
-        poll_event_buf: PollEventBuffer,
-        queue_timeout: float = 0.1,
-        max_buf_len: int = 5,
-        max_wait_time: float = 1.0
+        poll_event_buf: PollEventBuffer
     ):
         self.event_queue = event_queue
         self.request_handler = request_handler
@@ -39,9 +36,9 @@ class EventProcessingWorker(ThreadWorker):
         self.cache = cache
         self.poll_event_buf = poll_event_buf
         
-        self.timeout = queue_timeout 
-        self.max_buf_len = max_buf_len
-        self.max_wait_time = max_wait_time
+        self.timeout: float = 0.1
+        self.max_buf_len: int = 5
+        self.max_wait_time: float = 1.0
         
         self.event_buffer = dict()
         self.buffer_times = dict()
