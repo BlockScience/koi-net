@@ -1,6 +1,8 @@
 
 import time
 import structlog
+
+from koi_net.interfaces.entrypoint import EntryPoint
 from .processor.kobj_queue import KobjQueue
 from .lifecycle import NodeLifecycle
 from .network.resolver import NetworkResolver
@@ -9,7 +11,7 @@ from .config import NodeConfig
 log = structlog.stdlib.get_logger()
 
 
-class NodePoller:
+class NodePoller(EntryPoint):
     """Manages polling based event loop for partial nodes."""
     kobj_queue: KobjQueue
     lifecycle: NodeLifecycle

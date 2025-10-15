@@ -13,12 +13,12 @@ class KnowledgeProcessingWorker(ThreadWorker):
     def __init__(
         self,
         kobj_queue: KobjQueue,
-        pipeline: KnowledgePipeline,
-        timeout: float = 0.1
+        pipeline: KnowledgePipeline
     ):
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline
-        self.timeout = timeout
+        self.timeout: float = 0.1
+
         super().__init__()
         
     def run(self):

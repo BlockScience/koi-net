@@ -5,6 +5,7 @@ from koi_net.context import HandlerContext
 from koi_net.effector import Effector
 from koi_net.handshaker import Handshaker
 from koi_net.identity import NodeIdentity
+from koi_net.processor.handler import KnowledgeHandler
 from koi_net.processor.kobj_worker import KnowledgeProcessingWorker
 from koi_net.lifecycle import NodeLifecycle
 from koi_net.network.error_handler import ErrorHandler
@@ -41,6 +42,8 @@ class NodeContainer:
     identity: NodeIdentity
     graph: NetworkGraph
     secure: Secure
+    handshaker: Handshaker
+    knowledge_handlers: list[KnowledgeHandler]
     request_handler: RequestHandler
     response_handler: ResponseHandler
     resolver: NetworkResolver
@@ -52,7 +55,7 @@ class NodeContainer:
     error_handler: ErrorHandler
     lifecycle: NodeLifecycle
     server: NodeServer
-    poller: NodePoller
+    # poller: NodePoller
 
 class NodeAssembler:
     poll_event_buf = PollEventBuffer
@@ -88,16 +91,21 @@ class NodeAssembler:
     
     @classmethod
     def create(cls) -> NodeContainer:
-        poll_event_buf = cls.poll_event_buf()
+        # Layer 0
+        config = cls.config.load_from_yaml()
         kobj_queue = cls.kobj_queue()
         event_queue = cls.event_queue()
-        config = cls.config.load_from_yaml()
+        poll_event_buf = cls.poll_event_buf()
+        
+        # Layer 1
         cache = cls.cache(
             directory_path=config.koi_net.cache_directory_path
         )
         identity = cls.identity(
             config=config
         )
+        
+        # Layer 2
         graph = cls.graph(
             cache=cache,
             identity=identity
@@ -112,10 +120,14 @@ class NodeAssembler:
             identity=identity,
             event_queue=event_queue
         )
+        
+        # Layer 3
         error_handler = cls.error_handler(
             kobj_queue=kobj_queue,
             handshaker=handshaker
         )
+        
+        # Layer 4
         request_handler = cls.request_handler(
             cache=cache,
             identity=identity,
@@ -128,6 +140,8 @@ class NodeAssembler:
             poll_event_buf=poll_event_buf,
             secure=secure
         )
+        
+        # Layer 5
         resolver = cls.resolver(
             config=config,
             cache=cache,
@@ -135,12 +149,16 @@ class NodeAssembler:
             graph=graph,
             request_handler=request_handler
         )
+        
+        # Layer 6
         effector = cls.effector(
             cache=cache,
             resolver=resolver,
             kobj_queue=kobj_queue,
             identity=identity
         )
+        
+        # Layer 7
         handler_context = cls.handler_context(
             identity=identity,
             config=config,
@@ -152,6 +170,8 @@ class NodeAssembler:
             resolver=resolver,
             effector=effector
         )
+        
+        # Layer 8
         pipeline = cls.pipeline(
             handler_context=handler_context,
             cache=cache,
@@ -160,6 +180,8 @@ class NodeAssembler:
             graph=graph,
             knowledge_handlers=cls.knowledge_handlers
         )
+        
+        # Layer 9
         kobj_worker = cls.kobj_worker(
             kobj_queue=kobj_queue,
             pipeline=pipeline
@@ -171,6 +193,8 @@ class NodeAssembler:
             request_handler=request_handler,
             poll_event_buf=poll_event_buf
         )
+        
+        # Layer 10
         lifecycle = cls.lifecycle(
             config=config,
             identity=identity,
@@ -183,6 +207,8 @@ class NodeAssembler:
             handshaker=handshaker,
             request_handler=request_handler
         )
+        
+        # Layer 11
         server = cls.server(
             config=config,
             lifecycle=lifecycle,
