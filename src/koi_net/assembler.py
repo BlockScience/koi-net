@@ -40,7 +40,7 @@ from koi_net.server import NodeServer
 log = structlog.stdlib.get_logger()
 
 
-class RecipeBuilder(type):
+class BuildOrderer(type):
     def __new__(cls, name: str, bases: tuple, dct: dict[str]):
         cls = super().__new__(cls, name, bases, dct)
         
@@ -67,28 +67,21 @@ class RecipeBuilder(type):
             
         return cls
 
-# class NodeAssembler(metaclass=NodeReciper):
-#     # recipe: list[str]
-#     # components: type
-    
-#     @classmethod
 
 class NodeContainer(Protocol):
     entrypoint = EntryPoint
 
-class NodeAssembler:
-    blueprint = None
+class NodeAssembler(metaclass=BuildOrderer):    
+    def __new__(self) -> NodeContainer:
+        return self._build()
     
-    def __init__(self):
-        return self.build(self.blueprint)
-    
-    @staticmethod
-    def build(blueprint: RecipeBuilder) -> NodeContainer:
+    @classmethod
+    def _build(cls) -> NodeContainer:
         components = {}
-        for comp_name in blueprint._build_order:
+        for comp_name in cls._build_order:
             log.info(f"Assembling component '{comp_name}'")
             
-            comp_factory = getattr(blueprint, comp_name, None)
+            comp_factory = getattr(cls, comp_name, None)
             
             if comp_factory is None:
                 log.error("Couldn't find factory for component")
@@ -124,8 +117,6 @@ class NodeAssembler:
         
         return NodeContainer(**components)
 
-class NodeBlueprint(metaclass=RecipeBuilder):
-    pass
 
 
 def make_config() -> NodeConfig:
@@ -135,7 +126,7 @@ def make_cache(config: NodeConfig) -> Cache:
     return Cache(directory_path=config.koi_net.cache_directory_path)
 
 
-class BaseNodeBlueprint(NodeBlueprint):
+class BaseNode(NodeAssembler):
     config = make_config
     kobj_queue = KobjQueue
     event_queue = EventQueue
@@ -166,25 +157,21 @@ class BaseNodeBlueprint(NodeBlueprint):
     lifecycle = NodeLifecycle
     server = NodeServer
 
-class FullNodeBlueprint(BaseNodeBlueprint):
+class FullNode(BaseNode):
     entrypoint = NodeServer
 
-class PartialNodeBlueprint(BaseNodeBlueprint):
+class PartialNode(BaseNode):
     entrypoint = NodePoller
-    
-class FullNode(NodeAssembler):
-    blueprint = FullNodeBlueprint
-    
-    
+
 
 if __name__ == "__main__":
     print("Full Node:")
-    for n, name in enumerate(FullNodeBlueprint._build_order):
+    for n, name in enumerate(FullNode._build_order):
         print(f"{n}. {name}")
     
     print("Partial Node:")
-    for n, name in enumerate(PartialNodeBlueprint._build_order):
+    for n, name in enumerate(PartialNode._build_order):
         print(f"{n}. {name}")
     
-    partial_node = NodeAssembler.build(PartialNodeBlueprint)
+    partial_node = PartialNode()
     full_node = FullNode()
