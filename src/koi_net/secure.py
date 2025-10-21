@@ -18,7 +18,7 @@ from .protocol.errors import (
     InvalidSignatureError,
     InvalidTargetError
 )
-from .config import NodeConfig
+from .config.core import NodeConfig
 
 log = structlog.stdlib.get_logger()
 

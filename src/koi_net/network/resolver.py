@@ -11,7 +11,7 @@ from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
 from ..protocol.api_models import ErrorResponse
 from ..identity import NodeIdentity
-from ..config import NodeConfig
+from ..config.core import NodeConfig
 
 log = structlog.stdlib.get_logger()
 

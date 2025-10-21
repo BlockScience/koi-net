@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 from ruamel.yaml import YAML
 
 
 class KoiNetworkConfig(BaseModel):
-    nodes: dict[str, str] = Field(default_factory=dict)
+    nodes: dict[str, str] = {}
     _file_path: str = PrivateAttr(default="koi-net-config.yaml")
 
     @classmethod

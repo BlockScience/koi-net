@@ -11,7 +11,7 @@ from .network.event_queue import EventQueue
 from .processor.event_worker import EventProcessingWorker
 from .protocol.api_models import ErrorResponse
 from .interfaces.worker import STOP_WORKER
-from .config import NodeConfig
+from .config.core import NodeConfig
 from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
 from .identity import NodeIdentity
