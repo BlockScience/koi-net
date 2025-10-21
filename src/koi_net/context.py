@@ -2,7 +2,7 @@ from rid_lib.ext import Cache
 
 from koi_net.effector import Effector
 from koi_net.network.resolver import NetworkResolver
-from .config import NodeConfig
+from .config.core import NodeConfig
 from .network.graph import NetworkGraph
 from .network.event_queue import EventQueue
 from .network.request_handler import RequestHandler

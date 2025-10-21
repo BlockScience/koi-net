@@ -2,11 +2,11 @@
 import time
 import structlog
 
-from koi_net.interfaces.entrypoint import EntryPoint
+from .entrypoint import EntryPoint
 from .processor.kobj_queue import KobjQueue
 from .lifecycle import NodeLifecycle
 from .network.resolver import NetworkResolver
-from .config import NodeConfig
+from .config.core import NodeConfig
 
 log = structlog.stdlib.get_logger()
 

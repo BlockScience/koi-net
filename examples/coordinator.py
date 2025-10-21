@@ -1,10 +1,14 @@
 import logging
 from rich.logging import RichHandler
-from pydantic import Field
 from rid_lib.types import KoiNetNode, KoiNetEdge
-from koi_net.config import NodeConfig, KoiNetConfig, ServerConfig
-from koi_net.core import NodeAssembler
-from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
+from koi_net.config.full_node import (
+    FullNodeConfig, 
+    ServerConfig, 
+    KoiNetConfig, 
+    NodeProfile, 
+    NodeProvides
+)
+from koi_net.core import FullNode
 from koi_net.context import HandlerContext
 from koi_net.processor.handler import HandlerType, KnowledgeHandler
 from koi_net.processor.knowledge_object import KnowledgeObject
@@ -22,22 +26,17 @@ logging.getLogger("koi_net").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class CoordinatorConfig(NodeConfig):
-    server: ServerConfig = Field(default_factory=lambda: 
-        ServerConfig(port=8080)
-    )
-    koi_net: KoiNetConfig = Field(default_factory = lambda:
-        KoiNetConfig(
-            node_name="coordinator",
-            node_profile=NodeProfile(
-                node_type=NodeType.FULL,
-                provides=NodeProvides(
-                    event=[KoiNetNode, KoiNetEdge],
-                    state=[KoiNetNode, KoiNetEdge]
-                )
-            ),
-            rid_types_of_interest=[KoiNetNode, KoiNetEdge]
-        )
+class CoordinatorConfig(FullNodeConfig):
+    server: ServerConfig = ServerConfig(port=8080)
+    koi_net: KoiNetConfig = KoiNetConfig(
+        node_name="coordinator",
+        node_profile=NodeProfile(
+            provides=NodeProvides(
+                event=[KoiNetNode, KoiNetEdge],
+                state=[KoiNetNode, KoiNetEdge]
+            )
+        ),
+        rid_types_of_interest=[KoiNetNode, KoiNetEdge]
     )
 
 @KnowledgeHandler.create(
@@ -70,14 +69,10 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     ctx.kobj_queue.put_kobj(rid=edge_bundle.rid, event_type=EventType.FORGET)
     ctx.kobj_queue.put_kobj(bundle=edge_bundle)
 
-class CoordinatorNodeAssembler(NodeAssembler):
+class CoordinatorNode(FullNode):
     config = CoordinatorConfig
-    knowledge_handlers = [
-        *NodeAssembler.knowledge_handlers,
-        handshake_handler
-    ]
-
+    knowledge_handlers = FullNode.knowledge_handlers + [handshake_handler]
 
 if __name__ == "__main__":
-    node = CoordinatorNodeAssembler.create()
-    node.server.run()
+    node = CoordinatorNode()
+    node.entrypoint.run()

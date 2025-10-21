@@ -4,14 +4,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
-from koi_net.interfaces.entrypoint import EntryPoint
-
+from .entrypoint import EntryPoint
 from .network.response_handler import ResponseHandler
 from .protocol.model_map import API_MODEL_MAP
 from .protocol.api_models import ErrorResponse
 from .protocol.errors import ProtocolError
 from .lifecycle import NodeLifecycle
-from .config import NodeConfig
+from .config.core import NodeConfig
 
 log = structlog.stdlib.get_logger()
 

@@ -1,3 +1,4 @@
+from rid_lib.types import KoiNetNode
 import structlog
 from base64 import b64decode, b64encode
 from cryptography.hazmat.primitives import hashes
@@ -134,6 +135,11 @@ class PublicKey:
             )
         ).decode()
         
+    def to_node_rid(self, name) -> KoiNetNode:
+        return KoiNetNode(
+            name=name,
+            hash=sha256_hash(self.to_der())
+        )
         
     def verify(self, signature: str, message: bytes) -> bool:
         # hashed_message = sha256_hash(message.decode())

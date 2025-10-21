@@ -6,7 +6,7 @@ import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from koi_net.config import NodeConfig
+from koi_net.config.core import NodeConfig
 from koi_net.network.event_queue import EventQueue, QueuedEvent
 from koi_net.network.request_handler import RequestHandler
 from koi_net.network.poll_event_buffer import PollEventBuffer

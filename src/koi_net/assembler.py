@@ -2,6 +2,7 @@ import inspect
 from typing import Protocol
 from dataclasses import make_dataclass
 
+from pydantic import BaseModel
 import structlog
 
 from .interfaces.entrypoint import EntryPoint
@@ -41,13 +42,25 @@ class NodeAssembler(metaclass=BuildOrderer):
     @classmethod
     def _build(cls) -> NodeContainer:
         components = {}
-        for comp_name in cls._build_order:            
-            comp_factory = getattr(cls, comp_name, None)
+        for comp_name in cls._build_order:
+            comp = getattr(cls, comp_name, None)
             
-            if comp_factory is None:
+            if comp is None:
                 raise Exception(f"Couldn't find factory for component '{comp_name}'")
             
-            sig = inspect.signature(comp_factory)
+            print(comp_name)
+            
+            if not callable(comp):
+                print(f"Treating {comp_name} as a literal")
+                components[comp_name] = comp
+                continue
+            
+            if issubclass(comp, BaseModel):
+                print(f"Treating {comp_name} as a pydantic model")
+                components[comp_name] = comp
+                continue
+            
+            sig = inspect.signature(comp)
             
             required_comps = []
             for name, param in sig.parameters.items():
@@ -58,7 +71,7 @@ class NodeAssembler(metaclass=BuildOrderer):
             else:
                 s = f"{comp_name} -> {', '.join([name for name, _type in required_comps])}"
             
-            print(s.replace("graph", "_graph"), end=";\n")
+            # print(s.replace("graph", "_graph"), end=";\n")
             
             dependencies = {}
             for req_comp_name, req_comp_type in required_comps:
@@ -67,7 +80,7 @@ class NodeAssembler(metaclass=BuildOrderer):
                     
                 dependencies[req_comp_name] = components[req_comp_name]
                 
-            components[comp_name] = comp_factory(**dependencies)
+            components[comp_name] = comp(**dependencies)
         
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",

@@ -1,6 +1,8 @@
 from rid_lib.ext import Cache
+
+from .config.loader import ConfigLoader
 from .assembler import NodeAssembler
-from .config.base import BaseConfig
+from .config.core import NodeConfig
 from .context import HandlerContext
 from .effector import Effector
 from .handshaker import Handshaker
@@ -33,19 +35,18 @@ from .server import NodeServer
 
 # factory functions for components with non standard initializiation
 
-def make_config() -> BaseConfig:
-    return BaseConfig.load_from_yaml()
 
-def make_cache(config: BaseConfig) -> Cache:
+def make_cache(config: NodeConfig) -> Cache:
     return Cache(directory_path=config.koi_net.cache_directory_path)
 
 
 class BaseNode(NodeAssembler):
-    config = lambda: None
+    config_cls = NodeConfig
     kobj_queue = KobjQueue
     event_queue = EventQueue
     poll_event_buf = PollEventBuffer
-    knowledge_handlers = lambda: [
+    config = ConfigLoader
+    knowledge_handlers = [
         basic_rid_handler,
         basic_manifest_handler,
         secure_profile_handler,
@@ -69,7 +70,6 @@ class BaseNode(NodeAssembler):
     kobj_worker = KnowledgeProcessingWorker
     event_worker = EventProcessingWorker
     lifecycle = NodeLifecycle
-
 
 class FullNode(BaseNode):
     entrypoint = NodeServer
