@@ -9,7 +9,7 @@ class PollEventBuffer:
     def __init__(self):
         self.buffers = dict()
         
-    def put(self, node: KoiNetNode, event: Event):
+    def push(self, node: KoiNetNode, event: Event):
         event_buf = self.buffers.setdefault(node, [])
         event_buf.append(event)
         

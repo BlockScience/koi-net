@@ -31,7 +31,7 @@ class ErrorHandler:
         
         if self.timeout_counter[node] > 3:
             log.debug(f"Exceeded time out limit, forgetting node")
-            self.kobj_queue.put_kobj(rid=node, event_type=EventType.FORGET)
+            self.kobj_queue.push(rid=node, event_type=EventType.FORGET)
             # do something
         
         

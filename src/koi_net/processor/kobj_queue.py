@@ -16,7 +16,7 @@ class KobjQueue:
     def __init__(self):
         self.q = Queue()
                 
-    def put_kobj(
+    def push(
         self,
         rid: RID | None = None,
         manifest: Manifest | None = None,

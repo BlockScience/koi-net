@@ -4,20 +4,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
-from .entrypoint import EntryPoint
-from .network.response_handler import ResponseHandler
-from .protocol.model_map import API_MODEL_MAP
-from .protocol.api_models import ErrorResponse
-from .protocol.errors import ProtocolError
-from .lifecycle import NodeLifecycle
-from .config.core import NodeConfig
+from .base import EntryPoint
+from ..network.response_handler import ResponseHandler
+from ..protocol.model_map import API_MODEL_MAP
+from ..protocol.api_models import ErrorResponse
+from ..protocol.errors import ProtocolError
+from ..lifecycle import NodeLifecycle
+from ..config.full_node import FullNodeConfig
 
 log = structlog.stdlib.get_logger()
 
 
 class NodeServer(EntryPoint):
     """Manages FastAPI server and event handling for full nodes."""
-    config: NodeConfig
+    config: FullNodeConfig
     lifecycle: NodeLifecycle
     response_handler: ResponseHandler
     app: FastAPI
@@ -25,7 +25,7 @@ class NodeServer(EntryPoint):
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: FullNodeConfig,
         lifecycle: NodeLifecycle,
         response_handler: ResponseHandler,
     ):

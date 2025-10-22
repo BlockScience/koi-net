@@ -6,11 +6,11 @@ from rid_lib.types import KoiNetNode
 
 from .handshaker import Handshaker
 from .network.request_handler import RequestHandler
-from .processor.kobj_worker import KnowledgeProcessingWorker
+from .workers.kobj_worker import KnowledgeProcessingWorker
 from .network.event_queue import EventQueue
-from .processor.event_worker import EventProcessingWorker
+from .workers import EventProcessingWorker
 from .protocol.api_models import ErrorResponse
-from .interfaces.worker import STOP_WORKER
+from .workers.base import STOP_WORKER
 from .config.core import NodeConfig
 from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
@@ -99,7 +99,7 @@ class NodeLifecycle:
         
         # refresh to reflect changes (if any) in config.yaml
         
-        self.kobj_queue.put_kobj(bundle=Bundle.generate(
+        self.kobj_queue.push(bundle=Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
         ))
@@ -119,7 +119,7 @@ class NodeLifecycle:
                     continue
                 
                 for manifest in payload.manifests:
-                    self.kobj_queue.put_kobj(
+                    self.kobj_queue.push(
                         manifest=manifest,
                         source=coordinator
                     )

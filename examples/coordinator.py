@@ -9,7 +9,7 @@ from koi_net.config.full_node import (
     NodeProvides
 )
 from koi_net.core import FullNode
-from koi_net.context import HandlerContext
+from koi_net.processor.context import HandlerContext
 from koi_net.processor.handler import HandlerType, KnowledgeHandler
 from koi_net.processor.knowledge_object import KnowledgeObject
 from koi_net.protocol.event import Event, EventType
@@ -51,7 +51,7 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         
     logger.info("Sharing this node's bundle with peer")
     identity_bundle = ctx.cache.read(ctx.identity.rid)
-    ctx.event_queue.push_event_to(
+    ctx.event_queue.push(
         event=Event.from_bundle(EventType.NEW, identity_bundle),
         target=kobj.rid
     )
@@ -66,8 +66,8 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         rid_types=[KoiNetNode, KoiNetEdge]
     )
         
-    ctx.kobj_queue.put_kobj(rid=edge_bundle.rid, event_type=EventType.FORGET)
-    ctx.kobj_queue.put_kobj(bundle=edge_bundle)
+    ctx.kobj_queue.push(rid=edge_bundle.rid, event_type=EventType.FORGET)
+    ctx.kobj_queue.push(bundle=edge_bundle)
 
 class CoordinatorNode(FullNode):
     config = CoordinatorConfig

@@ -6,13 +6,13 @@ import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from koi_net.config.core import NodeConfig
-from koi_net.network.event_queue import EventQueue, QueuedEvent
-from koi_net.network.request_handler import RequestHandler
-from koi_net.network.poll_event_buffer import PollEventBuffer
-from koi_net.protocol.event import Event
-from koi_net.protocol.node import NodeProfile, NodeType
-from koi_net.interfaces.worker import ThreadWorker, STOP_WORKER
+from ..config.core import NodeConfig
+from ..network.event_queue import EventQueue, QueuedEvent
+from ..network.request_handler import RequestHandler
+from ..network.poll_event_buffer import PollEventBuffer
+from ..protocol.event import Event
+from ..protocol.node import NodeProfile, NodeType
+from .base import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
 
@@ -63,7 +63,7 @@ class EventProcessingWorker(ThreadWorker):
                 return True
         
             elif node_profile.node_type == NodeType.PARTIAL:
-                self.poll_event_buf.put(item.target, item.event)
+                self.poll_event_buf.push(item.target, item.event)
                 return False
         
         elif item.target == self.config.koi_net.first_contact.rid:

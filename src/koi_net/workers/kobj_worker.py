@@ -2,9 +2,9 @@ import queue
 import traceback
 import structlog
 
-from .pipeline import KnowledgePipeline
-from .kobj_queue import KobjQueue
-from koi_net.interfaces.worker import ThreadWorker, STOP_WORKER
+from ..processor.pipeline import KnowledgePipeline
+from ..processor.kobj_queue import KobjQueue
+from .base import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
 

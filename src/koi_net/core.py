@@ -3,11 +3,11 @@ from rid_lib.ext import Cache
 from .config.loader import ConfigLoader
 from .assembler import NodeAssembler
 from .config.core import NodeConfig
-from .context import HandlerContext
+from .processor.context import HandlerContext
 from .effector import Effector
 from .handshaker import Handshaker
 from .identity import NodeIdentity
-from .processor.kobj_worker import KnowledgeProcessingWorker
+from .workers import KnowledgeProcessingWorker, EventProcessingWorker
 from .lifecycle import NodeLifecycle
 from .network.error_handler import ErrorHandler
 from .network.event_queue import EventQueue
@@ -16,8 +16,11 @@ from .network.request_handler import RequestHandler
 from .network.resolver import NetworkResolver
 from .network.response_handler import ResponseHandler
 from .network.poll_event_buffer import PollEventBuffer
-from .poller import NodePoller
-from .processor.handlers import (
+from .processor.pipeline import KnowledgePipeline
+from .processor.kobj_queue import KobjQueue
+from .secure import Secure
+from .entrypoints import NodeServer, NodePoller
+from .processor.knowledge_handlers import (
     basic_manifest_handler, 
     basic_network_output_filter, 
     basic_rid_handler, 
@@ -26,18 +29,6 @@ from .processor.handlers import (
     forget_edge_on_node_deletion, 
     secure_profile_handler
 )
-from .processor.event_worker import EventProcessingWorker
-from .processor.pipeline import KnowledgePipeline
-from .processor.kobj_queue import KobjQueue
-from .secure import Secure
-from .server import NodeServer
-
-
-# factory functions for components with non standard initializiation
-
-
-def make_cache(config: NodeConfig) -> Cache:
-    return Cache(directory_path=config.koi_net.cache_directory_path)
 
 
 class BaseNode(NodeAssembler):
@@ -55,7 +46,8 @@ class BaseNode(NodeAssembler):
         basic_network_output_filter,
         forget_edge_on_node_deletion
     ]
-    cache = make_cache
+    cache = lambda config: Cache(
+        directory_path=config.koi_net.cache_directory_path)
     identity = NodeIdentity
     graph = NetworkGraph
     secure = Secure

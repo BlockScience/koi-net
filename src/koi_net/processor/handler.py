@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable
 from rid_lib import RIDType
+
 from ..protocol.event import EventType
+from .knowledge_object import KnowledgeObject
+from .context import HandlerContext
 
 
 class StopChain:
@@ -32,7 +35,7 @@ class HandlerType(StrEnum):
 class KnowledgeHandler:
     """Handles knowledge processing events of the provided types."""
     
-    func: Callable
+    func: Callable[[HandlerContext, KnowledgeObject], None | KnowledgeObject | StopChain]
     handler_type: HandlerType
     rid_types: list[RIDType] | None
     event_types: list[EventType | None] | None = None

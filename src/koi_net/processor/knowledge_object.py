@@ -1,8 +1,7 @@
 from pydantic import BaseModel
 from rid_lib import RID
-from rid_lib.ext import Manifest
-from rid_lib.ext.bundle import Bundle
-from rid_lib.types.koi_net_node import KoiNetNode
+from rid_lib.ext import Manifest, Bundle
+from rid_lib.types import KoiNetNode
 from ..protocol.event import Event, EventType
 
 

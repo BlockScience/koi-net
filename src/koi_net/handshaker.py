@@ -25,13 +25,13 @@ class Handshaker:
         reset the target's cache in case it already knew this node. 
         """
         log.debug(f"Initiating handshake with {target}")
-        self.event_queue.push_event_to(
+        self.event_queue.push(
             Event.from_rid(
                 event_type=EventType.FORGET, 
                 rid=self.identity.rid),
             target=target
         )
-        self.event_queue.push_event_to(
+        self.event_queue.push(
             event=Event.from_bundle(
                 event_type=EventType.NEW, 
                 bundle=self.cache.read(self.identity.rid)),
