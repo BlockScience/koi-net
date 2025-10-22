@@ -7,7 +7,7 @@ from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.protocol.node import NodeType
 from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject
-from ..context import HandlerContext
+from .context import HandlerContext
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType
 from ..protocol.node import NodeProfile
@@ -135,7 +135,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         
         if abort:
             event = Event.from_rid(EventType.FORGET, kobj.rid)
-            ctx.event_queue.push_event_to(event, peer_rid, flush=True)
+            ctx.event_queue.push(event, peer_rid, flush=True)
             return STOP_CHAIN
 
         else:
@@ -144,7 +144,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             edge_profile.status = EdgeStatus.APPROVED
             updated_bundle = Bundle.generate(kobj.rid, edge_profile.model_dump())
       
-            ctx.kobj_queue.put_kobj(bundle=updated_bundle, event_type=EventType.UPDATE)
+            ctx.kobj_queue.push(bundle=updated_bundle, event_type=EventType.UPDATE)
             return
               
     elif edge_profile.target == ctx.identity.rid:
@@ -216,7 +216,7 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     
     # queued for processing
     edge_bundle = Bundle.generate(edge_rid, edge_profile.model_dump())
-    ctx.kobj_queue.put_kobj(bundle=edge_bundle)
+    ctx.kobj_queue.push(bundle=edge_bundle)
     
     log.info("Catching up on network state")
     
@@ -234,7 +234,7 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         
         # marked as external since we are handling RIDs from another node
         # will fetch remotely instead of checking local cache
-        ctx.kobj_queue.put_kobj(rid=rid, source=kobj.rid)
+        ctx.kobj_queue.push(rid=rid, source=kobj.rid)
     log.info("Done")
     
 
@@ -296,4 +296,4 @@ def forget_edge_on_node_deletion(ctx: HandlerContext, kobj: KnowledgeObject):
         
         if kobj.rid in (edge_profile.source, edge_profile.target):
             log.debug("Identified edge with forgotten node")
-            ctx.kobj_queue.put_kobj(rid=edge_rid, event_type=EventType.FORGET)
+            ctx.kobj_queue.push(rid=edge_rid, event_type=EventType.FORGET)

@@ -16,12 +16,7 @@ class ConfigLoader:
         return getattr(self._config, name)
     
     def load_from_yaml(self):
-        """Loads config state from YAML file.
-        
-        Defaults to `config.yaml`. If `generate_missing` is set to 
-        `True`, a private key and RID will be generated if not already
-        present in the config.
-        """
+        """Loads config state from YAML file."""
         yaml = YAML()
         
         try:

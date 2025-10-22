@@ -5,7 +5,7 @@ from dataclasses import make_dataclass
 from pydantic import BaseModel
 import structlog
 
-from .interfaces.entrypoint import EntryPoint
+from .entrypoints.base import EntryPoint
 
 log = structlog.stdlib.get_logger()
 

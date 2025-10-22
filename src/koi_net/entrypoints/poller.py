@@ -2,11 +2,11 @@
 import time
 import structlog
 
-from .entrypoint import EntryPoint
-from .processor.kobj_queue import KobjQueue
-from .lifecycle import NodeLifecycle
-from .network.resolver import NetworkResolver
-from .config.core import NodeConfig
+from .base import EntryPoint
+from ..processor.kobj_queue import KobjQueue
+from ..lifecycle import NodeLifecycle
+from ..network.resolver import NetworkResolver
+from ..config.partial_node import PartialNodeConfig
 
 log = structlog.stdlib.get_logger()
 
@@ -16,11 +16,11 @@ class NodePoller(EntryPoint):
     kobj_queue: KobjQueue
     lifecycle: NodeLifecycle
     resolver: NetworkResolver
-    config: NodeConfig
+    config: PartialNodeConfig
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: PartialNodeConfig,
         lifecycle: NodeLifecycle,
         kobj_queue: KobjQueue,
         resolver: NetworkResolver,
@@ -35,7 +35,7 @@ class NodePoller(EntryPoint):
         neighbors = self.resolver.poll_neighbors()
         for node_rid in neighbors:
             for event in neighbors[node_rid]:
-                self.kobj_queue.put_kobj(event=event, source=node_rid)
+                self.kobj_queue.push(event=event, source=node_rid)
 
     def run(self):
         """Runs polling event loop."""
@@ -44,6 +44,6 @@ class NodePoller(EntryPoint):
                 start_time = time.time()
                 self.poll()
                 elapsed = time.time() - start_time
-                sleep_time = self.config.koi_net.polling_interval - elapsed
+                sleep_time = self.config.poller.polling_interval - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)

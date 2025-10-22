@@ -20,7 +20,7 @@ class EventQueue:
     def __init__(self):
         self.q = Queue()
     
-    def push_event_to(self, event: Event, target: KoiNetNode):
+    def push(self, event: Event, target: KoiNetNode):
         """Pushes event to queue of specified node.
         
         Event will be sent to webhook or poll queue depending on the 

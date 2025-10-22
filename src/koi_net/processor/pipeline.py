@@ -13,7 +13,7 @@ from .handler import (
     StopChain
 )
 from .knowledge_object import KnowledgeObject
-from ..context import HandlerContext
+from .context import HandlerContext
 
 log = structlog.stdlib.get_logger()
 
@@ -193,6 +193,6 @@ class KnowledgePipeline:
             log.debug("No network targets set")
         
         for node in kobj.network_targets:
-            self.event_queue.push_event_to(kobj.normalized_event, node)
+            self.event_queue.push(kobj.normalized_event, node)
         
         kobj = self.call_handler_chain(HandlerType.Final, kobj)

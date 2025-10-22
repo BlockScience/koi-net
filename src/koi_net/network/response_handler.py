@@ -70,7 +70,7 @@ class ResponseHandler:
         log.info(f"Request to broadcast events, received {len(req.events)} event(s)")
         
         for event in req.events:
-            self.kobj_queue.put_kobj(event=event, source=source)
+            self.kobj_queue.push(event=event, source=source)
         
     def poll_events_handler(
         self, 

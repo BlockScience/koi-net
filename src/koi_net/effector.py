@@ -155,7 +155,7 @@ class Effector:
             and bundle is not None 
             and source != BundleSource.CACHE
         ):            
-            self.kobj_queue.put_kobj(
+            self.kobj_queue.push(
                 bundle=bundle, 
                 source=source if type(source) is KoiNetNode else None
             )

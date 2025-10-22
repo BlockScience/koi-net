@@ -1,9 +1,8 @@
 """Implementations of default dereference actions."""
 
-from .context import ActionContext
 from rid_lib.types import KoiNetNode
 from rid_lib.ext import Bundle
-from .effector import Effector
+from .effector import Effector, ActionContext
 
 
 @Effector.register_default_action(KoiNetNode)

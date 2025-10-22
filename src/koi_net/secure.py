@@ -1,6 +1,5 @@
 import structlog
 from functools import wraps
-
 import cryptography.exceptions
 from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
