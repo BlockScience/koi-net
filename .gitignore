@@ -2,6 +2,7 @@ rid-lib
 __pycache__
 *.pem
 *.yaml
+*.ndjson*
 venv
 .env
 prototypes

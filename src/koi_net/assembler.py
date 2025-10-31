@@ -48,7 +48,7 @@ class NodeAssembler(metaclass=BuildOrderer):
             if comp is None:
                 raise Exception(f"Couldn't find factory for component '{comp_name}'")
             
-            print(comp_name)
+            # print(comp_name)
             
             if not callable(comp):
                 print(f"Treating {comp_name} as a literal")

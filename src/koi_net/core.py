@@ -1,5 +1,6 @@
 from rid_lib.ext import Cache
 
+from .log_system import LogSystem
 from .config.loader import ConfigLoader
 from .assembler import NodeAssembler
 from .config.core import NodeConfig
@@ -32,6 +33,7 @@ from .processor.knowledge_handlers import (
 
 
 class BaseNode(NodeAssembler):
+    log_system = LogSystem
     config_cls = NodeConfig
     kobj_queue = KobjQueue
     event_queue = EventQueue
