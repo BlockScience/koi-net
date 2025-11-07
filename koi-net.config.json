@@ -1,0 +1,76 @@
+{
+    "$schema": "https://lnav.org/schemas/format-v1.schema.json",
+    "koi_net_json_log": {
+        "title": "KOI-net node logs",
+        "description": "Detailed logs of node and network behavior",
+        "file-type": "json",
+        "body-field": "event",
+        "level-field": "",
+        "timestamp-field": "timestamp",
+        "hide-extra": true,
+        "line-format": [
+            {
+                "field": "timestamp",
+                "auto-width": true,
+                "timestamp-format": "%Y-%m-%d %H:%M:%S"
+            },
+            " ",
+            {
+                "field": "level",
+                "auto-width": true,
+                "default-value": "",
+                "prefix": "[",
+                "suffix": "]"
+            },
+            " ",
+            {
+                "field": "event",
+                "min-width": 70,
+                "max-width": 70,
+                "overflow": "truncate"
+            },
+            " - ",
+            {
+                "field": "logger",
+                "overflow": "abbrev",
+                "min-width": 30,
+                "max-width": 30,
+                "default-value": "",
+                "align": "right"
+            }
+        ],
+        "value": {
+            "level": {
+                "kind": "string"
+            },
+            "logger": {
+                "kind": "string"
+            },
+            "event": {
+                "kind": "string"
+            }
+        },
+        "highlights": {
+            "debug": {
+                "pattern": "\\[(debug) *\\]",
+                "color": "Blue"
+            },
+            "info": {
+                "pattern": "\\[(info) *\\]",
+                "color": "Green"
+            },
+            "warning": {
+                "pattern": "\\[(warning) *\\]",
+                "color": "Yellow"
+            },
+            "error": {
+                "pattern": "\\[(error|critical) *\\]",
+                "color": "Red"
+            },
+            "timestamp": {
+                "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})",
+                "color": "Grey"
+            }
+        }
+    }
+}
