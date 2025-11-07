@@ -4,6 +4,8 @@ from contextlib import contextmanager, asynccontextmanager
 from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
+from koi_net.protocol.node import NodeProfile, NodeType
+
 from .handshaker import Handshaker
 from .network.request_handler import RequestHandler
 from .workers.kobj_worker import KnowledgeProcessingWorker
@@ -90,9 +92,7 @@ class NodeLifecycle:
         graph from nodes and edges in cache. Processes any state changes 
         of node bundle. Initiates handshake with first contact if node 
         doesn't have any neighbors. Catches up with coordinator state.
-        """
-        log.info("Starting processor worker thread")
-        
+        """        
         self.kobj_worker.thread.start()
         self.event_worker.thread.start()
         self.graph.generate()
@@ -107,12 +107,20 @@ class NodeLifecycle:
         log.debug("Waiting for kobj queue to empty")
         self.kobj_queue.q.join()
         
-        coordinators = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
+        neighbors = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
         
-        if len(coordinators) > 0:
-            for coordinator in coordinators:
+        if len(neighbors) > 0:
+            for node in neighbors:
+                node_bundle = self.cache.read(node)
+                node_profile = node_bundle.validate_contents(NodeProfile)
+                
+                if KoiNetNode not in node_profile.provides.state:
+                    continue
+                if node_profile.node_type != NodeType.FULL:
+                    continue
+                
                 payload = self.request_handler.fetch_manifests(
-                    node=coordinator,
+                    node=node,
                     rid_types=[KoiNetNode]
                 )
                 if type(payload) is ErrorResponse:
@@ -121,7 +129,7 @@ class NodeLifecycle:
                 for manifest in payload.manifests:
                     self.kobj_queue.push(
                         manifest=manifest,
-                        source=coordinator
+                        source=node
                     )
                     
         elif self.config.koi_net.first_contact.rid:
