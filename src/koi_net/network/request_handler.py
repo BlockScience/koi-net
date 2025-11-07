@@ -1,7 +1,10 @@
-import logging
+import structlog
 import httpx
 from rid_lib import RID
+from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
+
+from koi_net.protocol.model_map import API_MODEL_MAP
 
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
@@ -27,14 +30,9 @@ from ..protocol.consts import (
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..secure import Secure
-from ..effector import Effector
+from .error_handler import ErrorHandler
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .error_handler import ErrorHandler
-
-
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 # Custom error types for request handling
@@ -57,51 +55,50 @@ class UnknownPathError(Exception):
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
-    effector: Effector
+    cache: Cache
     identity: NodeIdentity
     secure: Secure
-    error_handler: "ErrorHandler"
+    error_handler: ErrorHandler
     
     def __init__(
         self, 
-        effector: Effector,
+        cache: Cache,
         identity: NodeIdentity,
-        secure: Secure
+        secure: Secure,
+        error_handler: ErrorHandler
     ):
-        self.effector = effector
+        self.cache = cache
         self.identity = identity
         self.secure = secure
-        
-    def set_error_handler(self, error_handler: "ErrorHandler"):
         self.error_handler = error_handler
     
     def get_url(self, node_rid: KoiNetNode) -> str:
-        """Retrieves URL of a node."""
+        """Retrieves URL of a node from its RID."""
         
-        logger.debug(f"Getting URL for {node_rid!r}")
+        log.debug(f"Getting URL for {node_rid!r}")
         node_url = None
         
         if node_rid == self.identity.rid:
             raise SelfRequestError("Don't talk to yourself")
         
-        node_bundle = self.effector.deref(node_rid)
+        node_bundle = self.cache.read(node_rid)
                 
         if node_bundle:
             node_profile = node_bundle.validate_contents(NodeProfile)
-            logger.debug(f"Found node profile: {node_profile}")
+            log.debug(f"Found node profile: {node_profile}")
             if node_profile.node_type != NodeType.FULL:
                 raise PartialNodeQueryError("Can't query partial node")
             node_url = node_profile.base_url
         
         else:
             if node_rid == self.identity.config.koi_net.first_contact.rid:
-                logger.debug("Found URL of first contact")
+                log.debug("Found URL of first contact")
                 node_url = self.identity.config.koi_net.first_contact.url
         
         if not node_url:
             raise NodeNotFoundError("Node not found")
         
-        logger.debug(f"Resolved {node_rid!r} to {node_url}")
+        log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
     
     def make_request(
@@ -110,8 +107,9 @@ class RequestHandler:
         path: str, 
         request: RequestModels,
     ) -> ResponseModels | None:
+        """Makes a request to a node."""
         url = self.get_url(node) + path
-        logger.info(f"Making request to {url}")
+        log.info(f"Making request to {url}")
     
         signed_envelope = self.secure.create_envelope(
             payload=request,
@@ -119,9 +117,12 @@ class RequestHandler:
         )
         
         try:
-            result = httpx.post(url, data=signed_envelope.model_dump_json(exclude_none=True))
+            result = httpx.post(
+                url, 
+                data=signed_envelope.model_dump_json(exclude_none=True)
+            )
         except httpx.ConnectError as err:
-            logger.debug("Failed to connect")
+            log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
             raise err
         
@@ -130,20 +131,11 @@ class RequestHandler:
             self.error_handler.handle_protocol_error(resp.error, node)
             return resp
         
-        if path == BROADCAST_EVENTS_PATH:
-            return None
-        elif path == POLL_EVENTS_PATH:
-            EnvelopeModel = SignedEnvelope[EventsPayload]
-        elif path == FETCH_RIDS_PATH:
-            EnvelopeModel = SignedEnvelope[RidsPayload]
-        elif path == FETCH_MANIFESTS_PATH:
-            EnvelopeModel = SignedEnvelope[ManifestsPayload]
-        elif path == FETCH_BUNDLES_PATH:
-            EnvelopeModel = SignedEnvelope[BundlesPayload]
-        else:
-            raise UnknownPathError(f"Unknown path '{path}'")
+        resp_env_model = API_MODEL_MAP[path].response_envelope
+        if resp_env_model is None:
+            return
         
-        resp_envelope = EnvelopeModel.model_validate_json(result.text)
+        resp_envelope = resp_env_model.model_validate_json(result.text)
         self.secure.validate_envelope(resp_envelope)
         
         return resp_envelope.payload
@@ -154,10 +146,13 @@ class RequestHandler:
         req: EventsPayload | None = None,
         **kwargs
     ) -> None:
-        """See protocol.api_models.EventsPayload for available kwargs."""
+        """Broadcasts events to a node.
+        
+        Pass `EventsPayload` object, or see `protocol.api_models.EventsPayload` for available kwargs.
+        """
         request = req or EventsPayload.model_validate(kwargs)
         self.make_request(node, BROADCAST_EVENTS_PATH, request)
-        logger.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
+        log.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
         
     def poll_events(
         self, 
@@ -165,11 +160,14 @@ class RequestHandler:
         req: PollEvents | None = None,
         **kwargs
     ) -> EventsPayload:
-        """See protocol.api_models.PollEvents for available kwargs."""
+        """Polls events from a node.
+        
+        Pass `PollEvents` object as `req` or fields as kwargs.
+        """
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
         if type(resp) != ErrorResponse:
-            logger.info(f"Polled {len(resp.events)} events from {node!r}")
+            log.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
     def fetch_rids(
@@ -178,11 +176,14 @@ class RequestHandler:
         req: FetchRids | None = None,
         **kwargs
     ) -> RidsPayload:
-        """See protocol.api_models.FetchRids for available kwargs."""
+        """Fetches RIDs from a node.
+        
+        Pass `FetchRids` object as `req` or fields as kwargs.
+        """
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
         if type(resp) != ErrorResponse:
-            logger.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
+            log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
     def fetch_manifests(
@@ -191,11 +192,14 @@ class RequestHandler:
         req: FetchManifests | None = None,
         **kwargs
     ) -> ManifestsPayload:
-        """See protocol.api_models.FetchManifests for available kwargs."""
+        """Fetches manifests from a node.
+        
+        Pass `FetchManifests` object as `req` or fields as kwargs.
+        """
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
         if type(resp) != ErrorResponse:
-            logger.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
+            log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
     def fetch_bundles(
@@ -204,9 +208,12 @@ class RequestHandler:
         req: FetchBundles | None = None,
         **kwargs
     ) -> BundlesPayload:
-        """See protocol.api_models.FetchBundles for available kwargs."""
+        """Fetches bundles from a node.
+        
+        Pass `FetchBundles` object as `req` or fields as kwargs.
+        """
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
         if type(resp) != ErrorResponse:
-            logger.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
+            log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp

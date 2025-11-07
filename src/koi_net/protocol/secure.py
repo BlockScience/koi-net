@@ -1,4 +1,5 @@
-import logging
+from rid_lib.types import KoiNetNode
+import structlog
 from base64 import b64decode, b64encode
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -9,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.utils import (
     encode_dss_signature
 )
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 def der_to_raw_signature(der_signature: bytes, curve=ec.SECP256R1()) -> bytes:
@@ -91,9 +92,9 @@ class PrivateKey:
         
         signature = b64encode(raw_signature_bytes).decode()
         
-        logger.debug(f"Signing message with [{self.public_key().to_der()}]")
-        logger.debug(f"hash: {hashed_message}")
-        logger.debug(f"signature: {signature}")
+        log.debug(f"Signing message with [{self.public_key().to_der()}]")
+        log.debug(f"hash: {hashed_message}")
+        log.debug(f"signature: {signature}")
         
         return signature
                 
@@ -134,6 +135,11 @@ class PublicKey:
             )
         ).decode()
         
+    def to_node_rid(self, name) -> KoiNetNode:
+        return KoiNetNode(
+            name=name,
+            hash=sha256_hash(self.to_der())
+        )
         
     def verify(self, signature: str, message: bytes) -> bool:
         # hashed_message = sha256_hash(message.decode())
@@ -144,9 +150,9 @@ class PublicKey:
         # print()
         # print(message.decode())
 
-        # logger.debug(f"Verifying message with [{self.to_der()}]")
-        # logger.debug(f"hash: {hashed_message}")
-        # logger.debug(f"signature: {signature}")
+        # log.debug(f"Verifying message with [{self.to_der()}]")
+        # log.debug(f"hash: {hashed_message}")
+        # log.debug(f"signature: {signature}")
         
         raw_signature_bytes = b64decode(signature)
         der_signature_bytes = raw_to_der_signature(raw_signature_bytes)

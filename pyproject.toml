@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "koi-net"
-version = "1.1.0-beta.8"
+version = "1.2.0b3"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
@@ -23,12 +23,17 @@ dependencies = [
     "fastapi>=0.115.12",
     "uvicorn>=0.34.2",
     "typer>=0.17.4",
+    "rich>=14.1.0",
+    "structlog>=25.4.0"
 ]
 
 [project.optional-dependencies]
 dev = ["twine>=6.0", "build"]
-examples = [
-    "rich",
+docs = [
+    "sphinx",
+    "sphinx-autoapi>=3.6.0",
+    "sphinx-autodoc-typehints>=3.0.1",
+    "sphinx-rtd-theme>=3.0.2",
 ]
 
 [project.scripts]

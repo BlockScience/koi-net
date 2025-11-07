@@ -1,104 +1,141 @@
-import logging
+import structlog
 from contextlib import contextmanager, asynccontextmanager
 
+from rid_lib.ext import Bundle, Cache
 from rid_lib.types import KoiNetNode
 
-from .actor import Actor
-from .effector import Effector
-from .config import NodeConfig
-from .processor.interface import ProcessorInterface
+from .handshaker import Handshaker
+from .network.request_handler import RequestHandler
+from .workers.kobj_worker import KnowledgeProcessingWorker
+from .network.event_queue import EventQueue
+from .workers import EventProcessingWorker
+from .protocol.api_models import ErrorResponse
+from .workers.base import STOP_WORKER
+from .config.core import NodeConfig
+from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
 from .identity import NodeIdentity
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class NodeLifecycle:
+    """Manages node startup and shutdown processes."""
+    
     config: NodeConfig
+    identity: NodeIdentity
     graph: NetworkGraph
-    processor: ProcessorInterface
-    effector: Effector
-    actor: Actor
+    kobj_queue: KobjQueue
+    kobj_worker: KnowledgeProcessingWorker
+    event_queue: EventQueue
+    event_worker: EventProcessingWorker
+    cache: Cache
+    handshaker: Handshaker
+    request_handler: RequestHandler
     
     def __init__(
         self,
         config: NodeConfig,
         identity: NodeIdentity,
         graph: NetworkGraph,
-        processor: ProcessorInterface,
-        effector: Effector,
-        actor: Actor,
-        use_kobj_processor_thread: bool
+        kobj_queue: KobjQueue,
+        kobj_worker: KnowledgeProcessingWorker,
+        event_queue: EventQueue,
+        event_worker: EventProcessingWorker,
+        cache: Cache,
+        handshaker: Handshaker,
+        request_handler: RequestHandler
     ):
         self.config = config
         self.identity = identity
         self.graph = graph
-        self.processor = processor
-        self.effector = effector
-        self.actor = actor
-        self.use_kobj_processor_thread = use_kobj_processor_thread
+        self.kobj_queue = kobj_queue
+        self.kobj_worker = kobj_worker
+        self.event_queue = event_queue
+        self.event_worker = event_worker
+        self.cache = cache
+        self.handshaker = handshaker
+        self.request_handler = request_handler
         
     @contextmanager
     def run(self):
+        """Synchronous context manager for node startup and shutdown."""
         try:
-            logger.info("Starting node lifecycle...")
+            log.info("Starting node lifecycle...")
             self.start()
             yield
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt!")
+            log.info("Keyboard interrupt!")
         finally:
-            logger.info("Stopping node lifecycle...")
+            log.info("Stopping node lifecycle...")
             self.stop()
 
     @asynccontextmanager
     async def async_run(self):
+        """Asynchronous context manager for node startup and shutdown."""
         try:
-            logger.info("Starting async node lifecycle...")
+            log.info("Starting async node lifecycle...")
             self.start()
             yield
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt!")
+            log.info("Keyboard interrupt!")
         finally:
-            logger.info("Stopping async node lifecycle...")
+            log.info("Stopping async node lifecycle...")
             self.stop()
     
     def start(self):
-        """Starts a node, call this method first.
+        """Starts a node.
         
-        Starts the processor thread (if enabled). Loads event queues into memory. Generates network graph from nodes and edges in cache. Processes any state changes of node bundle. Initiates handshake with first contact (if provided) if node doesn't have any neighbors.
+        Starts the processor thread (if enabled). Generates network 
+        graph from nodes and edges in cache. Processes any state changes 
+        of node bundle. Initiates handshake with first contact if node 
+        doesn't have any neighbors. Catches up with coordinator state.
         """
-        if self.use_kobj_processor_thread:
-            logger.info("Starting processor worker thread")
-            self.processor.worker_thread.start()
+        log.info("Starting processor worker thread")
         
+        self.kobj_worker.thread.start()
+        self.event_worker.thread.start()
         self.graph.generate()
         
         # refresh to reflect changes (if any) in config.yaml
-        self.effector.deref(self.identity.rid, refresh_cache=True)
         
-        logger.debug("Waiting for kobj queue to empty")
-        if self.use_kobj_processor_thread:
-            self.processor.kobj_queue.join()
-        else:
-            self.processor.flush_kobj_queue()
-        logger.debug("Done")
-    
-        if not self.graph.get_neighbors() and self.config.koi_net.first_contact.rid:
-            logger.debug(f"I don't have any neighbors, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
+        self.kobj_queue.push(bundle=Bundle.generate(
+            rid=self.identity.rid,
+            contents=self.identity.profile.model_dump()
+        ))
+        
+        log.debug("Waiting for kobj queue to empty")
+        self.kobj_queue.q.join()
+        
+        coordinators = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
+        
+        if len(coordinators) > 0:
+            for coordinator in coordinators:
+                payload = self.request_handler.fetch_manifests(
+                    node=coordinator,
+                    rid_types=[KoiNetNode]
+                )
+                if type(payload) is ErrorResponse:
+                    continue
+                
+                for manifest in payload.manifests:
+                    self.kobj_queue.push(
+                        manifest=manifest,
+                        source=coordinator
+                    )
+                    
+        elif self.config.koi_net.first_contact.rid:
+            log.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             
-            self.actor.handshake_with(self.config.koi_net.first_contact.rid)
-        
-        for coordinator in self.actor.identify_coordinators():
-            self.actor.catch_up_with(coordinator, rid_types=[KoiNetNode])
+            self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
         
 
     def stop(self):
-        """Stops a node, call this method last.
+        """Stops a node.
         
-        Finishes processing knowledge object queue. Saves event queues to storage.
+        Finishes processing knowledge object queue.
         """        
-        if self.use_kobj_processor_thread:
-            logger.info(f"Waiting for kobj queue to empty ({self.processor.kobj_queue.unfinished_tasks} tasks remaining)")
-            self.processor.kobj_queue.join()
-        else:
-            self.processor.flush_kobj_queue()
+        log.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
+        
+        self.kobj_queue.q.put(STOP_WORKER)
+        self.event_queue.q.put(STOP_WORKER)

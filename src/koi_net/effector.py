@@ -1,33 +1,43 @@
-import logging
+import structlog
 from typing import Callable
 from enum import StrEnum
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
+from .network.resolver import NetworkResolver
+from .processor.kobj_queue import KobjQueue
+from .identity import NodeIdentity
 
-from typing import TYPE_CHECKING
+log = structlog.stdlib.get_logger()
 
-if TYPE_CHECKING:
-    from .network.resolver import NetworkResolver
-    from .processor.interface import ProcessorInterface
-    from .context import ActionContext
 
-logger = logging.getLogger(__name__)
+class ActionContext:
+    """Provides action handlers access to other subsystems."""
+    
+    identity: NodeIdentity
 
+    def __init__(
+        self,
+        identity: NodeIdentity,
+    ):
+        self.identity = identity
+    
 
 class BundleSource(StrEnum):
     CACHE = "CACHE"
     ACTION = "ACTION"
 
 class Effector:
+    """Subsystem for dereferencing RIDs."""
+    
     cache: Cache
-    resolver: "NetworkResolver | None"
-    processor: "ProcessorInterface | None"
-    action_context: "ActionContext | None"
+    resolver: NetworkResolver
+    kobj_queue: KobjQueue | None
+    action_context: ActionContext | None
     _action_table: dict[
         type[RID], 
         Callable[
-            ["ActionContext", RID], 
+            [ActionContext, RID], 
             Bundle | None
         ]
     ] = dict()
@@ -35,22 +45,16 @@ class Effector:
     def __init__(
         self, 
         cache: Cache,
+        resolver: NetworkResolver,
+        kobj_queue: KobjQueue,
+        identity: NodeIdentity
     ):
         self.cache = cache
-        self.resolver = None
-        self.processor = None
-        self.action_context = None
-        self._action_table = self.__class__._action_table.copy()
-        
-    def set_processor(self, processor: "ProcessorInterface"):
-        self.processor = processor
-        
-    def set_resolver(self, resolver: "NetworkResolver"):
         self.resolver = resolver
-        
-    def set_action_context(self, action_context: "ActionContext"):
-        self.action_context = action_context
-        
+        self.kobj_queue = kobj_queue
+        self.action_context = ActionContext(identity)
+        self._action_table = self.__class__._action_table.copy()
+    
     @classmethod
     def register_default_action(cls, rid_type: RIDType):
         def decorator(func: Callable) -> Callable:
@@ -59,6 +63,16 @@ class Effector:
         return decorator
         
     def register_action(self, rid_type: RIDType):
+        """Registers a new dereference action for an RID type.
+        
+        Example:
+            This function should be used as a decorator on an action function::
+            
+                @node.register_action(KoiNetNode)
+                def deref_koi_net_node(ctx: ActionContext, rid: KoiNetNode):
+                    # return a Bundle or None
+                    return
+        """
         def decorator(func: Callable) -> Callable:
             self._action_table[rid_type] = func
             return func
@@ -68,18 +82,18 @@ class Effector:
         bundle = self.cache.read(rid)
         
         if bundle:
-            logger.debug("Cache hit")
+            log.debug("Cache hit")
             return bundle, BundleSource.CACHE
         else:
-            logger.debug("Cache miss")
+            log.debug("Cache miss")
             return None
                     
     def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         if type(rid) not in self._action_table:
-            logger.debug("No action available")
+            log.debug("No action available")
             return None
         
-        logger.debug("Action available")
+        log.debug("Action available")
         func = self._action_table[type(rid)]
         bundle = func(
             ctx=self.action_context, 
@@ -87,10 +101,10 @@ class Effector:
         )
         
         if bundle:
-            logger.debug("Action hit")
+            log.debug("Action hit")
             return bundle, BundleSource.ACTION
         else:
-            logger.debug("Action miss")
+            log.debug("Action miss")
             return None
 
         
@@ -98,10 +112,10 @@ class Effector:
         bundle, source = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
-            logger.debug("Network hit")
+            log.debug("Network hit")
             return bundle, source
         else:
-            logger.debug("Network miss")
+            log.debug("Network miss")
             return None
         
     
@@ -112,7 +126,20 @@ class Effector:
         use_network: bool = False,
         handle_result: bool = True
     ) -> Bundle | None:
-        logger.debug(f"Dereferencing {rid!r}")
+        """Dereferences an RID.
+        
+        Attempts to dereference an RID by (in order) reading the cache, 
+        calling a bound action, or fetching from other nodes in the 
+        newtork.
+        
+        Args:
+            rid: RID to dereference
+            refresh_cache: skips cache read when `True` 
+            use_network: enables fetching from other nodes when `True`
+            handle_result: handles resulting bundle with knowledge pipeline when `True`
+        """
+        
+        log.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (
             # if `refresh_cache`, skip try cache
@@ -128,7 +155,7 @@ class Effector:
             and bundle is not None 
             and source != BundleSource.CACHE
         ):            
-            self.processor.handle(
+            self.kobj_queue.push(
                 bundle=bundle, 
                 source=source if type(source) is KoiNetNode else None
             )

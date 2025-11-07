@@ -1,65 +1,53 @@
-import logging
-from rich.logging import RichHandler
-from pydantic import Field
 from rid_lib.types import KoiNetNode, KoiNetEdge
-from koi_net.config import NodeConfig, KoiNetConfig
-from koi_net.protocol.node import NodeProfile, NodeProvides, NodeType
-from koi_net import NodeInterface
-from koi_net.context import HandlerContext
-from koi_net.processor.handler import HandlerType
+import structlog
+from koi_net.config.full_node import (
+    FullNodeConfig, 
+    ServerConfig, 
+    KoiNetConfig, 
+    NodeProfile, 
+    NodeProvides
+)
+from koi_net.core import FullNode
+from koi_net.processor.context import HandlerContext
+from koi_net.processor.handler import HandlerType, KnowledgeHandler
 from koi_net.processor.knowledge_object import KnowledgeObject
 from koi_net.protocol.event import Event, EventType
 from koi_net.protocol.edge import EdgeType, generate_edge_bundle
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[RichHandler()]
-)
+log = structlog.stdlib.get_logger()
 
-logging.getLogger("koi_net").setLevel(logging.DEBUG)
-logger = logging.getLogger(__name__)
 
-class CoordinatorConfig(NodeConfig):
-    koi_net: KoiNetConfig = Field(default_factory = lambda:
-        KoiNetConfig(
-            node_name="coordinator",
-            node_profile=NodeProfile(
-                node_type=NodeType.FULL,
-                provides=NodeProvides(
-                    event=[KoiNetNode, KoiNetEdge],
-                    state=[KoiNetNode, KoiNetEdge]
-                )
-            ),
-            cache_directory_path=".coordinator_rid_cache",
-            event_queues_path="coordinator_event_queues.json",
-            private_key_pem_path="coordinator_priv_key.pem"
-        )
+class CoordinatorConfig(FullNodeConfig):
+    server: ServerConfig = ServerConfig(port=8080)
+    koi_net: KoiNetConfig = KoiNetConfig(
+        node_name="coordinator",
+        node_profile=NodeProfile(
+            provides=NodeProvides(
+                event=[KoiNetNode, KoiNetEdge],
+                state=[KoiNetNode, KoiNetEdge]
+            )
+        ),
+        rid_types_of_interest=[KoiNetNode, KoiNetEdge]
     )
-    
-node = NodeInterface(
-    config=CoordinatorConfig.load_from_yaml("coordinator_config.yaml"),
-    use_kobj_processor_thread=True
-)
 
-@node.processor.pipeline.register_handler(HandlerType.Network, rid_types=[KoiNetNode])
+@KnowledgeHandler.create(
+    HandlerType.Network, 
+    rid_types=[KoiNetNode])
 def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
-    logger.info("Handling node handshake")
+    log.info("Handling node handshake")
 
     # only respond if node declares itself as NEW
     if kobj.event_type != EventType.NEW:
         return
         
-    logger.info("Sharing this node's bundle with peer")
-    identity_bundle = ctx.effector.deref(ctx.identity.rid)
-    ctx.event_queue.push_event_to(
+    log.info("Sharing this node's bundle with peer")
+    identity_bundle = ctx.cache.read(ctx.identity.rid)
+    ctx.event_queue.push(
         event=Event.from_bundle(EventType.NEW, identity_bundle),
-        node=kobj.rid,
-        flush=True
+        target=kobj.rid
     )
     
-    logger.info("Proposing new edge")    
+    log.info("Proposing new edge")    
     # defer handling of proposed edge
     
     edge_bundle = generate_edge_bundle(
@@ -69,8 +57,13 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         rid_types=[KoiNetNode, KoiNetEdge]
     )
         
-    ctx.handle(rid=edge_bundle.rid, event_type=EventType.FORGET)
-    ctx.handle(bundle=edge_bundle)
-    
+    ctx.kobj_queue.push(rid=edge_bundle.rid, event_type=EventType.FORGET)
+    ctx.kobj_queue.push(bundle=edge_bundle)
+
+class CoordinatorNode(FullNode):
+    config_cls = CoordinatorConfig
+    knowledge_handlers = FullNode.knowledge_handlers + [handshake_handler]
+
 if __name__ == "__main__":
-    node.server.run()
+    node = CoordinatorNode()
+    node.entrypoint.run()
