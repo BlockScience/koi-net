@@ -1,5 +1,5 @@
 import inspect
-from typing import Protocol
+from typing import Any, Protocol
 from dataclasses import make_dataclass
 
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ class BuildOrderer(type):
         cls = super().__new__(cls, name, bases, dct)
         
         if "_build_order" not in dct:
-            components = {}
+            components: dict[str, Any] = {}
             # adds components from base classes (including cls)
             for base in reversed(inspect.getmro(cls)[:-1]):
                 for k, v in vars(base).items():
@@ -51,14 +51,16 @@ class NodeAssembler(metaclass=BuildOrderer):
             # print(comp_name)
             
             if not callable(comp):
-                print(f"Treating {comp_name} as a literal")
+                print(f"Treating {comp_name} as a constant")
                 components[comp_name] = comp
                 continue
             
-            if issubclass(comp, BaseModel):
+            if isinstance(comp, type) and issubclass(comp, BaseModel):
                 print(f"Treating {comp_name} as a pydantic model")
                 components[comp_name] = comp
                 continue
+            
+            # else: callable, and not a basemodel
             
             sig = inspect.signature(comp)
             
@@ -66,10 +68,10 @@ class NodeAssembler(metaclass=BuildOrderer):
             for name, param in sig.parameters.items():
                 required_comps.append((name, param.annotation))
             
-            if len(required_comps) == 0:
-                s = comp_name
-            else:
-                s = f"{comp_name} -> {', '.join([name for name, _type in required_comps])}"
+            # if len(required_comps) == 0:
+            #     s = comp_name
+            # else:
+            #     s = f"{comp_name} -> {', '.join([name for name, _type in required_comps])}"
             
             # print(s.replace("graph", "_graph"), end=";\n")
             
