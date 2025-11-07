@@ -1,11 +1,19 @@
-from .context import ActionContext
+"""Implementations of default dereference actions."""
+
 from rid_lib.types import KoiNetNode
 from rid_lib.ext import Bundle
-from .effector import Effector
+from .effector import Effector, ActionContext
 
 
 @Effector.register_default_action(KoiNetNode)
-def dereference_koi_node(ctx: ActionContext, rid: KoiNetNode) -> Bundle:
+def dereference_koi_node(
+    ctx: ActionContext, rid: KoiNetNode
+) -> Bundle | None:
+    """Dereference function for this KOI node.
+    
+    Generates a bundle from this node's profile data in the config.
+    """
+    
     if rid != ctx.identity.rid:
         return
     

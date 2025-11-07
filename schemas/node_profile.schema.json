@@ -1,0 +1,51 @@
+{
+  "$defs": {
+    "NodeType": {
+      "title": "Node Type",
+      "type": "string",
+      "enum": [
+        "FULL",
+        "PARTIAL"
+      ]
+    }
+  },
+  "title": "Node Profile",
+  "type": "object",
+  "properties": {
+    "node_type": {
+      "$ref": "#/$defs/NodeType"
+    },
+    "base_url": {
+      "type": "string"
+    },
+    "provides": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "event",
+        "state"
+      ]
+    },
+    "public_key": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "node_type",
+    "provides",
+    "public_key"
+  ]
+}

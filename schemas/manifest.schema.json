@@ -1,0 +1,21 @@
+{
+  "title": "Manifest",
+  "type": "object",
+  "properties": {
+    "rid": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sha256_hash": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "rid",
+    "timestamp",
+    "sha256_hash"
+  ]
+}

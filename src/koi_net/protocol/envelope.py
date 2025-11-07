@@ -1,4 +1,4 @@
-import logging
+import structlog
 from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict
 from rid_lib.types import KoiNetNode
@@ -6,8 +6,7 @@ from rid_lib.types import KoiNetNode
 from .secure import PrivateKey, PublicKey
 from .api_models import RequestModels, ResponseModels
 
-
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 T = TypeVar("T", bound=RequestModels | ResponseModels)
@@ -28,7 +27,7 @@ class SignedEnvelope(BaseModel, Generic[T]):
             target_node=self.target_node 
         )
         
-        logger.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json(exclude_none=True)}")
+        log.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json(exclude_none=True)}")
                 
         pub_key.verify(
             self.signature,
@@ -43,8 +42,8 @@ class UnsignedEnvelope(BaseModel, Generic[T]):
     target_node: KoiNetNode
     
     def sign_with(self, priv_key: PrivateKey) -> SignedEnvelope[T]:
-        logger.debug(f"Signing envelope: {self.model_dump_json(exclude_none=True)}")
-        logger.debug(f"Type: [{type(self.payload)}]")
+        log.debug(f"Signing envelope: {self.model_dump_json(exclude_none=True)}")
+        log.debug(f"Type: [{type(self.payload)}]")
         
         signature = priv_key.sign(
             self.model_dump_json(exclude_none=True).encode()

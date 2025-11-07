@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable
 from rid_lib import RIDType
+
 from ..protocol.event import EventType
+from .knowledge_object import KnowledgeObject
+from .context import HandlerContext
 
 
 class StopChain:
@@ -32,7 +35,7 @@ class HandlerType(StrEnum):
 class KnowledgeHandler:
     """Handles knowledge processing events of the provided types."""
     
-    func: Callable
+    func: Callable[[HandlerContext, KnowledgeObject], None | KnowledgeObject | StopChain]
     handler_type: HandlerType
     rid_types: list[RIDType] | None
     event_types: list[EventType | None] | None = None
@@ -44,9 +47,11 @@ class KnowledgeHandler:
         rid_types: list[RIDType] | None = None,
         event_types: list[EventType | None] | None = None
     ):
-        """Special decorator that returns a KnowledgeHandler instead of a function.
+        """Decorator wraps a function, returns a KnowledgeHandler.
         
-        The function symbol will redefined as a `KnowledgeHandler`, which can be passed into the `ProcessorInterface` constructor. This is used to register default handlers.
+        The function symbol will redefined as a `KnowledgeHandler`, 
+        which can be passed into the `ProcessorInterface` constructor. 
+        This is used to register default handlers.
         """
         def decorator(func: Callable) -> KnowledgeHandler:
             handler = cls(func, handler_type, rid_types, event_types)
