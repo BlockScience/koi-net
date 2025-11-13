@@ -1,17 +1,13 @@
 import structlog
 from contextlib import contextmanager, asynccontextmanager
 
-from rid_lib.ext import Bundle, Cache
-from rid_lib.types import KoiNetNode
+from rid_lib.ext import Bundle
 
-from koi_net.protocol.node import NodeProfile, NodeType
-
+from .sync_manager import SyncManager
 from .handshaker import Handshaker
-from .network.request_handler import RequestHandler
 from .workers.kobj_worker import KnowledgeProcessingWorker
 from .network.event_queue import EventQueue
 from .workers import EventProcessingWorker
-from .protocol.api_models import ErrorResponse
 from .workers.base import STOP_WORKER
 from .config.core import NodeConfig
 from .processor.kobj_queue import KobjQueue
@@ -31,9 +27,8 @@ class NodeLifecycle:
     kobj_worker: KnowledgeProcessingWorker
     event_queue: EventQueue
     event_worker: EventProcessingWorker
-    cache: Cache
     handshaker: Handshaker
-    request_handler: RequestHandler
+    sync_manager: SyncManager
     
     def __init__(
         self,
@@ -44,9 +39,8 @@ class NodeLifecycle:
         kobj_worker: KnowledgeProcessingWorker,
         event_queue: EventQueue,
         event_worker: EventProcessingWorker,
-        cache: Cache,
         handshaker: Handshaker,
-        request_handler: RequestHandler
+        sync_manager: SyncManager
     ):
         self.config = config
         self.identity = identity
@@ -55,9 +49,8 @@ class NodeLifecycle:
         self.kobj_worker = kobj_worker
         self.event_queue = event_queue
         self.event_worker = event_worker
-        self.cache = cache
         self.handshaker = handshaker
-        self.request_handler = request_handler
+        self.sync_manager = sync_manager
         
     @contextmanager
     def run(self):
@@ -107,31 +100,9 @@ class NodeLifecycle:
         log.debug("Waiting for kobj queue to empty")
         self.kobj_queue.q.join()
         
-        neighbors = self.graph.get_neighbors(direction="in", allowed_type=KoiNetNode)
+        if self.sync_manager.catch_up_with_coordinators():
+            pass
         
-        if len(neighbors) > 0:
-            for node in neighbors:
-                node_bundle = self.cache.read(node)
-                node_profile = node_bundle.validate_contents(NodeProfile)
-                
-                if KoiNetNode not in node_profile.provides.state:
-                    continue
-                if node_profile.node_type != NodeType.FULL:
-                    continue
-                
-                payload = self.request_handler.fetch_manifests(
-                    node=node,
-                    rid_types=[KoiNetNode]
-                )
-                if type(payload) is ErrorResponse:
-                    continue
-                
-                for manifest in payload.manifests:
-                    self.kobj_queue.push(
-                        manifest=manifest,
-                        source=node
-                    )
-                    
         elif self.config.koi_net.first_contact.rid:
             log.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             

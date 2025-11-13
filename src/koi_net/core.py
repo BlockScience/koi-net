@@ -7,6 +7,7 @@ from .config.core import NodeConfig
 from .processor.context import HandlerContext
 from .effector import Effector
 from .handshaker import Handshaker
+from .sync_manager import SyncManager
 from .identity import NodeIdentity
 from .workers import KnowledgeProcessingWorker, EventProcessingWorker
 from .lifecycle import NodeLifecycle
@@ -56,6 +57,7 @@ class BaseNode(NodeAssembler):
     handshaker = Handshaker
     error_handler = ErrorHandler
     request_handler = RequestHandler
+    sync_manager = SyncManager
     response_handler = ResponseHandler
     resolver = NetworkResolver
     effector = Effector
