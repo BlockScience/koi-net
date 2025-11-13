@@ -1,4 +1,7 @@
+from enum import StrEnum
 import inspect
+from matplotlib import pyplot as plt
+import networkx as nx
 from typing import Any, Protocol
 from dataclasses import make_dataclass
 
@@ -9,6 +12,9 @@ from .entrypoints.base import EntryPoint
 
 log = structlog.stdlib.get_logger()
 
+class CompType(StrEnum):
+    FACTORY = "FACTORY"
+    OBJECT = "OBJECT"
 
 class BuildOrderer(type):
     def __new__(cls, name: str, bases: tuple, dct: dict[str]):
@@ -37,52 +43,75 @@ class NodeContainer(Protocol):
 
 class NodeAssembler(metaclass=BuildOrderer):    
     def __new__(self) -> NodeContainer:
-        return self._build()
+        return self._build_node()
     
     @classmethod
-    def _build(cls) -> NodeContainer:
-        components = {}
+    def _build_deps(cls) -> dict:                
+        dep_graph: dict[str, tuple[CompType, list[str]]] = {}
         for comp_name in cls._build_order:
-            comp = getattr(cls, comp_name, None)
-            
-            if comp is None:
-                raise Exception(f"Couldn't find factory for component '{comp_name}'")
-            
-            # print(comp_name)
+            try:
+                comp = getattr(cls, comp_name)
+            except AttributeError:
+                raise Exception(f"Component '{comp_name}' not found in class definition")
             
             if not callable(comp):
-                print(f"Treating {comp_name} as a constant")
-                components[comp_name] = comp
-                continue
+                comp_type = CompType.OBJECT
+                dep_names = []
             
-            if isinstance(comp, type) and issubclass(comp, BaseModel):
-                print(f"Treating {comp_name} as a pydantic model")
-                components[comp_name] = comp
-                continue
+            elif isinstance(comp, type) and issubclass(comp, BaseModel):
+                comp_type = CompType.OBJECT
+                dep_names = []
             
-            # else: callable, and not a basemodel
-            
-            sig = inspect.signature(comp)
-            
-            required_comps = []
-            for name, param in sig.parameters.items():
-                required_comps.append((name, param.annotation))
-            
-            # if len(required_comps) == 0:
-            #     s = comp_name
-            # else:
-            #     s = f"{comp_name} -> {', '.join([name for name, _type in required_comps])}"
-            
-            # print(s.replace("graph", "_graph"), end=";\n")
-            
-            dependencies = {}
-            for req_comp_name, req_comp_type in required_comps:
-                if req_comp_name not in components:
-                    raise Exception(f"Couldn't find required component '{req_comp_name}'")
-                    
-                dependencies[req_comp_name] = components[req_comp_name]
+            else:
+                sig = inspect.signature(comp)
+                comp_type = CompType.FACTORY
+                dep_names = list(sig.parameters)
                 
-            components[comp_name] = comp(**dependencies)
+            dep_graph[comp_name] = (comp_type, dep_names)
+            
+            print(f"{comp_name} ({comp_type}) -> {dep_names}")
+            
+        return dep_graph
+            
+    @classmethod
+    def _visualize(cls):
+        dep_graph = cls._build_deps()
+        dg = nx.DiGraph()
+        
+        nx.complete_graph
+        
+        for node, (_, neighbors) in dep_graph.items():
+            for n in neighbors:
+                dg.add_edge(node, n)
+        
+        nx.draw_spring(dg)
+        plt.show()
+        
+    @classmethod
+    def _build_comps(cls) -> dict[str, Any]:
+        components: dict[str, Any] = {}
+        
+        dep_graph = cls._build_deps()
+        for comp_name, (comp_type, dep_names) in dep_graph.items():
+            comp = getattr(cls, comp_name, None)
+            
+            if comp_type == CompType.OBJECT:
+                components[comp_name] = comp
+            
+            elif comp_type == CompType.FACTORY:
+                # builds depedency dict for current component
+                dependencies = {}
+                for dep_name in dep_names:
+                    if dep_name not in components:
+                        raise Exception(f"Couldn't find required component '{dep_name}'")
+                    dependencies[dep_name] = components[dep_name]
+                components[comp_name] = comp(**dependencies)
+        
+        return components
+
+    @classmethod
+    def _build_node(cls) -> NodeContainer:
+        components = cls._build_comps()
         
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",

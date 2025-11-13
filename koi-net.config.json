@@ -18,35 +18,30 @@
             {
                 "field": "level",
                 "auto-width": true,
-                "default-value": "",
                 "prefix": "[",
                 "suffix": "]"
             },
             " ",
             {
-                "field": "event",
-                "min-width": 70,
-                "max-width": 70,
-                "overflow": "truncate"
+                "field": "module",
+                "min-width": 15,
+                "max-width": 15,
+                "overflow": "dot-dot",
+                "align": "right"
             },
             " - ",
             {
-                "field": "logger",
-                "overflow": "abbrev",
-                "min-width": 30,
-                "max-width": 30,
-                "default-value": "",
-                "align": "right"
+                "field": "event"
             }
         ],
         "value": {
             "level": {
                 "kind": "string"
             },
-            "logger": {
+            "event": {
                 "kind": "string"
             },
-            "event": {
+            "module": {
                 "kind": "string"
             }
         },
@@ -70,6 +65,14 @@
             "timestamp": {
                 "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})",
                 "color": "Grey"
+            },
+            "obj_name": {
+                "pattern": "<([a-zA-Z.]+)",
+                "color": "Purple"
+            },
+            "quotations": {
+                "pattern": "(['\"][^']*['\"])",
+                "color": "Green"
             }
         }
     }
