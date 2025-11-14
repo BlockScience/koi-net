@@ -3,9 +3,12 @@ from pydantic import BaseModel, model_validator
 from dotenv import load_dotenv
 from rid_lib import RIDType
 from rid_lib.types import KoiNetNode
+import structlog
 
 from koi_net.protocol.secure import PrivateKey
 from ..protocol.node import NodeProfile
+
+log = structlog.stdlib.get_logger()
 
 
 class NodeContact(BaseModel):
@@ -13,7 +16,7 @@ class NodeContact(BaseModel):
     url: str | None = None
 
 class KoiNetConfig(BaseModel):
-    """Config for KOI-net."""
+    """Config for KOI-net parameters."""
     
     node_name: str
     node_rid: KoiNetNode | None = None
@@ -53,19 +56,42 @@ class EnvConfig(BaseModel):
         return value
 
 class NodeConfig(BaseModel):
+    """Base node config class, intended to be extended."""
+    
     koi_net: KoiNetConfig
     env: EnvConfig = EnvConfig()
     
     @model_validator(mode="after")
     def generate_rid_cascade(self):
-        if not self.koi_net.node_rid:
+        """Generates node RID if missing."""
+        if self.koi_net.node_rid:
+            return self
+        
+        log.debug("Node RID not found in config, attempting to generate")
+        
+        try:
+            # attempts to read existing private key PEM file
+            with open(self.koi_net.private_key_pem_path, "r") as f:
+                priv_key_pem = f.read()
+                priv_key = PrivateKey.from_pem(
+                    priv_key_pem,
+                    password=self.env.priv_key_password)
+                log.debug("Used existing private key from PEM file")
+        
+        except FileNotFoundError:
+            # generates new private key if PEM not found
             priv_key = PrivateKey.generate()
-            pub_key = priv_key.public_key()
-            
-            self.koi_net.node_rid = pub_key.to_node_rid(self.koi_net.node_name)
             
             with open(self.koi_net.private_key_pem_path, "w") as f:
                 f.write(priv_key.to_pem(self.env.priv_key_password))
-            
+            log.debug("Generated new private key, no PEM file found")
+        
+        pub_key = priv_key.public_key()
+        self.koi_net.node_rid = pub_key.to_node_rid(self.koi_net.node_name)
+        log.debug(f"Node RID set to {self.koi_net.node_rid}")
+        
+        if self.koi_net.node_profile.public_key != pub_key.to_der():
             self.koi_net.node_profile.public_key = pub_key.to_der()
+            log.warning("New private key overwrote old public key!")
+        
         return self
