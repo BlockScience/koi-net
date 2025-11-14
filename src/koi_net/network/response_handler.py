@@ -77,8 +77,8 @@ class ResponseHandler:
         req: PollEvents, 
         source: KoiNetNode
     ) -> EventsPayload:
-        log.info(f"Request to poll events")
         events = self.poll_event_buf.flush(source, limit=req.limit)
+        log.info(f"Request to poll events, returning {len(events)} event(s)")
         return EventsPayload(events=events)
         
     def fetch_rids_handler(
@@ -87,18 +87,16 @@ class ResponseHandler:
         source: KoiNetNode
     ) -> RidsPayload:
         """Returns response to fetch RIDs request."""
-        log.info(f"Request to fetch rids, allowed types {req.rid_types}")
         rids = self.cache.list_rids(req.rid_types)
-        
+        log.info(f"Request to fetch rids, allowed types {req.rid_types}, returning {len(rids)} RID(s)")
         return RidsPayload(rids=rids)
         
-    def fetch_manifests_handler(self, 
+    def fetch_manifests_handler(
+        self, 
         req: FetchManifests, 
         source: KoiNetNode
     ) -> ManifestsPayload:
-        """Returns response to fetch manifests request."""
-        log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}")
-        
+        """Returns response to fetch manifests request."""        
         manifests: list[Manifest] = []
         not_found: list[RID] = []
         
@@ -109,6 +107,7 @@ class ResponseHandler:
             else:
                 not_found.append(rid)
         
+        log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}, returning {len(manifests)} manifest(s)")
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
     def fetch_bundles_handler(
@@ -117,7 +116,6 @@ class ResponseHandler:
         source: KoiNetNode
     ) -> BundlesPayload:
         """Returns response to fetch bundles request."""
-        log.info(f"Request to fetch bundles, requested rids {req.rids}")
         
         bundles: list[Bundle] = []
         not_found: list[RID] = []
@@ -128,5 +126,6 @@ class ResponseHandler:
                 bundles.append(bundle)
             else:
                 not_found.append(rid)
-            
+                
+        log.info(f"Request to fetch bundles, requested rids {req.rids}, returning {len(bundles)} bundle(s)")
         return BundlesPayload(bundles=bundles, not_found=not_found)

@@ -79,7 +79,7 @@ class NodeAssembler(metaclass=BuildOrderer):
                 
             dep_graph[comp_name] = (comp_type, dep_names)
             
-            print(f"{comp_name} ({comp_type}) -> {dep_names}")
+            # print(f"{comp_name} ({comp_type}) -> {dep_names}")
             
         return dep_graph
         

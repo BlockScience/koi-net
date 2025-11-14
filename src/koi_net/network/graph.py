@@ -112,6 +112,6 @@ class NetworkGraph:
                 neighbors.add(edge_profile.source)
             elif edge_profile.source == self.identity.rid:
                 neighbors.add(edge_profile.target)
-                
+            
         return list(neighbors)
-        
+
