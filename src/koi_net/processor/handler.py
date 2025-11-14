@@ -37,15 +37,22 @@ class KnowledgeHandler:
     
     func: Callable[[HandlerContext, KnowledgeObject], None | KnowledgeObject | StopChain]
     handler_type: HandlerType
-    rid_types: list[RIDType] | None
-    event_types: list[EventType | None] | None = None
+    rid_types: tuple[RIDType]
+    event_types: tuple[EventType | None]
+    
+    def __call__(
+        self, 
+        ctx: HandlerContext, 
+        kobj: KnowledgeObject
+    ) -> None | KnowledgeObject | StopChain:
+        return self.func(ctx, kobj)
     
     @classmethod
     def create(
         cls,
         handler_type: HandlerType,
-        rid_types: list[RIDType] | None = None,
-        event_types: list[EventType | None] | None = None
+        rid_types: tuple[RIDType] = (),
+        event_types: tuple[EventType | None] = ()
     ):
         """Decorator wraps a function, returns a KnowledgeHandler.
         
@@ -57,4 +64,3 @@ class KnowledgeHandler:
             handler = cls(func, handler_type, rid_types, event_types)
             return handler
         return decorator
-

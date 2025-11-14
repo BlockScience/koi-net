@@ -1,7 +1,5 @@
 from enum import StrEnum
 import inspect
-from matplotlib import pyplot as plt
-import networkx as nx
 from typing import Any, Protocol
 from dataclasses import make_dataclass
 
@@ -11,6 +9,7 @@ import structlog
 from .entrypoints.base import EntryPoint
 
 log = structlog.stdlib.get_logger()
+
 
 class CompType(StrEnum):
     FACTORY = "FACTORY"
@@ -43,12 +42,23 @@ class NodeContainer(Protocol):
 
 class NodeAssembler(metaclass=BuildOrderer):    
     def __new__(self) -> NodeContainer:
-        return self._build_node()
+        """Returns assembled node container."""
+        return self._build()
     
     @classmethod
-    def _build_deps(cls) -> dict:                
-        dep_graph: dict[str, tuple[CompType, list[str]]] = {}
-        for comp_name in cls._build_order:
+    def _build_deps(
+        cls, 
+        build_order: list[str]
+    ) -> dict[str, tuple[CompType, list[str]]]:
+        """Returns dependency graph for components defined in `cls_build_order`.
+        
+        Graph representation is a dict where each key is a component name,
+        and the value is tuple containing the component type, and a list
+        of dependency component names.
+        """
+        
+        dep_graph = {}
+        for comp_name in build_order:
             try:
                 comp = getattr(cls, comp_name)
             except AttributeError:
@@ -72,26 +82,29 @@ class NodeAssembler(metaclass=BuildOrderer):
             print(f"{comp_name} ({comp_type}) -> {dep_names}")
             
         return dep_graph
-            
+        
     @classmethod
-    def _visualize(cls):
-        dep_graph = cls._build_deps()
-        dg = nx.DiGraph()
+    def _visualize(cls, dep_graph) -> str:
+        """Returns representation of dependency graph in Graphviz DOT language."""
+        dep_graph = cls._build_deps(cls._build_order)
         
-        nx.complete_graph
-        
+        s = "digraph G {\n"
         for node, (_, neighbors) in dep_graph.items():
-            for n in neighbors:
-                dg.add_edge(node, n)
-        
-        nx.draw_spring(dg)
-        plt.show()
+            sub_s = node
+            if neighbors:
+                sub_s += f"-> {', '.join(neighbors)}"
+            sub_s = sub_s.replace("graph", "graph_") + ";"
+            s += " " * 4 + sub_s + "\n"
+        s += "}"
+        return s
         
     @classmethod
-    def _build_comps(cls) -> dict[str, Any]:
+    def _build_comps(
+        cls,
+        dep_graph: dict[str, tuple[CompType, list[str]]]
+    ) -> dict[str, Any]:
+        """Returns assembled components from dependency graph."""
         components: dict[str, Any] = {}
-        
-        dep_graph = cls._build_deps()
         for comp_name, (comp_type, dep_names) in dep_graph.items():
             comp = getattr(cls, comp_name, None)
             
@@ -110,9 +123,8 @@ class NodeAssembler(metaclass=BuildOrderer):
         return components
 
     @classmethod
-    def _build_node(cls) -> NodeContainer:
-        components = cls._build_comps()
-        
+    def _build_node(cls, components: dict[str, Any]) -> NodeContainer:
+        """Returns node container from components."""
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",
             fields=[
@@ -124,3 +136,11 @@ class NodeAssembler(metaclass=BuildOrderer):
         )
         
         return NodeContainer(**components)
+    
+    @classmethod
+    def _build(cls) -> NodeContainer:
+        """Returns node container after calling full build process."""
+        dep_graph = cls._build_deps(cls._build_order)
+        comps = cls._build_comps(dep_graph)
+        node = cls._build_node(comps)
+        return node
