@@ -70,7 +70,7 @@ class KnowledgePipeline:
             
             log.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
             
-            resp = handler.func(
+            resp = handler(
                 ctx=self.handler_context,
                 kobj=kobj.model_copy()
             )
