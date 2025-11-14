@@ -1,5 +1,8 @@
-from koi_net.config.core import NodeConfig
+from abc import ABC, abstractmethod
 
 
-class EntryPoint:
-    def run(self): ...
+class EntryPoint(ABC):
+    """Abstract class for entry point components."""
+    @abstractmethod
+    def run(self): 
+        ...

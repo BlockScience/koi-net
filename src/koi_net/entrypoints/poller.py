@@ -12,7 +12,7 @@ log = structlog.stdlib.get_logger()
 
 
 class NodePoller(EntryPoint):
-    """Manages polling based event loop for partial nodes."""
+    """Entry point for partial nodes, manages polling event loop."""
     kobj_queue: KobjQueue
     lifecycle: NodeLifecycle
     resolver: NetworkResolver
@@ -31,10 +31,9 @@ class NodePoller(EntryPoint):
         self.config = config
 
     def poll(self):
-        """Polls neighbors and processes returned events."""
-        neighbors = self.resolver.poll_neighbors()
-        for node_rid in neighbors:
-            for event in neighbors[node_rid]:
+        """Polls neighbor nodes and processes returned events."""
+        for node_rid, events in self.resolver.poll_neighbors().items():
+            for event in events:
                 self.kobj_queue.push(event=event, source=node_rid)
 
     def run(self):

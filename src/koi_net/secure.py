@@ -43,6 +43,8 @@ class Secure:
         
     def _load_priv_key(self) -> PrivateKey:
         """Loads private key from PEM file path in config."""
+        
+        # TODO: handle missing private key
         with open(self.config.koi_net.private_key_pem_path, "r") as f:
             priv_key_pem = f.read()
         

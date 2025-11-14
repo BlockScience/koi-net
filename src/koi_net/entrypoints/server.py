@@ -16,7 +16,7 @@ log = structlog.stdlib.get_logger()
 
 
 class NodeServer(EntryPoint):
-    """Manages FastAPI server and event handling for full nodes."""
+    """Entry point for full nodes, manages FastAPI server."""
     config: FullNodeConfig
     lifecycle: NodeLifecycle
     response_handler: ResponseHandler
@@ -33,24 +33,9 @@ class NodeServer(EntryPoint):
         self.lifecycle = lifecycle
         self.response_handler = response_handler
         self._build_app()
-        
-    def _build_app(self):
-        """Builds FastAPI app and adds endpoints."""
-        @asynccontextmanager
-        async def lifespan(*args, **kwargs):
-            async with self.lifecycle.async_run():
-                yield
-        
-        self.app = FastAPI(
-            lifespan=lifespan, 
-            title="KOI-net Protocol API",
-            version="1.0.0"
-        )
-        
-        self.app.add_exception_handler(ProtocolError, self.protocol_error_handler)
-        
-        self.router = APIRouter(prefix="/koi-net")
-        
+    
+    def _build_endpoints(self, router: APIRouter):
+        """Builds endpoints for API router."""
         for path, models in API_MODEL_MAP.items():
             def create_endpoint(path: str):
                 async def endpoint(req):
@@ -64,21 +49,36 @@ class NodeServer(EntryPoint):
                 
                 return endpoint
             
-            self.router.add_api_route(
+            router.add_api_route(
                 path=path,
                 endpoint=create_endpoint(path),
                 methods=["POST"],
                 response_model_exclude_none=True
             )
+    
+    def _build_app(self):
+        """Builds FastAPI app."""
+        @asynccontextmanager
+        async def lifespan(*args, **kwargs):
+            async with self.lifecycle.async_run():
+                yield
         
+        self.app = FastAPI(
+            lifespan=lifespan, 
+            title="KOI-net Protocol API",
+            version="1.1.0"
+        )
+        
+        self.app.add_exception_handler(ProtocolError, self.protocol_error_handler)
+        self.router = APIRouter(prefix="/koi-net")
+        self._build_endpoints(self.router)
         self.app.include_router(self.router)
         
     def protocol_error_handler(self, request, exc: ProtocolError):
-        """Catches `ProtocolError` and returns as `ErrorResponse`."""
-        # log.info(f"caught protocol error: {exc}")
+        """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
         log.error(exc)
         resp = ErrorResponse(error=exc.error_type)
-        log.info(f"returning error response: {resp}")
+        log.info(f"Returning error response: {resp}")
         return JSONResponse(
             status_code=400,
             content=resp.model_dump(mode="json")
