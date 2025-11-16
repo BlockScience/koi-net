@@ -52,15 +52,21 @@ class NetworkResolver:
                 continue
             
             node_bundle = self.cache.read(node_rid)
-            
             node_profile = node_bundle.validate_contents(NodeProfile)
             
-            if (node_profile.node_type == NodeType.FULL) and (rid_type in node_profile.provides.state):
-                log.debug(f"Found provider {node_rid!r}")
-                provider_nodes.append(node_rid)
+            if node_profile.node_type != NodeType.FULL:
+                continue
+            
+            if rid_type not in node_profile.provides.state:
+                continue
+            
+            provider_nodes.append(node_rid)
         
-        if not provider_nodes:
+        if provider_nodes:
+            log.debug(f"Found provider(s) {provider_nodes}")
+        else:
             log.debug("Failed to find providers")
+            
         return provider_nodes
             
     def fetch_remote_bundle(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
@@ -71,6 +77,9 @@ class NetworkResolver:
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_bundles(
                 node=node_rid, rids=[rid])
+            
+            if type(payload) == ErrorResponse:
+                continue
             
             if payload.bundles:
                 remote_bundle = payload.bundles[0]
@@ -90,6 +99,9 @@ class NetworkResolver:
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_manifests(
                 node=node_rid, rids=[rid])
+            
+            if type(payload) == ErrorResponse:
+                continue
             
             if payload.manifests:
                 remote_manifest = payload.manifests[0]
@@ -138,10 +150,9 @@ class NetworkResolver:
                 
                 if payload.events:
                     log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
-                    
                     event_dict[node_rid] = payload.events
                     
-            except httpx.ConnectError:
+            except httpx.RequestError:
                 log.debug(f"Failed to reach node {node_rid!r}")
                 continue
         

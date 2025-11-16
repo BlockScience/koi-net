@@ -8,11 +8,9 @@ from koi_net.network.poll_event_buffer import PollEventBuffer
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from koi_net.protocol.envelope import SignedEnvelope
-from koi_net.protocol.model_map import API_MODEL_MAP
 from koi_net.secure import Secure
 
 from ..protocol.api_models import (
-    ApiModels,
     EventsPayload,
     PollEvents,
     RidsPayload,

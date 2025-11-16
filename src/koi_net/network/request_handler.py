@@ -4,8 +4,6 @@ from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
 
-from koi_net.protocol.model_map import API_MODEL_MAP
-
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
     RidsPayload,
@@ -20,7 +18,6 @@ from ..protocol.api_models import (
     ResponseModels,
     ErrorResponse
 )
-from ..protocol.envelope import SignedEnvelope
 from ..protocol.consts import (
     BROADCAST_EVENTS_PATH,
     POLL_EVENTS_PATH,
@@ -29,26 +26,30 @@ from ..protocol.consts import (
     FETCH_BUNDLES_PATH
 )
 from ..protocol.node import NodeProfile, NodeType
+from ..protocol.model_map import API_MODEL_MAP
 from ..secure import Secure
 from .error_handler import ErrorHandler
 
 log = structlog.stdlib.get_logger()
 
 
+class KoiNetRequestError(Exception):
+    pass
+
 # Custom error types for request handling
-class SelfRequestError(Exception):
+class SelfRequestError(KoiNetRequestError):
     """Raised when a node tries to request itself."""
     pass
 
-class PartialNodeQueryError(Exception):
+class PartialNodeQueryError(KoiNetRequestError):
     """Raised when attempting to query a partial node."""
     pass
 
-class NodeNotFoundError(Exception):
+class NodeNotFoundError(KoiNetRequestError):
     """Raised when a node URL cannot be found."""
     pass
 
-class UnknownPathError(Exception):
+class UnknownPathError(KoiNetRequestError):
     """Raised when an unknown path is requested."""
     pass
 
@@ -72,31 +73,21 @@ class RequestHandler:
         self.secure = secure
         self.error_handler = error_handler
     
-    def get_url(self, node_rid: KoiNetNode) -> str:
+    def get_base_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node from its RID."""
         
-        log.debug(f"Getting URL for {node_rid!r}")
-        node_url = None
-        
-        if node_rid == self.identity.rid:
-            raise SelfRequestError("Don't talk to yourself")
-        
         node_bundle = self.cache.read(node_rid)
-                
         if node_bundle:
             node_profile = node_bundle.validate_contents(NodeProfile)
-            log.debug(f"Found node profile: {node_profile}")
             if node_profile.node_type != NodeType.FULL:
-                raise PartialNodeQueryError("Can't query partial node")
+                raise PartialNodeQueryError("Partial nodes don't have URLs")
             node_url = node_profile.base_url
         
-        else:
-            if node_rid == self.identity.config.koi_net.first_contact.rid:
-                log.debug("Found URL of first contact")
-                node_url = self.identity.config.koi_net.first_contact.url
+        elif node_rid == self.identity.config.koi_net.first_contact.rid:
+            node_url = self.identity.config.koi_net.first_contact.url
         
-        if not node_url:
-            raise NodeNotFoundError("Node not found")
+        else:
+            raise NodeNotFoundError(f"URL not found for {node_rid!r}")
         
         log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
@@ -108,7 +99,10 @@ class RequestHandler:
         request: RequestModels,
     ) -> ResponseModels | None:
         """Makes a request to a node."""
-        url = self.get_url(node) + path
+        if node == self.identity.rid:
+            raise SelfRequestError("Don't talk to yourself")
+        
+        url = self.get_base_url(node) + path
         log.info(f"Making request to {url}")
     
         signed_envelope = self.secure.create_envelope(
@@ -116,12 +110,13 @@ class RequestHandler:
             target=node
         )
         
+        data = signed_envelope.model_dump_json(exclude_none=True)
+        
         try:
-            result = httpx.post(
-                url, 
-                data=signed_envelope.model_dump_json(exclude_none=True)
-            )
-        except httpx.ConnectError as err:
+            result = httpx.post(url, data=data)
+            self.error_handler.reset_timeout_counter(node)
+            
+        except httpx.RequestError as err:
             log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
             raise err
@@ -132,7 +127,7 @@ class RequestHandler:
             return resp
         
         resp_env_model = API_MODEL_MAP[path].response_envelope
-        if resp_env_model is None:
+        if not resp_env_model: 
             return
         
         resp_envelope = resp_env_model.model_validate_json(result.text)
@@ -159,7 +154,7 @@ class RequestHandler:
         node: RID, 
         req: PollEvents | None = None,
         **kwargs
-    ) -> EventsPayload:
+    ) -> EventsPayload | ErrorResponse:
         """Polls events from a node.
         
         Pass `PollEvents` object as `req` or fields as kwargs.
@@ -175,7 +170,7 @@ class RequestHandler:
         node: RID, 
         req: FetchRids | None = None,
         **kwargs
-    ) -> RidsPayload:
+    ) -> RidsPayload | ErrorResponse:
         """Fetches RIDs from a node.
         
         Pass `FetchRids` object as `req` or fields as kwargs.
@@ -191,7 +186,7 @@ class RequestHandler:
         node: RID, 
         req: FetchManifests | None = None,
         **kwargs
-    ) -> ManifestsPayload:
+    ) -> ManifestsPayload | ErrorResponse:
         """Fetches manifests from a node.
         
         Pass `FetchManifests` object as `req` or fields as kwargs.
@@ -207,7 +202,7 @@ class RequestHandler:
         node: RID, 
         req: FetchBundles | None = None,
         **kwargs
-    ) -> BundlesPayload:
+    ) -> BundlesPayload | ErrorResponse:
         """Fetches bundles from a node.
         
         Pass `FetchBundles` object as `req` or fields as kwargs.
