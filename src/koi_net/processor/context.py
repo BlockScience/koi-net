@@ -11,7 +11,7 @@ from .kobj_queue import KobjQueue
 
 
 class HandlerContext:
-    """Provides knowledge handlers access to other subsystems."""
+    """Context object provides knowledge handlers access to other components."""
     
     identity: NodeIdentity
     config: NodeConfig
