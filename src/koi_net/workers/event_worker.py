@@ -18,15 +18,17 @@ log = structlog.stdlib.get_logger()
 
 
 class EventProcessingWorker(ThreadWorker):
+    """Thread worker that processes the `event_queue`."""
+    
     event_buffer: dict[KoiNetNode, list[Event]]
     buffer_times: dict[KoiNetNode, float]
 
     def __init__(
         self,
-        event_queue: EventQueue,
-        request_handler: RequestHandler,
         config: NodeConfig,
         cache: Cache,
+        event_queue: EventQueue,
+        request_handler: RequestHandler,
         poll_event_buf: PollEventBuffer
     ):
         self.event_queue = event_queue
@@ -55,6 +57,12 @@ class EventProcessingWorker(ThreadWorker):
         self.buffer_times[target] = None
         
     def decide_event(self, item: QueuedEvent) -> bool:
+        """Decides how to handle queued event.
+        
+        Returns `True` when event should be broadcasted, and `False`
+        otherwise. If the target is a partial node, the event is pushed
+        to the event polling buffer."""
+        
         node_bundle = self.cache.read(item.target)
         if node_bundle: 
             node_profile = node_bundle.validate_contents(NodeProfile)
@@ -63,6 +71,7 @@ class EventProcessingWorker(ThreadWorker):
                 return True
         
             elif node_profile.node_type == NodeType.PARTIAL:
+                # to be handled by poll event buffer
                 self.poll_event_buf.push(item.target, item.event)
                 return False
         
@@ -72,7 +81,6 @@ class EventProcessingWorker(ThreadWorker):
         else:
             log.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
             return False
-        
 
     def run(self):
         log.info("Started event worker")
@@ -98,7 +106,7 @@ class EventProcessingWorker(ThreadWorker):
                         self.buffer_times[item.target] = now
                     
                     event_buf.append(item.event)
-
+                    
                     # When new events are dequeued, check buffer for max length
                     if len(event_buf) >= self.max_buf_len:
                         self.flush_buffer(item.target, event_buf)
