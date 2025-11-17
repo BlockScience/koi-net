@@ -10,6 +10,8 @@ log = structlog.stdlib.get_logger()
 
 
 class KnowledgeProcessingWorker(ThreadWorker):
+    """Thread worker that processes the `kobj_queue`."""
+    
     def __init__(
         self,
         kobj_queue: KobjQueue,
