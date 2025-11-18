@@ -11,6 +11,14 @@ from ..protocol.node import NodeProfile
 log = structlog.stdlib.get_logger()
 
 
+class EventWorkerConfig(BaseModel):
+    queue_timeout: float = 0.1
+    max_buf_len: int = 5
+    max_wait_time: float = 1.0
+    
+class KobjWorkerConfig(BaseModel):
+    queue_timeout: float = 0.1
+
 class NodeContact(BaseModel):
     rid: KoiNetNode | None = None
     url: str | None = None
@@ -25,8 +33,10 @@ class KoiNetConfig(BaseModel):
     rid_types_of_interest: list[RIDType] = [KoiNetNode]
         
     cache_directory_path: str = ".rid_cache"
-    event_queues_path: str = "event_queues.json"
     private_key_pem_path: str = "priv_key.pem"
+    
+    event_worker: EventWorkerConfig = EventWorkerConfig()
+    kobj_worker: KobjWorkerConfig = KobjWorkerConfig()
     
     first_contact: NodeContact = NodeContact()
     
@@ -64,10 +74,10 @@ class NodeConfig(BaseModel):
     @model_validator(mode="after")
     def generate_rid_cascade(self):
         """Generates node RID if missing."""
-        if self.koi_net.node_rid:
+        if self.koi_net.node_rid and self.koi_net.node_profile.public_key:
             return self
         
-        log.debug("Node RID not found in config, attempting to generate")
+        log.debug("Node RID or public key not found in config, attempting to generate")
         
         try:
             # attempts to read existing private key PEM file

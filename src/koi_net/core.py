@@ -17,7 +17,7 @@ from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
 from .network.resolver import NetworkResolver
 from .network.response_handler import ResponseHandler
-from .network.poll_event_buffer import PollEventBuffer
+from .network.event_buffer import EventBuffer
 from .processor.pipeline import KnowledgePipeline
 from .processor.kobj_queue import KobjQueue
 from .secure import Secure
@@ -38,7 +38,8 @@ class BaseNode(NodeAssembler):
     config_cls = NodeConfig
     kobj_queue = KobjQueue
     event_queue = EventQueue
-    poll_event_buf = PollEventBuffer
+    poll_event_buf = EventBuffer
+    broadcast_event_buf = EventBuffer
     config = ConfigLoader
     knowledge_handlers = [
         basic_rid_handler,

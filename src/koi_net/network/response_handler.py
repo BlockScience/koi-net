@@ -4,7 +4,7 @@ from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
-from koi_net.network.poll_event_buffer import PollEventBuffer
+from koi_net.network.event_buffer import EventBuffer
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from koi_net.protocol.envelope import SignedEnvelope
@@ -29,13 +29,13 @@ class ResponseHandler:
     
     cache: Cache
     kobj_queue: KobjQueue
-    poll_event_buf: PollEventBuffer
+    poll_event_buf: EventBuffer
     
     def __init__(
         self, 
         cache: Cache,
         kobj_queue: KobjQueue,
-        poll_event_buf: PollEventBuffer,
+        poll_event_buf: EventBuffer,
         secure: Secure
     ):
         self.cache = cache
