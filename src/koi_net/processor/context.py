@@ -1,13 +1,16 @@
+from typing import TYPE_CHECKING
 from rid_lib.ext import Cache
 
-from koi_net.effector import Effector
-from koi_net.network.resolver import NetworkResolver
+from ..network.resolver import NetworkResolver
 from ..config.core import NodeConfig
 from ..network.graph import NetworkGraph
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
 from ..identity import NodeIdentity
 from .kobj_queue import KobjQueue
+
+if TYPE_CHECKING:
+    from ..effector import Effector
 
 
 class HandlerContext:
@@ -21,7 +24,7 @@ class HandlerContext:
     graph: NetworkGraph
     request_handler: RequestHandler
     resolver: NetworkResolver
-    effector: Effector
+    effector: "Effector"
     
     def __init__(
         self,
@@ -32,8 +35,7 @@ class HandlerContext:
         kobj_queue: KobjQueue,
         graph: NetworkGraph,
         request_handler: RequestHandler,
-        resolver: NetworkResolver,
-        effector: Effector
+        resolver: NetworkResolver
     ):
         self.identity = identity
         self.config = config
@@ -43,4 +45,7 @@ class HandlerContext:
         self.graph = graph
         self.request_handler = request_handler
         self.resolver = resolver
+    
+    def set_effector(self, effector: "Effector"):
+        """Post initialization injection of effector component."""
         self.effector = effector
