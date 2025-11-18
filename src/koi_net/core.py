@@ -5,7 +5,7 @@ from .config.loader import ConfigLoader
 from .assembler import NodeAssembler
 from .config.core import NodeConfig
 from .processor.context import HandlerContext
-from .effector import Effector
+from .effector import DerefHandler, Effector
 from .handshaker import Handshaker
 from .sync_manager import SyncManager
 from .identity import NodeIdentity
@@ -20,6 +20,7 @@ from .network.response_handler import ResponseHandler
 from .network.event_buffer import EventBuffer
 from .processor.pipeline import KnowledgePipeline
 from .processor.kobj_queue import KobjQueue
+from .processor.handler import KnowledgeHandler
 from .secure_manager import SecureManager
 from .entrypoints import NodeServer, NodePoller
 from .processor.knowledge_handlers import (
@@ -34,14 +35,14 @@ from .processor.knowledge_handlers import (
 
 
 class BaseNode(NodeAssembler):
-    log_system = LogSystem
-    config_cls = NodeConfig
-    kobj_queue = KobjQueue
-    event_queue = EventQueue
-    poll_event_buf = EventBuffer
-    broadcast_event_buf = EventBuffer
-    config = ConfigLoader
-    knowledge_handlers = [
+    log_system: LogSystem = LogSystem
+    config_cls: NodeConfig = NodeConfig
+    kobj_queue: KobjQueue = KobjQueue
+    event_queue: EventQueue = EventQueue
+    poll_event_buf: EventBuffer = EventBuffer
+    broadcast_event_buf: EventBuffer = EventBuffer
+    config: ConfigLoader = ConfigLoader
+    knowledge_handlers: list[KnowledgeHandler] = [
         basic_rid_handler,
         basic_manifest_handler,
         secure_profile_handler,
@@ -50,27 +51,27 @@ class BaseNode(NodeAssembler):
         basic_network_output_filter,
         forget_edge_on_node_deletion
     ]
-    deref_handlers = []
-    cache = lambda config: Cache(
+    deref_handlers: list[DerefHandler] = []
+    cache: Cache = lambda config: Cache(
         directory_path=config.koi_net.cache_directory_path)
-    identity = NodeIdentity
-    graph = NetworkGraph
-    secure_manager = SecureManager
-    handshaker = Handshaker
-    error_handler = ErrorHandler
-    request_handler = RequestHandler
-    sync_manager = SyncManager
-    response_handler = ResponseHandler
-    resolver = NetworkResolver
-    handler_context = HandlerContext
-    effector = Effector
-    pipeline = KnowledgePipeline
-    kobj_worker = KnowledgeProcessingWorker
-    event_worker = EventProcessingWorker
-    lifecycle = NodeLifecycle
+    identity: NodeIdentity = NodeIdentity
+    graph: NetworkGraph = NetworkGraph
+    secure_manager: SecureManager = SecureManager
+    handshaker: Handshaker = Handshaker
+    error_handler: ErrorHandler = ErrorHandler
+    request_handler: RequestHandler = RequestHandler
+    sync_manager: SyncManager = SyncManager
+    response_handler: ResponseHandler = ResponseHandler
+    resolver: NetworkResolver = NetworkResolver
+    handler_context: HandlerContext = HandlerContext
+    effector: Effector = Effector
+    pipeline: KnowledgePipeline = KnowledgePipeline
+    kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
+    event_worker: EventProcessingWorker = EventProcessingWorker
+    lifecycle: NodeLifecycle = NodeLifecycle
 
 class FullNode(BaseNode):
-    entrypoint = NodeServer
+    entrypoint: NodeServer = NodeServer
 
 class PartialNode(BaseNode):
-    entrypoint = NodePoller
+    entrypoint: NodePoller = NodePoller

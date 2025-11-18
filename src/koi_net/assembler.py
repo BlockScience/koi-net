@@ -1,6 +1,6 @@
 import inspect
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 from dataclasses import make_dataclass
 
 import structlog
@@ -42,7 +42,7 @@ class NodeContainer(Protocol):
     entrypoint = EntryPoint
 
 class NodeAssembler(metaclass=BuildOrderer):
-    def __new__(self) -> NodeContainer:
+    def __new__(self) -> Self:
         """Returns assembled node container."""
         return self._build()
     

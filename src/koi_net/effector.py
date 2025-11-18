@@ -117,6 +117,7 @@ class Effector:
             refresh_cache: skips cache read when `True` 
             use_network: enables fetching from other nodes when `True`
             handle_result: sends resulting bundle to kobj queue when `True`
+            write_through: waits for kobj queue to empty when `True`
         """
         
         log.debug(f"Dereferencing {rid!r}")
@@ -142,8 +143,5 @@ class Effector:
             
             if write_through:
                 self.kobj_queue.q.join()
-
-            # TODO: refactor for general solution, param to write through to cache before continuing
-            # like `self.processor.kobj_queue.join()``
-
+                
         return bundle

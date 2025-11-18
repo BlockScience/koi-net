@@ -37,8 +37,8 @@ class KnowledgeHandler:
     
     func: Callable[[HandlerContext, KnowledgeObject], None | KnowledgeObject | StopChain]
     handler_type: HandlerType
-    rid_types: tuple[RIDType]
-    event_types: tuple[EventType | None]
+    rid_types: tuple[RIDType] = ()
+    event_types: tuple[EventType | None] = ()
     
     def __call__(
         self, 
