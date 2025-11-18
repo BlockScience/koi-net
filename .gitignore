@@ -8,3 +8,5 @@ venv
 prototypes
 .vscode
 dist/
+docs/
+*.ndjson
