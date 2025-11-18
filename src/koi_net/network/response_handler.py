@@ -8,7 +8,7 @@ from koi_net.network.event_buffer import EventBuffer
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from koi_net.protocol.envelope import SignedEnvelope
-from koi_net.secure import Secure
+from koi_net.secure_manager import SecureManager
 
 from ..protocol.api_models import (
     EventsPayload,
@@ -36,15 +36,15 @@ class ResponseHandler:
         cache: Cache,
         kobj_queue: KobjQueue,
         poll_event_buf: EventBuffer,
-        secure: Secure
+        secure_manager: SecureManager
     ):
         self.cache = cache
         self.kobj_queue = kobj_queue
         self.poll_event_buf = poll_event_buf
-        self.secure = secure
+        self.secure_manager = secure_manager
     
     def handle_response(self, path: str, req: SignedEnvelope):
-        self.secure.validate_envelope(req)
+        self.secure_manager.validate_envelope(req)
         
         response_map = {
             BROADCAST_EVENTS_PATH: self.broadcast_events_handler,
@@ -59,7 +59,7 @@ class ResponseHandler:
         if response is None:
             return
         
-        return self.secure.create_envelope(
+        return self.secure_manager.create_envelope(
             payload=response,
             target=req.source_node
         )

@@ -20,7 +20,7 @@ from .network.response_handler import ResponseHandler
 from .network.event_buffer import EventBuffer
 from .processor.pipeline import KnowledgePipeline
 from .processor.kobj_queue import KobjQueue
-from .secure import Secure
+from .secure_manager import SecureManager
 from .entrypoints import NodeServer, NodePoller
 from .processor.knowledge_handlers import (
     basic_manifest_handler, 
@@ -54,7 +54,7 @@ class BaseNode(NodeAssembler):
         directory_path=config.koi_net.cache_directory_path)
     identity = NodeIdentity
     graph = NetworkGraph
-    secure = Secure
+    secure_manager = SecureManager
     handshaker = Handshaker
     error_handler = ErrorHandler
     request_handler = RequestHandler

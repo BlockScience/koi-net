@@ -1,14 +1,14 @@
 from rid_lib.ext import Cache
-from rid_lib.types import KoiNetNode
 
-from koi_net.network.graph import NetworkGraph
-from koi_net.network.request_handler import RequestHandler
-from koi_net.processor.kobj_queue import KobjQueue
+from .network.graph import NetworkGraph
+from .network.request_handler import RequestHandler
+from .processor.kobj_queue import KobjQueue
 from .protocol.api_models import ErrorResponse
 from .protocol.node import NodeProfile, NodeType
 
 
 class SyncManager:
+    """Handles state synchronization actions with other nodes."""
     graph: NetworkGraph
     cache: Cache
     request_handler: RequestHandler
@@ -25,26 +25,15 @@ class SyncManager:
         self.cache = cache
         self.request_handler = request_handler
         self.kobj_queue = kobj_queue
-        
-    def catch_up_with_coordinators(self) -> bool:
-        return self.catch_up_with(
-            nodes=self.graph.get_neighbors(
-                direction="in",
-                allowed_type=KoiNetNode
-            ),
-            rid_types=[KoiNetNode]
-        )
     
-    def catch_up_with(self, nodes, rid_types) -> bool:
-        # get all of the nodes such that, (node) -[orn:koi-net.node]-> (me)
-        # node providers that I am subscribed to
-        if not nodes:
-            return False
-        
+    def catch_up_with(self, nodes, rid_types):
+        """Catches up with the state of RID types within other nodes."""
+    
         for node in nodes:
             node_bundle = self.cache.read(node)
             node_profile = node_bundle.validate_contents(NodeProfile)
             
+            # can't catch up with partial nodes
             if node_profile.node_type != NodeType.FULL:
                 continue
             
@@ -59,5 +48,3 @@ class SyncManager:
                     manifest=manifest,
                     source=node
                 )
-        
-        return True

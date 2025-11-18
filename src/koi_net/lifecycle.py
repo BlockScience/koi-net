@@ -2,6 +2,7 @@ import structlog
 from contextlib import contextmanager, asynccontextmanager
 
 from rid_lib.ext import Bundle
+from rid_lib.types import KoiNetNode
 
 from .sync_manager import SyncManager
 from .handshaker import Handshaker
@@ -90,31 +91,29 @@ class NodeLifecycle:
         self.event_worker.thread.start()
         self.graph.generate()
         
-        # refresh to reflect changes (if any) in config.yaml
-        
+        # refresh to reflect changes (if any) in config.yaml node profile
         self.kobj_queue.push(bundle=Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
         ))
         
-        log.debug("Waiting for kobj queue to empty")
         self.kobj_queue.q.join()
         
-        if self.sync_manager.catch_up_with_coordinators():
-            pass
+        node_providers = self.graph.get_neighbors(
+            direction="in",
+            allowed_type=[KoiNetNode]
+        )
+        
+        if node_providers:
+            log.debug(f"Catching up with `orn:koi-net.node` providers: {node_providers}")
+            self.sync_manager.catch_up_with(node_providers, [KoiNetNode])
         
         elif self.config.koi_net.first_contact.rid:
-            log.debug(f"I don't have any edges with coordinators, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
-            
+            log.debug(f"No edges with `orn:koi-net.node` providers, reaching out to first contact {self.config.koi_net.first_contact.rid!r}")
             self.handshaker.handshake_with(self.config.koi_net.first_contact.rid)
-        
-
+            
     def stop(self):
-        """Stops a node.
-        
-        Finishes processing knowledge object queue.
-        """        
-        log.info(f"Waiting for kobj queue to empty ({self.kobj_queue.q.unfinished_tasks} tasks remaining)")
+        """Stops a node, send stop signals to workers."""
         
         self.kobj_queue.q.put(STOP_WORKER)
         self.event_queue.q.put(STOP_WORKER)

@@ -32,8 +32,8 @@ class Effector:
     
     cache: Cache
     resolver: NetworkResolver
-    kobj_queue: KobjQueue | None
-    action_context: ActionContext | None
+    kobj_queue: KobjQueue
+    action_context: ActionContext
     _action_table: dict[
         type[RID], 
         Callable[

@@ -9,7 +9,7 @@ log = structlog.stdlib.get_logger()
 class NodeIdentity:
     """Represents a node's identity (RID, profile)."""
     
-    config: NodeConfig    
+    config: NodeConfig
     
     def __init__(self, config: NodeConfig):
         self.config = config
