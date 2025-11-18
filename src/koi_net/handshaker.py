@@ -9,6 +9,7 @@ log = structlog.stdlib.get_logger()
 
 
 class Handshaker:
+    """Handles handshaking with other nodes."""
     def __init__(
         self, 
         cache: Cache, 
@@ -21,9 +22,11 @@ class Handshaker:
         
     def handshake_with(self, target: KoiNetNode):
         """Initiates a handshake with target node.
+        
         Pushes successive `FORGET` and `NEW` events to target node to
         reset the target's cache in case it already knew this node. 
         """
+        
         log.debug(f"Initiating handshake with {target}")
         self.event_queue.push(
             Event.from_rid(

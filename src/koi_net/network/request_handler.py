@@ -27,7 +27,7 @@ from ..protocol.consts import (
 )
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.model_map import API_MODEL_MAP
-from ..secure import Secure
+from ..secure_manager import SecureManager
 from .error_handler import ErrorHandler
 
 log = structlog.stdlib.get_logger()
@@ -58,19 +58,19 @@ class RequestHandler:
     
     cache: Cache
     identity: NodeIdentity
-    secure: Secure
+    secure_manager: SecureManager
     error_handler: ErrorHandler
     
     def __init__(
         self, 
         cache: Cache,
         identity: NodeIdentity,
-        secure: Secure,
+        secure_manager: SecureManager,
         error_handler: ErrorHandler
     ):
         self.cache = cache
         self.identity = identity
-        self.secure = secure
+        self.secure_manager = secure_manager
         self.error_handler = error_handler
     
     def get_base_url(self, node_rid: KoiNetNode) -> str:
@@ -105,7 +105,7 @@ class RequestHandler:
         url = self.get_base_url(node) + path
         log.info(f"Making request to {url}")
     
-        signed_envelope = self.secure.create_envelope(
+        signed_envelope = self.secure_manager.create_envelope(
             payload=request,
             target=node
         )
@@ -131,7 +131,7 @@ class RequestHandler:
             return
         
         resp_envelope = resp_env_model.model_validate_json(result.text)
-        self.secure.validate_envelope(resp_envelope)
+        self.secure_manager.validate_envelope(resp_envelope)
         
         return resp_envelope.payload
     

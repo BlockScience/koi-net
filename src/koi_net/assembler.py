@@ -1,10 +1,10 @@
-from enum import StrEnum
 import inspect
+from enum import StrEnum
 from typing import Any, Protocol
 from dataclasses import make_dataclass
 
-from pydantic import BaseModel
 import structlog
+from pydantic import BaseModel
 
 from .entrypoints.base import EntryPoint
 
@@ -38,6 +38,7 @@ class BuildOrderer(type):
         return cls
 
 class NodeContainer(Protocol):
+    """Dummy 'shape' for node containers built by assembler."""
     entrypoint = EntryPoint
 
 class NodeAssembler(metaclass=BuildOrderer):    
@@ -78,8 +79,6 @@ class NodeAssembler(metaclass=BuildOrderer):
                 dep_names = list(sig.parameters)
                 
             dep_graph[comp_name] = (comp_type, dep_names)
-            
-            # print(f"{comp_name} ({comp_type}) -> {dep_names}")
             
         return dep_graph
         
