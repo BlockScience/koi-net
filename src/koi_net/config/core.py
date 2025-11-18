@@ -101,7 +101,9 @@ class NodeConfig(BaseModel):
         log.debug(f"Node RID set to {self.koi_net.node_rid}")
         
         if self.koi_net.node_profile.public_key != pub_key.to_der():
+            if self.koi_net.node_profile.public_key:
+                log.warning("New private key overwriting old public key!")
+            
             self.koi_net.node_profile.public_key = pub_key.to_der()
-            log.warning("New private key overwrote old public key!")
         
         return self

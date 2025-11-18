@@ -41,7 +41,7 @@ class NodeContainer(Protocol):
     """Dummy 'shape' for node containers built by assembler."""
     entrypoint = EntryPoint
 
-class NodeAssembler(metaclass=BuildOrderer):    
+class NodeAssembler(metaclass=BuildOrderer):
     def __new__(self) -> NodeContainer:
         """Returns assembled node container."""
         return self._build()

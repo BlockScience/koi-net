@@ -50,6 +50,7 @@ class BaseNode(NodeAssembler):
         basic_network_output_filter,
         forget_edge_on_node_deletion
     ]
+    deref_handlers = []
     cache = lambda config: Cache(
         directory_path=config.koi_net.cache_directory_path)
     identity = NodeIdentity
@@ -61,8 +62,8 @@ class BaseNode(NodeAssembler):
     sync_manager = SyncManager
     response_handler = ResponseHandler
     resolver = NetworkResolver
-    effector = Effector
     handler_context = HandlerContext
+    effector = Effector
     pipeline = KnowledgePipeline
     kobj_worker = KnowledgeProcessingWorker
     event_worker = EventProcessingWorker
