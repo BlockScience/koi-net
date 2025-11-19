@@ -3,6 +3,7 @@ from rid_lib.ext import Cache
 
 from ..network.resolver import NetworkResolver
 from ..config.core import NodeConfig
+from ..config.loader import ConfigLoader
 from ..network.graph import NetworkGraph
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -18,6 +19,7 @@ class HandlerContext:
     
     identity: NodeIdentity
     config: NodeConfig
+    config_loader: ConfigLoader
     cache: Cache
     event_queue: EventQueue
     kobj_queue: KobjQueue
@@ -30,6 +32,7 @@ class HandlerContext:
         self,
         identity: NodeIdentity,
         config: NodeConfig,
+        config_loader: ConfigLoader,
         cache: Cache,
         event_queue: EventQueue,
         kobj_queue: KobjQueue,
@@ -39,6 +42,7 @@ class HandlerContext:
     ):
         self.identity = identity
         self.config = config
+        self.config_loader = config_loader
         self.cache = cache
         self.event_queue = event_queue
         self.kobj_queue = kobj_queue

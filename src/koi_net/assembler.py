@@ -42,6 +42,7 @@ class NodeContainer(Protocol):
     entrypoint = EntryPoint
 
 class NodeAssembler(metaclass=BuildOrderer):
+    # Self annotation lying to type checker to reflect typing set in node blueprints
     def __new__(self) -> Self:
         """Returns assembled node container."""
         return self._build()
