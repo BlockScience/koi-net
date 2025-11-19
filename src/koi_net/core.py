@@ -1,9 +1,10 @@
 from rid_lib.ext import Cache
 
 from .log_system import LogSystem
-from .config.loader import ConfigLoader
 from .assembler import NodeAssembler
 from .config.core import NodeConfig
+from .config.proxy import ConfigProxy
+from .config.loader import ConfigLoader
 from .processor.context import HandlerContext
 from .effector import DerefHandler, Effector
 from .handshaker import Handshaker
@@ -36,12 +37,13 @@ from .processor.knowledge_handlers import (
 
 class BaseNode(NodeAssembler):
     log_system: LogSystem = LogSystem
-    config_cls: NodeConfig = NodeConfig
     kobj_queue: KobjQueue = KobjQueue
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
-    config: ConfigLoader = ConfigLoader
+    config_schema = NodeConfig
+    config: NodeConfig = ConfigProxy
+    config_loader: ConfigLoader = ConfigLoader
     knowledge_handlers: list[KnowledgeHandler] = [
         basic_rid_handler,
         basic_manifest_handler,

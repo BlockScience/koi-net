@@ -45,9 +45,9 @@ class EnvConfig(BaseModel):
     
     Values set in the config are the variables names, and are loaded
     from the environment at runtime. For example, if the config YAML
-    sets `priv_key_password: PRIV_KEY_PASSWORD` accessing 
+    sets `priv_key_password: "PRIV_KEY_PASSWORD"` accessing 
     `priv_key_password` would retrieve the value of `PRIV_KEY_PASSWORD`
-    from the environment.
+    from the environment variables.
     """
     
     priv_key_password: str = "PRIV_KEY_PASSWORD"
