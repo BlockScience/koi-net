@@ -46,6 +46,9 @@ class EventProcessingWorker(ThreadWorker):
             self.request_handler.broadcast_events(target, events=events)
         except Exception as e:
             traceback.print_exc()
+            
+    def stop(self):
+        self.event_queue.q.put(STOP_WORKER)
         
     def run(self):
         log.info("Started event worker")

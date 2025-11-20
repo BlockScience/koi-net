@@ -12,7 +12,6 @@ from .handshaker import Handshaker
 from .workers.kobj_worker import KnowledgeProcessingWorker
 from .network.event_queue import EventQueue
 from .workers import EventProcessingWorker
-from .workers.base import STOP_WORKER
 from .config.core import NodeConfig
 from .processor.kobj_queue import KobjQueue
 from .network.graph import NetworkGraph
@@ -103,8 +102,8 @@ class NodeLifecycle:
         
         self.secure_manager.load_priv_key()
         
-        self.kobj_worker.thread.start()
-        self.event_worker.thread.start()
+        self.kobj_worker.start()
+        self.event_worker.start()
         self.graph.generate()
         
         # refresh to reflect changes (if any) in config.yaml node profile
@@ -131,5 +130,5 @@ class NodeLifecycle:
     def stop(self):
         """Stops a node, send stop signals to workers."""
         
-        self.kobj_queue.q.put(STOP_WORKER)
-        self.event_queue.q.put(STOP_WORKER)
+        self.kobj_worker.stop()
+        self.event_worker.stop()
