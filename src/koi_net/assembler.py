@@ -30,34 +30,16 @@ class NodeAssembler:
         """Returns assembled node container."""
         
         comps = self._collect_comps()
-        # pp(list(comps.keys()))
         adj, comp_types = self._build_deps(comps)
-        # pp(adj)
-        # pp(comp_types)
         build_order = self._build_order(adj)
-        # pp(build_order)
         components = self._build_comps(build_order, adj, comp_types)
         node = self._build_node(components)
-        
-        old = list(comps.keys())
-        new = build_order
-        
-        result = []
-        
-        for idx, item in enumerate(new):
-            old_idx = old.index(item)
-            if old_idx == idx:
-                result.append(f"{idx}. {item}")
-            else:
-                result.append(f"{idx}. {item} (moved from {old_idx})")
-
-        # print("\n".join(result))
         
         return node
     
     @classmethod
-    def _collect_comps(cls):
-        comps: dict[str, Any] = {}
+    def _collect_comps(cls) -> dict[str, Any]:
+        comps = {}
         # adds components from base classes, including cls)
         for base in inspect.getmro(cls)[:-1]:
             for k, v in vars(base).items():
@@ -68,7 +50,9 @@ class NodeAssembler:
         return comps
     
     @classmethod
-    def _build_deps(cls, comps) -> tuple[dict[str, list[str]], dict[str, CompType]]:
+    def _build_deps(
+        cls, comps: dict[str, Any]
+    ) -> tuple[dict[str, list[str]], dict[str, CompType]]:
         """Returns dependency graph for components defined in `cls_build_order`.
         
         Graph representation is a dict where each key is a component name,
@@ -102,40 +86,7 @@ class NodeAssembler:
         return dep_graph, comp_types
     
     @classmethod
-    def _find_cycle(cls, adj) -> list[str]:
-        visited = set()
-        stack = []
-        on_stack = set()
-        
-        def dfs(node):
-            visited.add(node)
-            stack.append(node)
-            on_stack.add(node)
-            
-            for nxt in adj[node]:
-                if nxt not in visited:
-                    cycle = dfs(nxt)
-                    if cycle:
-                        return cycle
-                
-                elif nxt in on_stack:
-                    idx = stack.index(nxt)
-                    return stack[idx:] + [nxt]
-                
-            stack.pop()
-            on_stack.remove(node)
-            return None
-        
-        for node in adj:
-            if node not in visited:
-                cycle = dfs(node)
-                if cycle:
-                    return cycle
-                
-        return None
-    
-    @classmethod
-    def _build_order(cls, adj) -> list[str]:
+    def _build_order(cls, adj: dict[str, list[str]]) -> list[str]:
         # adj list: n -> outgoing neighbors
         
         # reverse adj list: n -> incoming neighbors
@@ -171,17 +122,7 @@ class NodeAssembler:
         
         if len(ordered) != len(adj):
             cycle_nodes = set(adj.keys()) - set(ordered)
-            cycle_adj = {}
-            for n in list(cycle_nodes):
-                cycle_adj[n] = set(adj[n]) & cycle_nodes
-                print(n, "->", cycle_adj[n])
-                
-            cycle = cls._find_cycle(cycle_adj)
-        
-            print("FOUND CYCLE")
-            print(" -> ".join(cycle))
-            
-        print(len(ordered), "/", len(adj))
+            raise Exception(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
         
         return ordered
         
