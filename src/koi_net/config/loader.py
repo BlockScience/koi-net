@@ -20,8 +20,6 @@ class ConfigLoader:
     ):
         self.config_schema = config_schema
         self.proxy = config
-        self.load_from_yaml()
-        self.save_to_yaml()
     
     def load_from_yaml(self):
         """Loads config from YAML file, or generates it if missing."""

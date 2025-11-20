@@ -4,6 +4,9 @@ from contextlib import contextmanager, asynccontextmanager
 from rid_lib.ext import Bundle
 from rid_lib.types import KoiNetNode
 
+from koi_net.config.loader import ConfigLoader
+from koi_net.secure_manager import SecureManager
+
 from .sync_manager import SyncManager
 from .handshaker import Handshaker
 from .workers.kobj_worker import KnowledgeProcessingWorker
@@ -22,6 +25,7 @@ class NodeLifecycle:
     """Manages node startup and shutdown processes."""
     
     config: NodeConfig
+    config_loader: ConfigLoader
     identity: NodeIdentity
     graph: NetworkGraph
     kobj_queue: KobjQueue
@@ -30,10 +34,12 @@ class NodeLifecycle:
     event_worker: EventProcessingWorker
     handshaker: Handshaker
     sync_manager: SyncManager
+    secure_manager: SecureManager
     
     def __init__(
         self,
         config: NodeConfig,
+        config_loader: ConfigLoader,
         identity: NodeIdentity,
         graph: NetworkGraph,
         kobj_queue: KobjQueue,
@@ -41,9 +47,11 @@ class NodeLifecycle:
         event_queue: EventQueue,
         event_worker: EventProcessingWorker,
         handshaker: Handshaker,
-        sync_manager: SyncManager
+        sync_manager: SyncManager,
+        secure_manager: SecureManager
     ):
         self.config = config
+        self.config_loader = config_loader
         self.identity = identity
         self.graph = graph
         self.kobj_queue = kobj_queue
@@ -52,6 +60,7 @@ class NodeLifecycle:
         self.event_worker = event_worker
         self.handshaker = handshaker
         self.sync_manager = sync_manager
+        self.secure_manager = secure_manager
         
     @contextmanager
     def run(self):
@@ -86,7 +95,14 @@ class NodeLifecycle:
         graph from nodes and edges in cache. Processes any state changes 
         of node bundle. Initiates handshake with first contact if node 
         doesn't have any neighbors. Catches up with coordinator state.
-        """        
+        """
+        
+        # attempt to load config from yaml, and write back changes (if any)
+        self.config_loader.load_from_yaml()
+        self.config_loader.save_to_yaml()
+        
+        self.secure_manager.load_priv_key()
+        
         self.kobj_worker.thread.start()
         self.event_worker.thread.start()
         self.graph.generate()

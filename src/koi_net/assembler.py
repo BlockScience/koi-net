@@ -45,13 +45,10 @@ class NodeAssembler(metaclass=BuildOrderer):
     # Self annotation lying to type checker to reflect typing set in node blueprints
     def __new__(self) -> Self:
         """Returns assembled node container."""
-        return self._build()
+        return self._build_node()
     
     @classmethod
-    def _build_deps(
-        cls, 
-        build_order: list[str]
-    ) -> dict[str, tuple[CompType, list[str]]]:
+    def _build_deps(cls) -> dict[str, tuple[CompType, list[str]]]:
         """Returns dependency graph for components defined in `cls_build_order`.
         
         Graph representation is a dict where each key is a component name,
@@ -60,7 +57,7 @@ class NodeAssembler(metaclass=BuildOrderer):
         """
         
         dep_graph = {}
-        for comp_name in build_order:
+        for comp_name in cls._build_order:
             try:
                 comp = getattr(cls, comp_name)
             except AttributeError:
@@ -84,9 +81,9 @@ class NodeAssembler(metaclass=BuildOrderer):
         return dep_graph
         
     @classmethod
-    def _visualize(cls, dep_graph) -> str:
+    def _visualize(cls) -> str:
         """Returns representation of dependency graph in Graphviz DOT language."""
-        dep_graph = cls._build_deps(cls._build_order)
+        dep_graph = cls._build_deps()
         
         s = "digraph G {\n"
         for node, (_, neighbors) in dep_graph.items():
@@ -99,11 +96,10 @@ class NodeAssembler(metaclass=BuildOrderer):
         return s
         
     @classmethod
-    def _build_comps(
-        cls,
-        dep_graph: dict[str, tuple[CompType, list[str]]]
-    ) -> dict[str, Any]:
+    def _build_comps(cls) -> dict[str, Any]:
         """Returns assembled components from dependency graph."""
+        dep_graph = cls._build_deps()
+        
         components: dict[str, Any] = {}
         for comp_name, (comp_type, dep_names) in dep_graph.items():
             comp = getattr(cls, comp_name, None)
@@ -119,12 +115,14 @@ class NodeAssembler(metaclass=BuildOrderer):
                         raise Exception(f"Couldn't find required component '{dep_name}'")
                     dependencies[dep_name] = components[dep_name]
                 components[comp_name] = comp(**dependencies)
-        
+                
         return components
 
     @classmethod
-    def _build_node(cls, components: dict[str, Any]) -> NodeContainer:
+    def _build_node(cls) -> NodeContainer:
         """Returns node container from components."""
+        components = cls._build_comps()
+        
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",
             fields=[
@@ -136,11 +134,3 @@ class NodeAssembler(metaclass=BuildOrderer):
         )
         
         return NodeContainer(**components)
-    
-    @classmethod
-    def _build(cls) -> NodeContainer:
-        """Returns node container after calling full build process."""
-        dep_graph = cls._build_deps(cls._build_order)
-        comps = cls._build_comps(dep_graph)
-        node = cls._build_node(comps)
-        return node

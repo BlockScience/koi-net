@@ -61,7 +61,7 @@ def handshake_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     ctx.kobj_queue.push(bundle=edge_bundle)
 
 class CoordinatorNode(FullNode):
-    config_cls = CoordinatorConfig
+    config_schema = CoordinatorConfig
     knowledge_handlers = FullNode.knowledge_handlers + [handshake_handler]
 
 if __name__ == "__main__":

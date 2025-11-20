@@ -1,5 +1,4 @@
-from rid_lib.ext import Cache
-
+from .cache import Cache
 from .log_system import LogSystem
 from .assembler import NodeAssembler
 from .config.core import NodeConfig
@@ -34,7 +33,6 @@ from .processor.knowledge_handlers import (
     secure_profile_handler
 )
 
-
 class BaseNode(NodeAssembler):
     log_system: LogSystem = LogSystem
     kobj_queue: KobjQueue = KobjQueue
@@ -54,8 +52,7 @@ class BaseNode(NodeAssembler):
         forget_edge_on_node_deletion
     ]
     deref_handlers: list[DerefHandler] = []
-    cache: Cache = lambda config: Cache(
-        directory_path=config.koi_net.cache_directory_path)
+    cache: Cache = Cache
     identity: NodeIdentity = NodeIdentity
     graph: NetworkGraph = NetworkGraph
     secure_manager: SecureManager = SecureManager
