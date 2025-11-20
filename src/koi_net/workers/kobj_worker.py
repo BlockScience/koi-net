@@ -2,6 +2,8 @@ import queue
 import traceback
 import structlog
 
+from koi_net.config.core import NodeConfig
+
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
 from .base import ThreadWorker, STOP_WORKER
@@ -14,12 +16,13 @@ class KnowledgeProcessingWorker(ThreadWorker):
     
     def __init__(
         self,
+        config: NodeConfig,
         kobj_queue: KobjQueue,
         pipeline: KnowledgePipeline
     ):
+        self.config = config
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline
-        self.timeout: float = 0.1
 
         super().__init__()
         
@@ -27,7 +30,7 @@ class KnowledgeProcessingWorker(ThreadWorker):
         log.info("Started kobj worker")
         while True:
             try:
-                item = self.kobj_queue.q.get(timeout=self.timeout)
+                item = self.kobj_queue.q.get(timeout=self.config.koi_net.kobj_worker.queue_timeout)
                 try:
                     if item is STOP_WORKER:
                         log.info("Received 'STOP_WORKER' signal, shutting down...")

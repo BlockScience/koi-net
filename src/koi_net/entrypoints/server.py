@@ -32,9 +32,8 @@ class NodeServer(EntryPoint):
         self.config = config
         self.lifecycle = lifecycle
         self.response_handler = response_handler
-        self._build_app()
-    
-    def _build_endpoints(self, router: APIRouter):
+        
+    def build_endpoints(self, router: APIRouter):
         """Builds endpoints for API router."""
         for path, models in API_MODEL_MAP.items():
             def create_endpoint(path: str):
@@ -56,22 +55,16 @@ class NodeServer(EntryPoint):
                 response_model_exclude_none=True
             )
     
-    def _build_app(self):
+    def build_app(self):
         """Builds FastAPI app."""
-        @asynccontextmanager
-        async def lifespan(*args, **kwargs):
-            async with self.lifecycle.async_run():
-                yield
-        
         self.app = FastAPI(
-            lifespan=lifespan, 
             title="KOI-net Protocol API",
             version="1.1.0"
         )
         
         self.app.add_exception_handler(ProtocolError, self.protocol_error_handler)
         self.router = APIRouter(prefix="/koi-net")
-        self._build_endpoints(self.router)
+        self.build_endpoints(self.router)
         self.app.include_router(self.router)
         
     def protocol_error_handler(self, request, exc: ProtocolError):
@@ -86,10 +79,14 @@ class NodeServer(EntryPoint):
     
     def run(self):
         """Starts FastAPI server and event handler."""
-        uvicorn.run(
-            app=self.app,
-            host=self.config.server.host,
-            port=self.config.server.port,
-            log_config=None,
-            access_log=False
-        )
+        
+        with self.lifecycle.run():
+            self.build_app()
+            
+            uvicorn.run(
+                app=self.app,
+                host=self.config.server.host,
+                port=self.config.server.port,
+                log_config=None,
+                access_log=False
+            )

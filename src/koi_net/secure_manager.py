@@ -37,22 +37,20 @@ class SecureManager:
         self.identity = identity
         self.cache = cache
         self.config = config
-
-        self.priv_key = self._load_priv_key()
         
-    def _load_priv_key(self) -> PrivateKey:
+    def load_priv_key(self) -> PrivateKey:
         """Loads private key from PEM file path in config."""
         
         # TODO: handle missing private key
         with open(self.config.koi_net.private_key_pem_path, "r") as f:
             priv_key_pem = f.read()
         
-        return PrivateKey.from_pem(
+        self.priv_key = PrivateKey.from_pem(
             priv_key_pem=priv_key_pem,
             password=self.config.env.priv_key_password
         )
         
-    def _handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
+    def handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
         """Attempts to find node profile in proided envelope.
         
         If an unknown node sends an envelope, it may still be able to be
@@ -89,7 +87,7 @@ class SecureManager:
         
         node_bundle = (
             self.cache.read(envelope.source_node) or
-            self._handle_unknown_node(envelope)
+            self.handle_unknown_node(envelope)
         )
         
         if not node_bundle:
