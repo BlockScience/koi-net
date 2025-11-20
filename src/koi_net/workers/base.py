@@ -15,6 +15,9 @@ class ThreadWorker:
     def __init__(self):
         self.thread = threading.Thread(target=self.run)
         
+    def start(self):
+        self.thread.start()
+        
     def run(self):
         """Processing loop for thread."""
         pass
