@@ -2,8 +2,7 @@ import queue
 import traceback
 import structlog
 
-from koi_net.config.core import NodeConfig
-
+from ..config.core import NodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
 from .base import ThreadWorker, STOP_WORKER
