@@ -1,5 +1,7 @@
+from collections import deque
 import inspect
 from enum import StrEnum
+from pprint import pp
 from typing import Any, Protocol, Self
 from dataclasses import make_dataclass
 
@@ -15,40 +17,58 @@ class CompType(StrEnum):
     FACTORY = "FACTORY"
     OBJECT = "OBJECT"
 
-class BuildOrderer(type):
-    def __new__(cls, name: str, bases: tuple, dct: dict[str]):
-        """Sets `cls._build_order` from component order in class definition."""
-        cls = super().__new__(cls, name, bases, dct)
-        
-        if "_build_order" not in dct:
-            components: dict[str, Any] = {}
-            # adds components from base classes (including cls)
-            for base in reversed(inspect.getmro(cls)[:-1]):
-                for k, v in vars(base).items():
-                    # excludes built in and private attributes
-                    if not k.startswith("_"):
-                        components[k] = v
-                        
-            # recipe list constructed from names of non-None components
-            cls._build_order = [
-                name for name, _type in components.items()
-                if _type is not None
-            ]
-            
-        return cls
 
 class NodeContainer(Protocol):
     """Dummy 'shape' for node containers built by assembler."""
     entrypoint = EntryPoint
 
-class NodeAssembler(metaclass=BuildOrderer):
+class NodeAssembler:
+    
+    
     # Self annotation lying to type checker to reflect typing set in node blueprints
     def __new__(self) -> Self:
         """Returns assembled node container."""
-        return self._build_node()
+        
+        comps = self._collect_comps()
+        # pp(list(comps.keys()))
+        adj, comp_types = self._build_deps(comps)
+        # pp(adj)
+        # pp(comp_types)
+        build_order = self._build_order(adj)
+        # pp(build_order)
+        components = self._build_comps(build_order, adj, comp_types)
+        node = self._build_node(components)
+        
+        old = list(comps.keys())
+        new = build_order
+        
+        result = []
+        
+        for idx, item in enumerate(new):
+            old_idx = old.index(item)
+            if old_idx == idx:
+                result.append(f"{idx}. {item}")
+            else:
+                result.append(f"{idx}. {item} (moved from {old_idx})")
+
+        # print("\n".join(result))
+        
+        return node
     
     @classmethod
-    def _build_deps(cls) -> dict[str, tuple[CompType, list[str]]]:
+    def _collect_comps(cls):
+        comps: dict[str, Any] = {}
+        # adds components from base classes, including cls)
+        for base in inspect.getmro(cls)[:-1]:
+            for k, v in vars(base).items():
+                # excludes built in, private, and `None` attributes
+                if k.startswith("_") or v is None:
+                    continue
+                comps[k] = v
+        return comps
+    
+    @classmethod
+    def _build_deps(cls, comps) -> tuple[dict[str, list[str]], dict[str, CompType]]:
         """Returns dependency graph for components defined in `cls_build_order`.
         
         Graph representation is a dict where each key is a component name,
@@ -56,29 +76,114 @@ class NodeAssembler(metaclass=BuildOrderer):
         of dependency component names.
         """
         
+        comp_types = {}
         dep_graph = {}
-        for comp_name in cls._build_order:
+        for comp_name in comps:
             try:
                 comp = getattr(cls, comp_name)
             except AttributeError:
                 raise Exception(f"Component '{comp_name}' not found in class definition")
             
             if not callable(comp):
-                comp_type = CompType.OBJECT
+                comp_types[comp_name] = CompType.OBJECT
                 dep_names = []
             
             elif isinstance(comp, type) and issubclass(comp, BaseModel):
-                comp_type = CompType.OBJECT
+                comp_types[comp_name] = CompType.OBJECT
                 dep_names = []
             
             else:
                 sig = inspect.signature(comp)
-                comp_type = CompType.FACTORY
+                comp_types[comp_name] = CompType.FACTORY
                 dep_names = list(sig.parameters)
                 
-            dep_graph[comp_name] = (comp_type, dep_names)
+            dep_graph[comp_name] = dep_names
             
-        return dep_graph
+        return dep_graph, comp_types
+    
+    @classmethod
+    def _find_cycle(cls, adj) -> list[str]:
+        visited = set()
+        stack = []
+        on_stack = set()
+        
+        def dfs(node):
+            visited.add(node)
+            stack.append(node)
+            on_stack.add(node)
+            
+            for nxt in adj[node]:
+                if nxt not in visited:
+                    cycle = dfs(nxt)
+                    if cycle:
+                        return cycle
+                
+                elif nxt in on_stack:
+                    idx = stack.index(nxt)
+                    return stack[idx:] + [nxt]
+                
+            stack.pop()
+            on_stack.remove(node)
+            return None
+        
+        for node in adj:
+            if node not in visited:
+                cycle = dfs(node)
+                if cycle:
+                    return cycle
+                
+        return None
+    
+    @classmethod
+    def _build_order(cls, adj) -> list[str]:
+        # adj list: n -> outgoing neighbors
+        
+        # reverse adj list: n -> incoming neighbors
+        r_adj: dict[str, list[str]] = {}
+        
+        # computes reverse adjacency list
+        for node in adj:
+            r_adj.setdefault(node, [])
+            for n in adj[node]:
+                r_adj.setdefault(n, [])
+                r_adj[n].append(node)
+        
+        out_degree: dict[str, int] = {
+            n: len(neighbors) 
+            for n, neighbors in adj.items()
+        }
+        
+        queue = deque()
+        for node in out_degree:
+            if out_degree[node] == 0:
+                queue.append(node)
+        
+        ordered: list[str] = []
+        while queue:
+            n = queue.popleft()
+            ordered.append(n)
+            for next_n in r_adj[n]:
+                out_degree[next_n] -= 1
+                if out_degree[next_n] == 0:
+                    queue.append(next_n)
+                    
+        
+        
+        if len(ordered) != len(adj):
+            cycle_nodes = set(adj.keys()) - set(ordered)
+            cycle_adj = {}
+            for n in list(cycle_nodes):
+                cycle_adj[n] = set(adj[n]) & cycle_nodes
+                print(n, "->", cycle_adj[n])
+                
+            cycle = cls._find_cycle(cycle_adj)
+        
+            print("FOUND CYCLE")
+            print(" -> ".join(cycle))
+            
+        print(len(ordered), "/", len(adj))
+        
+        return ordered
         
     @classmethod
     def _visualize(cls) -> str:
@@ -86,7 +191,7 @@ class NodeAssembler(metaclass=BuildOrderer):
         dep_graph = cls._build_deps()
         
         s = "digraph G {\n"
-        for node, (_, neighbors) in dep_graph.items():
+        for node, neighbors in dep_graph.items():
             sub_s = node
             if neighbors:
                 sub_s += f"-> {', '.join(neighbors)}"
@@ -96,32 +201,36 @@ class NodeAssembler(metaclass=BuildOrderer):
         return s
         
     @classmethod
-    def _build_comps(cls) -> dict[str, Any]:
+    def _build_comps(
+        cls,
+        build_order: list[str],
+        dep_graph: dict[str, list[str]],
+        comp_type: dict[str, CompType]
+    ) -> dict[str, Any]:
         """Returns assembled components from dependency graph."""
-        dep_graph = cls._build_deps()
         
         components: dict[str, Any] = {}
-        for comp_name, (comp_type, dep_names) in dep_graph.items():
+        for comp_name in build_order:
+        # for comp_name, (comp_type, dep_names) in dep_graph.items():
             comp = getattr(cls, comp_name, None)
             
-            if comp_type == CompType.OBJECT:
+            if comp_type[comp_name] == CompType.OBJECT:
                 components[comp_name] = comp
             
-            elif comp_type == CompType.FACTORY:
+            elif comp_type[comp_name] == CompType.FACTORY:
                 # builds depedency dict for current component
                 dependencies = {}
-                for dep_name in dep_names:
-                    if dep_name not in components:
-                        raise Exception(f"Couldn't find required component '{dep_name}'")
-                    dependencies[dep_name] = components[dep_name]
+                for dep in dep_graph[comp_name]:
+                    if dep not in components:
+                        raise Exception(f"Couldn't find required component '{dep}'")
+                    dependencies[dep] = components[dep]
                 components[comp_name] = comp(**dependencies)
                 
         return components
 
     @classmethod
-    def _build_node(cls) -> NodeContainer:
+    def _build_node(cls, components: dict[str, Any]) -> NodeContainer:
         """Returns node container from components."""
-        components = cls._build_comps()
         
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",
