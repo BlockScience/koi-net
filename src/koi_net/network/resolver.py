@@ -31,7 +31,7 @@ class NetworkResolver:
         cache: Cache, 
         identity: NodeIdentity,
         graph: NetworkGraph,
-        request_handler: RequestHandler,
+        request_handler: RequestHandler
     ):
         self.config = config
         self.identity = identity
