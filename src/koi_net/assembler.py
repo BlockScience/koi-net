@@ -169,17 +169,17 @@ class NodeAssembler:
                     
         
         
-        if len(ordered) != len(adj):
-            cycle_nodes = set(adj.keys()) - set(ordered)
-            cycle_adj = {}
-            for n in list(cycle_nodes):
-                cycle_adj[n] = set(adj[n]) & cycle_nodes
-                print(n, "->", cycle_adj[n])
+        # if len(ordered) != len(adj):
+        #     cycle_nodes = set(adj.keys()) - set(ordered)
+        #     cycle_adj = {}
+        #     for n in list(cycle_nodes):
+        #         cycle_adj[n] = set(adj[n]) & cycle_nodes
+        #         print(n, "->", cycle_adj[n])
                 
-            cycle = cls._find_cycle(cycle_adj)
+        #     cycle = cls._find_cycle(cycle_adj)
         
-            print("FOUND CYCLE")
-            print(" -> ".join(cycle))
+        #     print("FOUND CYCLE")
+        #     print(" -> ".join(cycle))
             
         print(len(ordered), "/", len(adj))
         
