@@ -1,4 +1,5 @@
 from pprint import pp
+
 from koi_net.core import FullNode
 
 type edge_pair = tuple[str, str]
@@ -10,7 +11,22 @@ full_adj, comp_types = FullNode._build_deps(comps)
 
 build_order = FullNode._build_order(full_adj)
 
+def numbered_node(node: str):
+    return f"{node}_{build_order.index(node) + 1}"
+
+
+
 if len(build_order) == len(full_adj):
+    s = "digraph G {\n"
+    for node, neighbors in full_adj.items():
+        sub_s = numbered_node(node)
+        if neighbors:
+            sub_s += f"-> {', '.join(numbered_node(n) for n in neighbors)}"
+        # sub_s = sub_s.replace("graph", "graph_") + ";"
+        s += " " * 4 + sub_s + "\n"
+    s += "}"
+
+    print(s)
     quit()
     
 # print("cycle detected")
@@ -102,64 +118,84 @@ def get_cycle_groups(edge_group: dict[edge_pair, list[int]]):
     
     return cgroup_edge_map
 
+def gname(group: tuple[int]):
+    return f"{len(group)}_{str(abs(hash(group)))[:5]}"
+
 if __name__ == "__main__":
 # def compute(adj):
     cycles_array = find_cycles(adj)
     cycles_edges = get_edge_seq(cycles_array)
     edge_groups = get_edge_groups(cycles_edges)
     cycle_groups = get_cycle_groups(edge_groups)
+        
+    solutions = []
     
-    print("\nbiggest cycle group edges:")
-    
-    while True:
+    print("\nSTARTING CYCLE SOLVER")
+    def recurse(
+        cycle_groups: dict[tuple[int], list[edge_pair]],
+        removed_edges: list[edge_pair] = []
+    ):
+        # (1, 2, 3) -> [(u, v), (w, y), ...]
+        
+        if solutions and len(removed_edges) > len(solutions[0]):
+            print("EXCEEDED MIN SOLUTION DEPTH")
+            return
+        
         sorted_cycle_groups = sorted(cycle_groups.keys(), key=lambda k: len(k))
         
-        # print(sorted_cycle_groups)
+        print(f"There are {len(cycle_groups)} cycle group(s):\n")
         
-        biggest_group = sorted_cycle_groups.pop()
+        for group in reversed(sorted_cycle_groups):
+            print(gname(group), [" -> ".join(edge) for edge in cycle_groups[group]])
         
-        # print(biggest_group)
+        print(f"\nand {len(removed_edges)} removed edge(s):")
+        print(", ".join(" -> ".join(edge) for edge in removed_edges))
+        
+        biggest_groups = []
+        biggest_group_len = len(sorted_cycle_groups[-1])
+        while len(group := sorted_cycle_groups.pop()) == biggest_group_len:
+            biggest_groups.append(group)
+            if not sorted_cycle_groups:
+                break
+        
+        print("The biggest groups are: ", [gname(g) for g in biggest_groups])
         
         # add the edge to removed edges list
         # iterate through remaining groups, remove the cycles in the biggest group and recombine
         # for example after cycle 1 is removed, group (1,) is eliminated and group (1, 2) is merged with group (2,)
         
-        edge_candidates = cycle_groups[biggest_group]
-        
-        # print(edge_candidates)
-        
-        removed_edge = edge_candidates.pop()
-        
-        print(removed_edge, "->", biggest_group)
-        
-        del cycle_groups[biggest_group]
-        
-        next_cycle_groups: dict[tuple[int], list[tuple[str, str]]] = {}
-        for cycle_group, edges in cycle_groups.items():
-            remaining_groups = tuple(set(cycle_group) - set(biggest_group))
-            # print(remaining_groups)
-            if not remaining_groups:
-                pass
-                # print("deleted cycle group", cycle_group)
+        for biggest_group in biggest_groups:
+            edge_candidates = cycle_groups[biggest_group]
             
-            else:
-                # print("remaining groups", remaining_groups)
+            for edge_candidate in edge_candidates:
+                print("Edge candidate", " -> ".join(edge_candidate), ":", biggest_group)
                 
-                next_cycle_groups.setdefault(remaining_groups, [])
-                next_cycle_groups[remaining_groups].extend(edges)
+                curr_cycle_groups = cycle_groups.copy()
+                del curr_cycle_groups[biggest_group]
                 
-        cycle_groups = next_cycle_groups
-            
-        
-        if not cycle_groups:
-            break
-        
-        # remaining_cycles = set(range(len(cycles_array)))
-        # cgroup_edge_list = list(cycle_groups.items())
+                next_cycle_groups = {}
+                for cycle_group, edges in curr_cycle_groups.items():
+                    # print("start", cycle_group)
+                    
+                    remaining_groups = tuple(set(cycle_group) - set(biggest_group))
+                    # print("finish", remaining_groups)
 
-    # while True:
-    #     cgroup_edge_list.sort(key=lambda x: len(x[0]))
-        
-    #     optimal_edge_group = cgroup_edge_list.pop()
+                    if remaining_groups:
+                        next_cycle_groups.setdefault(remaining_groups, [])
+                        next_cycle_groups[remaining_groups].extend(edges)
+                
+                next_removed_edges = removed_edges + [edge_candidate]
+                if next_cycle_groups:
+                    recurse(next_cycle_groups, next_removed_edges)
+                
+                else:
+                    solutions.append(next_removed_edges)
+                    solutions.sort(key=lambda x: len(x))
+                    print("SOLUTION", next_removed_edges)
+                    return
+    
+    recurse(cycle_groups)
 
-    # compute(adj)
+    print()
+    for s in solutions:
+        print(f"{len(s)} edge solution: {', '.join(' -> '.join(n for n in edge) for edge in s)}")
