@@ -21,6 +21,9 @@ class NetworkGraph:
         self.cache = cache
         self.dg = nx.DiGraph()
         self.identity = identity
+    
+    def start(self):
+        self.generate()
         
     def generate(self):
         """Generates directed graph from cached KOI nodes and edges."""

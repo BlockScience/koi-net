@@ -97,14 +97,14 @@ class NodeLifecycle:
         """
         
         # attempt to load config from yaml, and write back changes (if any)
-        self.config_loader.load_from_yaml()
-        self.config_loader.save_to_yaml()
+        # self.config_loader.load_from_yaml()
+        # self.config_loader.save_to_yaml()
         
-        self.secure_manager.load_priv_key()
+        # self.secure_manager.load_priv_key()
         
-        self.kobj_worker.start()
-        self.event_worker.start()
-        self.graph.generate()
+        # self.kobj_worker.start()
+        # self.event_worker.start()
+        # self.graph.generate()
         
         # refresh to reflect changes (if any) in config.yaml node profile
         self.kobj_queue.push(bundle=Bundle.generate(
@@ -112,6 +112,7 @@ class NodeLifecycle:
             contents=self.identity.profile.model_dump()
         ))
         
+        # why am I doing this? waiting for self bundle to process before continuing in the process
         self.kobj_queue.q.join()
         
         node_providers = self.graph.get_neighbors(
@@ -130,5 +131,5 @@ class NodeLifecycle:
     def stop(self):
         """Stops a node, send stop signals to workers."""
         
-        self.kobj_worker.stop()
-        self.event_worker.stop()
+        # self.kobj_worker.stop()
+        # self.event_worker.stop()

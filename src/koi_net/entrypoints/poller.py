@@ -21,12 +21,12 @@ class NodePoller(EntryPoint):
     def __init__(
         self,
         config: PartialNodeConfig,
-        lifecycle: NodeLifecycle,
+        # lifecycle: NodeLifecycle,
         kobj_queue: KobjQueue,
         resolver: NetworkResolver,
     ):
         self.kobj_queue = kobj_queue
-        self.lifecycle = lifecycle
+        # self.lifecycle = lifecycle
         self.resolver = resolver
         self.config = config
 
@@ -38,11 +38,11 @@ class NodePoller(EntryPoint):
 
     def run(self):
         """Runs polling event loop."""
-        with self.lifecycle.run():
-            while True:
-                start_time = time.time()
-                self.poll()
-                elapsed = time.time() - start_time
-                sleep_time = self.config.poller.polling_interval - elapsed
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
+        # with self.lifecycle.run():
+        while True:
+            start_time = time.time()
+            self.poll()
+            elapsed = time.time() - start_time
+            sleep_time = self.config.poller.polling_interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)

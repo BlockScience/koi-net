@@ -38,6 +38,9 @@ class SecureManager:
         self.cache = cache
         self.config = config
         
+    def start(self):
+        self.load_priv_key()
+        
     def load_priv_key(self) -> PrivateKey:
         """Loads private key from PEM file path in config."""
         

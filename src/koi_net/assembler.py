@@ -8,8 +8,6 @@ from dataclasses import make_dataclass
 import structlog
 from pydantic import BaseModel
 
-from .entrypoints.base import EntryPoint
-
 log = structlog.stdlib.get_logger()
 
 
@@ -18,22 +16,47 @@ class CompType(StrEnum):
     OBJECT = "OBJECT"
 
 
-class NodeContainer(Protocol):
+class BaseNodeContainer(Protocol):
     """Dummy 'shape' for node containers built by assembler."""
-    entrypoint = EntryPoint
+    _build_order: list[str]
+    entrypoint: Any
+    
+    def run(self):
+        try:
+            self.start()
+            self.entrypoint.run()
+        except KeyboardInterrupt:
+            ...
+        finally:
+            self.stop()
+    
+    def start(self):
+        for comp_name in self._build_order:
+            # print(comp_name)
+            comp = getattr(self, comp_name)
+            if getattr(comp, "start", None):
+                print(f"Starting {comp_name}...")
+                comp.start()
+            
+    def stop(self):
+        for comp_name in reversed(self._build_order):
+            comp = getattr(self, comp_name)
+            if getattr(comp, "stop", None):
+                print(f"Stopping {comp_name}...")
+                comp.stop()
 
 class NodeAssembler:
-    
-    
     # Self annotation lying to type checker to reflect typing set in node blueprints
     def __new__(self) -> Self:
         """Returns assembled node container."""
         
         comps = self._collect_comps()
         adj, comp_types = self._build_deps(comps)
-        build_order = self._build_order(adj)
+        build_order, startup_order = self._build_order(adj)
+        [print(f"{i}: {comp}") for i, comp in enumerate(build_order)]
+        print(startup_order)
         components = self._build_comps(build_order, adj, comp_types)
-        node = self._build_node(components)
+        node = self._build_node(components, build_order)
         
         return node
     
@@ -109,22 +132,26 @@ class NodeAssembler:
             if out_degree[node] == 0:
                 queue.append(node)
         
-        ordered: list[str] = []
+        build_order: list[str] = []
+        startup_order: list[str] = []
         while queue:
             n = queue.popleft()
-            ordered.append(n)
+            build_order.append(n)
+            comp = getattr(cls, n)
+            if getattr(comp, "start", None):
+                startup_order.append(n)
+                
             for next_n in r_adj[n]:
                 out_degree[next_n] -= 1
                 if out_degree[next_n] == 0:
                     queue.append(next_n)
-                    
         
-        
-        if len(ordered) != len(adj):
-            cycle_nodes = set(adj.keys()) - set(ordered)
+        print(len(build_order), len(adj))
+        if len(build_order) != len(adj):
+            cycle_nodes = set(adj.keys()) - set(build_order)
             raise Exception(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
         
-        return ordered
+        return build_order, startup_order
         
     @classmethod
     def _visualize(cls) -> str:
@@ -170,17 +197,23 @@ class NodeAssembler:
         return components
 
     @classmethod
-    def _build_node(cls, components: dict[str, Any]) -> NodeContainer:
+    def _build_node(
+        cls, 
+        components: dict[str, Any],
+        build_order: list[str]
+    ) -> BaseNodeContainer:
         """Returns node container from components."""
         
         NodeContainer = make_dataclass(
             cls_name="NodeContainer",
-            fields=[
-                (name, type(component)) 
+            fields=(("_build_order", build_order),) + tuple(
+                (name, type(component))
                 for name, component
                 in components.items()
-            ],
+            ),
+            bases=(BaseNodeContainer,),
             frozen=True
         )
         
-        return NodeContainer(**components)
+        return NodeContainer(_build_order=build_order, **components)
+ 

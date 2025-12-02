@@ -20,6 +20,14 @@ class ConfigLoader:
     ):
         self.config_schema = config_schema
         self.proxy = config
+        
+        # this is a special case to allow config state dependent components
+        # to initialize without a "lazy initialization" approach, in general
+        # components SHOULD NOT execute code in their init phase
+        self.load_from_yaml()
+        
+    def start(self):
+        self.save_to_yaml()
     
     def load_from_yaml(self):
         """Loads config from YAML file, or generates it if missing."""
