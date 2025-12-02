@@ -22,6 +22,8 @@ from .processor.pipeline import KnowledgePipeline
 from .processor.kobj_queue import KobjQueue
 from .processor.handler import KnowledgeHandler
 from .secure_manager import SecureManager
+from .catcher_upper import CatcherUpper
+from .self_starter import SelfStart
 from .entrypoints import NodeServer, NodePoller
 from .processor.knowledge_handlers import (
     basic_manifest_handler, 
@@ -67,7 +69,9 @@ class BaseNode(NodeAssembler):
     pipeline: KnowledgePipeline = KnowledgePipeline
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
-    lifecycle: NodeLifecycle = NodeLifecycle
+    catcher_upper: CatcherUpper = CatcherUpper
+    self_start: SelfStart = SelfStart
+    # lifecycle: NodeLifecycle = NodeLifecycle
 
 class FullNode(BaseNode):
     entrypoint: NodeServer = NodeServer

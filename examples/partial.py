@@ -13,4 +13,4 @@ class MyPartialNode(PartialNode):
 
 if __name__ == "__main__":
     node = MyPartialNode()
-    node.entrypoint.run()
+    # node.entrypoint.run()

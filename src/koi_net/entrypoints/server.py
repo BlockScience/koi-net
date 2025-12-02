@@ -26,11 +26,11 @@ class NodeServer(EntryPoint):
     def __init__(
         self,
         config: FullNodeConfig,
-        lifecycle: NodeLifecycle,
+        # lifecycle: NodeLifecycle,
         response_handler: ResponseHandler,
     ):
         self.config = config
-        self.lifecycle = lifecycle
+        # self.lifecycle = lifecycle
         self.response_handler = response_handler
         
     def build_endpoints(self, router: APIRouter):
@@ -80,13 +80,13 @@ class NodeServer(EntryPoint):
     def run(self):
         """Starts FastAPI server and event handler."""
         
-        with self.lifecycle.run():
-            self.build_app()
-            
-            uvicorn.run(
-                app=self.app,
-                host=self.config.server.host,
-                port=self.config.server.port,
-                log_config=None,
-                access_log=False
-            )
+        # with self.lifecycle.run():
+        self.build_app()
+        
+        uvicorn.run(
+            app=self.app,
+            host=self.config.server.host,
+            port=self.config.server.port,
+            log_config=None,
+            access_log=False
+        )

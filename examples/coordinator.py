@@ -66,4 +66,4 @@ class CoordinatorNode(FullNode):
 
 if __name__ == "__main__":
     node = CoordinatorNode()
-    node.entrypoint.run()
+    # node.entrypoint.run()
