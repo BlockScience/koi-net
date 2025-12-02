@@ -4,7 +4,6 @@ import structlog
 
 from .base import EntryPoint
 from ..processor.kobj_queue import KobjQueue
-from ..lifecycle import NodeLifecycle
 from ..network.resolver import NetworkResolver
 from ..config.partial_node import PartialNodeConfig
 
@@ -14,19 +13,16 @@ log = structlog.stdlib.get_logger()
 class NodePoller(EntryPoint):
     """Entry point for partial nodes, manages polling event loop."""
     kobj_queue: KobjQueue
-    lifecycle: NodeLifecycle
     resolver: NetworkResolver
     config: PartialNodeConfig
     
     def __init__(
         self,
         config: PartialNodeConfig,
-        # lifecycle: NodeLifecycle,
         kobj_queue: KobjQueue,
         resolver: NetworkResolver,
     ):
         self.kobj_queue = kobj_queue
-        # self.lifecycle = lifecycle
         self.resolver = resolver
         self.config = config
 
@@ -38,7 +34,6 @@ class NodePoller(EntryPoint):
 
     def run(self):
         """Runs polling event loop."""
-        # with self.lifecycle.run():
         while True:
             start_time = time.time()
             self.poll()

@@ -1,6 +1,5 @@
 import structlog
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 
@@ -9,7 +8,6 @@ from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
 from ..protocol.errors import ProtocolError
-from ..lifecycle import NodeLifecycle
 from ..config.full_node import FullNodeConfig
 
 log = structlog.stdlib.get_logger()
@@ -18,7 +16,6 @@ log = structlog.stdlib.get_logger()
 class NodeServer(EntryPoint):
     """Entry point for full nodes, manages FastAPI server."""
     config: FullNodeConfig
-    lifecycle: NodeLifecycle
     response_handler: ResponseHandler
     app: FastAPI
     router: APIRouter
@@ -26,11 +23,9 @@ class NodeServer(EntryPoint):
     def __init__(
         self,
         config: FullNodeConfig,
-        # lifecycle: NodeLifecycle,
         response_handler: ResponseHandler,
     ):
         self.config = config
-        # self.lifecycle = lifecycle
         self.response_handler = response_handler
         
     def build_endpoints(self, router: APIRouter):
@@ -80,7 +75,6 @@ class NodeServer(EntryPoint):
     def run(self):
         """Starts FastAPI server and event handler."""
         
-        # with self.lifecycle.run():
         self.build_app()
         
         uvicorn.run(
