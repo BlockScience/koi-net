@@ -10,7 +10,6 @@ from .handshaker import Handshaker
 from .sync_manager import SyncManager
 from .identity import NodeIdentity
 from .workers import KnowledgeProcessingWorker, EventProcessingWorker
-from .lifecycle import NodeLifecycle
 from .network.error_handler import ErrorHandler
 from .network.event_queue import EventQueue
 from .network.graph import NetworkGraph
@@ -71,7 +70,6 @@ class BaseNode(NodeAssembler):
     event_worker: EventProcessingWorker = EventProcessingWorker
     catcher_upper: CatcherUpper = CatcherUpper
     self_start: SelfStart = SelfStart
-    # lifecycle: NodeLifecycle = NodeLifecycle
 
 class FullNode(BaseNode):
     entrypoint: NodeServer = NodeServer

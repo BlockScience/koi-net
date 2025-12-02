@@ -5,6 +5,7 @@ from rid_lib import RIDType
 from rid_lib.types import KoiNetNode
 import structlog
 
+from koi_net import component
 from koi_net.protocol.secure import PrivateKey
 from ..protocol.node import NodeProfile
 
@@ -65,6 +66,9 @@ class EnvConfig(BaseModel):
             return env_val
         return value
 
+# marking this component as static, classes are implicitly treated as
+# factories, but this needs to be passed as is
+@component.static
 class NodeConfig(BaseModel):
     """Base node config class, intended to be extended."""
     
