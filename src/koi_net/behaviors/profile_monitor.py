@@ -1,9 +1,10 @@
 from rid_lib.ext import Bundle
-from koi_net.identity import NodeIdentity
-from koi_net.processor.kobj_queue import KobjQueue
+from ..identity import NodeIdentity
+from ..processor.kobj_queue import KobjQueue
 
 
-class SelfStart:
+class ProfileMonitor:
+    """Processes changes to node profile in the config."""
     def __init__(
         self,
         kobj_queue: KobjQueue,
@@ -13,15 +14,10 @@ class SelfStart:
         self.identity = identity
         
     def start(self):
-        print(self.identity.rid)
-        print(self.identity.profile)
-        
+        """Processes identity bundle generated from config."""
         self_bundle = Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
         )
         
         self.kobj_queue.push(bundle=self_bundle)
-        
-        # will freeze if called before kobj worker is started:
-        # self.kobj_queue.q.join()

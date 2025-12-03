@@ -1,9 +1,12 @@
 import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
-from koi_net.identity import NodeIdentity
-from koi_net.network.event_queue import EventQueue
-from .protocol.event import Event, EventType
+
+from ..network.graph import NetworkGraph
+from ..config.core import NodeConfig
+from ..identity import NodeIdentity
+from ..network.event_queue import EventQueue
+from ..protocol.event import Event, EventType
 
 log = structlog.stdlib.get_logger()
 
@@ -14,11 +17,34 @@ class Handshaker:
         self, 
         cache: Cache, 
         identity: NodeIdentity, 
-        event_queue: EventQueue
+        event_queue: EventQueue,
+        config: NodeConfig,
+        graph: NetworkGraph
     ):
+        self.config = config
         self.cache = cache
         self.identity = identity
         self.event_queue = event_queue
+        self.graph = graph
+        
+    def start(self):
+        """Attempts handshake with first contact on startup.
+        
+        Handshake occurs if first contact is set in the config, the first
+        contact is not already known to this node, and this node does not
+        already have incoming edges with node providers.
+        """
+        if not self.config.koi_net.first_contact.rid:
+            return
+        
+        if self.cache.read(self.config.koi_net.first_contact.rid):
+            return
+        
+        if not self.graph.get_neighbors(
+            direction="in", allowed_type=KoiNetNode):
+            return
+        
+        self.handshake_with(self.config.koi_net.first_contact.rid)
         
     def handshake_with(self, target: KoiNetNode):
         """Initiates a handshake with target node.

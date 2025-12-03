@@ -1,10 +1,11 @@
 from rid_lib.ext import Cache
+from rid_lib.types import KoiNetNode
 
-from .network.graph import NetworkGraph
-from .network.request_handler import RequestHandler
-from .processor.kobj_queue import KobjQueue
-from .protocol.api_models import ErrorResponse
-from .protocol.node import NodeProfile, NodeType
+from ..network.graph import NetworkGraph
+from ..network.request_handler import RequestHandler
+from ..processor.kobj_queue import KobjQueue
+from ..protocol.api_models import ErrorResponse
+from ..protocol.node import NodeProfile, NodeType
 
 
 class SyncManager:
@@ -25,6 +26,20 @@ class SyncManager:
         self.cache = cache
         self.request_handler = request_handler
         self.kobj_queue = kobj_queue
+        
+    def start(self):
+        """Catches up with node providers on startup."""
+        
+        node_providers = self.graph.get_neighbors(
+            direction="in",
+            allowed_type=KoiNetNode
+        )
+        
+        if not node_providers:
+            return
+        
+        # log.debug(f"Catching up with `orn:koi-net.node` providers: {node_providers}")
+        self.catch_up_with(node_providers, [KoiNetNode])
     
     def catch_up_with(self, nodes, rid_types):
         """Catches up with the state of RID types within other nodes."""
