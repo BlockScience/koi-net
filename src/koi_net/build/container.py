@@ -1,6 +1,6 @@
 import structlog
 
-from .entrypoints.base import EntryPoint
+from ..entrypoints.base import EntryPoint
 from .artifact import AssemblyArtifact
 
 log = structlog.stdlib.get_logger()

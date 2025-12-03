@@ -9,10 +9,10 @@ from .container import NodeContainer
 log = structlog.stdlib.get_logger()
 
 
-
 class NodeAssembler:
     _artifact: AssemblyArtifact = None
     
+    # optional order overrides:
     _start_order: list[str]
     _stop_order: list[str]
     
@@ -45,7 +45,7 @@ class NodeAssembler:
             if comp_type == CompType.OBJECT:
                 components[comp_name] = comp
             
-            elif comp_type == CompType.FACTORY:
+            elif comp_type == CompType.SINGLETON:
                 # builds depedency dict for current component
                 dependencies = {}
                 for dep in artifact.dep_graph[comp_name]:

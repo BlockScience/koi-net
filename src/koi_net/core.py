@@ -1,6 +1,6 @@
 from .cache import Cache
 from .log_system import LogSystem
-from .assembler import NodeAssembler
+from .build.assembler import NodeAssembler
 from .config.core import NodeConfig
 from .config.proxy import ConfigProxy
 from .config.loader import ConfigLoader
