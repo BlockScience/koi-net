@@ -1,215 +1,80 @@
-import logging
-from typing import Generic, TypeVar
-from rid_lib.ext import Cache
-from .network.resolver import NetworkResolver
-from .network.event_queue import NetworkEventQueue
+from .cache import Cache
+from .log_system import LogSystem
+from .build.assembler import NodeAssembler
+from .config.core import NodeConfig
+from .config.proxy import ConfigProxy
+from .config.loader import ConfigLoader
+from .config.full_node import FullNodeConfig
+from .config.partial_node import PartialNodeConfig
+from .processor.context import HandlerContext
+from .effector import DerefHandler, Effector
+from .behaviors.handshaker import Handshaker
+from .behaviors.sync_manager import SyncManager
+from .identity import NodeIdentity
+from .workers import KnowledgeProcessingWorker, EventProcessingWorker
+from .network.error_handler import ErrorHandler
+from .network.event_queue import EventQueue
 from .network.graph import NetworkGraph
 from .network.request_handler import RequestHandler
+from .network.resolver import NetworkResolver
 from .network.response_handler import ResponseHandler
-from .network.error_handler import ErrorHandler
-from .actor import Actor
-from .processor.interface import ProcessorInterface
-from .processor import default_handlers
+from .network.event_buffer import EventBuffer
+from .processor.pipeline import KnowledgePipeline
+from .processor.kobj_queue import KobjQueue
 from .processor.handler import KnowledgeHandler
-from .processor.knowledge_pipeline import KnowledgePipeline
-from .identity import NodeIdentity
-from .secure import Secure
-from .config import NodeConfig
-from .context import HandlerContext, ActionContext
-from .effector import Effector
-from .server import NodeServer
-from .lifecycle import NodeLifecycle
-from .poller import NodePoller
-from . import default_actions
+from .secure_manager import SecureManager
+from .behaviors.profile_monitor import ProfileMonitor
+from .entrypoints import NodeServer, NodePoller
+from .processor.knowledge_handlers import (
+    basic_manifest_handler, 
+    basic_network_output_filter, 
+    basic_rid_handler, 
+    node_contact_handler, 
+    edge_negotiation_handler, 
+    forget_edge_on_node_deletion, 
+    secure_profile_handler
+)
 
-logger = logging.getLogger(__name__)
+class BaseNode(NodeAssembler):
+    log_system: LogSystem = LogSystem
+    kobj_queue: KobjQueue = KobjQueue
+    event_queue: EventQueue = EventQueue
+    poll_event_buf: EventBuffer = EventBuffer
+    broadcast_event_buf: EventBuffer = EventBuffer
+    config_schema = NodeConfig
+    config: NodeConfig = ConfigProxy
+    config_loader: ConfigLoader = ConfigLoader
+    knowledge_handlers: list[KnowledgeHandler] = [
+        basic_rid_handler,
+        basic_manifest_handler,
+        secure_profile_handler,
+        edge_negotiation_handler,
+        node_contact_handler,
+        basic_network_output_filter,
+        forget_edge_on_node_deletion
+    ]
+    deref_handlers: list[DerefHandler] = []
+    cache: Cache = Cache
+    identity: NodeIdentity = NodeIdentity
+    graph: NetworkGraph = NetworkGraph
+    secure_manager: SecureManager = SecureManager
+    handshaker: Handshaker = Handshaker
+    error_handler: ErrorHandler = ErrorHandler
+    request_handler: RequestHandler = RequestHandler
+    sync_manager: SyncManager = SyncManager
+    response_handler: ResponseHandler = ResponseHandler
+    resolver: NetworkResolver = NetworkResolver
+    handler_context: HandlerContext = HandlerContext
+    effector: Effector = Effector
+    pipeline: KnowledgePipeline = KnowledgePipeline
+    kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
+    event_worker: EventProcessingWorker = EventProcessingWorker
+    profile_monitor: ProfileMonitor = ProfileMonitor
 
+class FullNode(BaseNode):
+    entrypoint: NodeServer = NodeServer
+    config: FullNodeConfig
 
-T = TypeVar("T", bound=NodeConfig)
-
-class NodeInterface(Generic[T]):
-    """Interface for a node's subsystems.
-    
-    This class embodies a node, and wires up all of its subsystems to 
-    work together. Currently, node implementations create an instance of
-    this class and override behavior where needed. Most commonly this
-    will be creating a new `Config` class, and adding additional knowledge
-    handlers to the `pipeline`, but all subsystems may be overriden by
-    passing new class implementations into `__init__`.
-    """
-    
-    config: T
-    cache: Cache
-    identity: NodeIdentity
-    effector: Effector
-    graph: NetworkGraph
-    secure: Secure
-    request_handler: RequestHandler
-    response_handler: ResponseHandler
-    resolver: NetworkResolver
-    event_queue: NetworkEventQueue
-    actor: Actor
-    action_context: ActionContext
-    handler_context: HandlerContext
-    pipeline: KnowledgePipeline
-    processor: ProcessorInterface
-    error_handler: ErrorHandler
-    lifecycle: NodeLifecycle
-    server: NodeServer
-    poller: NodePoller
-    
-    use_kobj_processor_thread: bool
-    
-    def __init__(
-        self,
-        config: T,
-        use_kobj_processor_thread: bool = False,
-        handlers: list[KnowledgeHandler] | None = None,
-        
-        # optional overrides
-        CacheOverride: type[Cache] | None = None,
-        NodeIdentityOverride: type[NodeIdentity] | None = None,
-        EffectorOverride: type[Effector] | None = None,
-        NetworkGraphOverride: type[NetworkGraph] | None = None,
-        SecureOverride: type[Secure] | None = None,
-        RequestHandlerOverride: type[RequestHandler] | None = None,
-        ResponseHandlerOverride: type[ResponseHandler] | None = None,
-        NetworkResolverOverride: type[NetworkResolver] | None = None,
-        NetworkEventQueueOverride: type[NetworkEventQueue] | None = None,
-        ActorOverride: type[Actor] | None = None,
-        ActionContextOverride: type[ActionContext] | None = None,
-        HandlerContextOverride: type[HandlerContext] | None = None,
-        KnowledgePipelineOverride: type[KnowledgePipeline] | None = None,
-        ProcessorInterfaceOverride: type[ProcessorInterface] | None = None,
-        ErrorHandlerOverride: type[ErrorHandler] | None = None,
-        NodeLifecycleOverride: type[NodeLifecycle] | None = None,
-        NodeServerOverride: type[NodeServer] | None = None,
-        NodePollerOverride: type[NodePoller] | None = None,        
-    ):
-        self.use_kobj_processor_thread = use_kobj_processor_thread
-
-        self.config = config
-        self.cache = (CacheOverride or Cache)(
-            directory_path=self.config.koi_net.cache_directory_path
-        )
-
-        self.identity = (NodeIdentityOverride or NodeIdentity)(config=self.config)
-        self.effector = (EffectorOverride or Effector)(cache=self.cache)
-
-        self.graph = (NetworkGraphOverride or NetworkGraph)(
-            cache=self.cache,
-            identity=self.identity
-        )
-
-        self.secure = (SecureOverride or Secure)(
-            identity=self.identity,
-            effector=self.effector,
-            config=self.config
-        )
-
-        self.request_handler = (RequestHandlerOverride or RequestHandler)(
-            effector=self.effector,
-            identity=self.identity,
-            secure=self.secure
-        )
-
-        self.response_handler = (ResponseHandlerOverride or ResponseHandler)(self.cache, self.effector)
-
-        self.resolver = (NetworkResolverOverride or NetworkResolver)(
-            config=self.config,
-            cache=self.cache,
-            identity=self.identity,
-            graph=self.graph,
-            request_handler=self.request_handler,
-            effector=self.effector
-        )
-
-        self.event_queue = (NetworkEventQueueOverride or NetworkEventQueue)(
-            config=self.config,
-            cache=self.cache,
-            identity=self.identity,
-            graph=self.graph,
-            request_handler=self.request_handler,
-            effector=self.effector
-        )
-        
-        self.actor = (ActorOverride or Actor)()
-        
-        # pull all handlers defined in default_handlers module
-        if handlers is None:
-            handlers = [
-                obj for obj in vars(default_handlers).values() 
-                if isinstance(obj, KnowledgeHandler)
-            ]
-        
-        self.action_context = (ActionContextOverride or ActionContext)(
-            identity=self.identity,
-            effector=self.effector
-        )
-        
-        self.handler_context = (HandlerContextOverride or HandlerContext)(
-            identity=self.identity,
-            config=self.config,
-            cache=self.cache,
-            event_queue=self.event_queue,
-            graph=self.graph,
-            request_handler=self.request_handler,
-            resolver=self.resolver,
-            effector=self.effector
-        )
-        
-        self.pipeline = (KnowledgePipelineOverride or KnowledgePipeline)(
-            handler_context=self.handler_context,
-            cache=self.cache,
-            request_handler=self.request_handler,
-            event_queue=self.event_queue,
-            graph=self.graph,
-            default_handlers=handlers
-        )
-        
-        self.processor = (ProcessorInterfaceOverride or ProcessorInterface)(
-            pipeline=self.pipeline,
-            use_kobj_processor_thread=self.use_kobj_processor_thread
-        )
-        
-        self.error_handler = (ErrorHandlerOverride or ErrorHandler)(
-            processor=self.processor,
-            actor=self.actor
-        )
-        
-        self.request_handler.set_error_handler(self.error_handler)
-        
-        self.handler_context.set_processor(self.processor)
-        
-        self.effector.set_processor(self.processor)
-        self.effector.set_resolver(self.resolver)
-        self.effector.set_action_context(self.action_context)
-        
-        self.actor.set_ctx(self.handler_context)
-        
-        self.lifecycle = (NodeLifecycleOverride or NodeLifecycle)(
-            config=self.config,
-            identity=self.identity,
-            graph=self.graph,
-            processor=self.processor,
-            effector=self.effector,
-            actor=self.actor,
-            use_kobj_processor_thread=use_kobj_processor_thread
-        )
-        
-        # if self.config.koi_net.node_profile.node_type == NodeType.FULL:
-        self.server = (NodeServerOverride or NodeServer)(
-            config=self.config,
-            lifecycle=self.lifecycle,
-            secure=self.secure,
-            processor=self.processor,
-            event_queue=self.event_queue,
-            response_handler=self.response_handler
-        )
-        
-        self.poller = (NodePollerOverride or NodePoller)(
-            processor=self.processor,
-            lifecycle=self.lifecycle,
-            resolver=self.resolver,
-            config=self.config
-        )
+class PartialNode(BaseNode):
+    entrypoint: NodePoller = NodePoller
+    config: PartialNodeConfig

@@ -1,4 +1,5 @@
-import logging
+from rid_lib.types import KoiNetNode
+import structlog
 from base64 import b64decode, b64encode
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -9,11 +10,11 @@ from cryptography.hazmat.primitives.asymmetric.utils import (
     encode_dss_signature
 )
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 def der_to_raw_signature(der_signature: bytes, curve=ec.SECP256R1()) -> bytes:
-    """Convert a DER-encoded signature to raw r||s format."""
+    """Converts a DER-encoded signature to raw r||s format."""
     
     # Decode the DER signature to get r and s
     r, s = decode_dss_signature(der_signature)
@@ -30,7 +31,7 @@ def der_to_raw_signature(der_signature: bytes, curve=ec.SECP256R1()) -> bytes:
 
 
 def raw_to_der_signature(raw_signature: bytes, curve=ec.SECP256R1()) -> bytes:
-    """Convert a raw r||s signature to DER format."""
+    """Converts a raw r||s signature to DER format."""
     
     # Determine byte length based on curve bit size
     byte_length = (curve.key_size + 7) // 8
@@ -58,13 +59,16 @@ class PrivateKey:
     
     @classmethod
     def generate(cls):
+        """Generates a new `Private Key`."""
         return cls(priv_key=ec.generate_private_key(ec.SECP256R1()))
 
     def public_key(self) -> "PublicKey":
+        """Returns instance of `PublicKey` dervied from this private key."""
         return PublicKey(self.priv_key.public_key())
     
     @classmethod
     def from_pem(cls, priv_key_pem: str, password: str):
+        """Loads `PrivateKey` from encrypted PEM string."""
         return cls(
             priv_key=serialization.load_pem_private_key(
                 data=priv_key_pem.encode(),
@@ -73,6 +77,7 @@ class PrivateKey:
         )
 
     def to_pem(self, password: str) -> str:
+        """Saves `PrivateKey` to encrypted PEM string."""
         return self.priv_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -80,6 +85,7 @@ class PrivateKey:
         ).decode()
         
     def sign(self, message: bytes) -> str:
+        """Returns base64 encoded raw signature bytes of the form r||s."""
         hashed_message = sha256_hash(message.decode())
         
         der_signature_bytes = self.priv_key.sign(
@@ -91,12 +97,12 @@ class PrivateKey:
         
         signature = b64encode(raw_signature_bytes).decode()
         
-        logger.debug(f"Signing message with [{self.public_key().to_der()}]")
-        logger.debug(f"hash: {hashed_message}")
-        logger.debug(f"signature: {signature}")
+        log.debug(f"Signing message with [{self.public_key().to_der()}]")
+        log.debug(f"hash: {hashed_message}")
+        log.debug(f"signature: {signature}")
         
         return signature
-                
+
 
 class PublicKey:
     pub_key: ec.EllipticCurvePublicKey
@@ -106,6 +112,7 @@ class PublicKey:
     
     @classmethod
     def from_pem(cls, pub_key_pem: str):
+        """Loads `PublicKey` from PEM string."""
         return cls(
             pub_key=serialization.load_pem_public_key(
                 data=pub_key_pem.encode()
@@ -113,13 +120,15 @@ class PublicKey:
         )
         
     def to_pem(self) -> str:
+        """Saves `PublicKey` to PEM string."""
         return self.pub_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         ).decode()
         
     @classmethod
-    def from_der(cls, pub_key_der: str):        
+    def from_der(cls, pub_key_der: str):
+        """Loads `PublicKey` from base64 encoded DER string."""
         return cls(
             pub_key=serialization.load_der_public_key(
                 data=b64decode(pub_key_der)
@@ -127,6 +136,7 @@ class PublicKey:
         )
     
     def to_der(self) -> str:
+        """Saves `PublicKey` to base64 encoded DER string."""
         return b64encode(
             self.pub_key.public_bytes(
                 encoding=serialization.Encoding.DER,
@@ -134,24 +144,21 @@ class PublicKey:
             )
         ).decode()
         
+    def to_node_rid(self, name) -> KoiNetNode:
+        """Returns an orn:koi-net.node RID from hashed DER string."""
+        return KoiNetNode(
+            name=name,
+            hash=sha256_hash(self.to_der())
+        )
         
-    def verify(self, signature: str, message: bytes) -> bool:
-        # hashed_message = sha256_hash(message.decode())
+    def verify(self, signature: str, message: bytes):
+        """Verifies a signature for a message.
         
-        # print(message.hex())
-        # print()
-        # print(hashed_message)
-        # print()
-        # print(message.decode())
-
-        # logger.debug(f"Verifying message with [{self.to_der()}]")
-        # logger.debug(f"hash: {hashed_message}")
-        # logger.debug(f"signature: {signature}")
+        Raises `cryptography.exceptions.InvalidSignature` on failure.
+        """
         
         raw_signature_bytes = b64decode(signature)
         der_signature_bytes = raw_to_der_signature(raw_signature_bytes)
-        
-        # NOTE: throws cryptography.exceptions.InvalidSignature on failure
         
         self.pub_key.verify(
             signature=der_signature_bytes,

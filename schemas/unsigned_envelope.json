@@ -1,0 +1,29 @@
+{
+    "title": "Unsigned Envelope",
+    "type": "object",
+    "properties": {
+        "payload": {
+            "anyOf": [
+                {"$ref": "./poll_events.schema.json"},
+                {"$ref": "./fetch_rids.schema.json"},
+                {"$ref": "./fetch_manifests.schema.json"},
+                {"$ref": "./fetch_bundles.schema.json"},
+                {"$ref": "./rids_payload.schema.json"},
+                {"$ref": "./manifests_payload.schema.json"},
+                {"$ref": "./bundles_payload.schema.json"},
+                {"$ref": "./events_payload.schema.json"}
+            ]
+        },
+        "source_node": {
+            "type": "string"
+        },
+        "target_node": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "payload",
+        "source_node",
+        "target_node"
+    ]
+}

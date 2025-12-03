@@ -1,18 +1,32 @@
-import logging
+from dataclasses import dataclass
 from typing import Callable
 from enum import StrEnum
+
+import structlog
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
 
-from typing import TYPE_CHECKING
+from .processor.context import HandlerContext
+from .network.resolver import NetworkResolver
+from .processor.kobj_queue import KobjQueue
 
-if TYPE_CHECKING:
-    from .network.resolver import NetworkResolver
-    from .processor.interface import ProcessorInterface
-    from .context import ActionContext
+log = structlog.stdlib.get_logger()
 
-logger = logging.getLogger(__name__)
+@dataclass
+class DerefHandler:
+    func: Callable[[HandlerContext, RID], Bundle | None]
+    rid_types: tuple[RIDType]
+    
+    def __call__(self, ctx: HandlerContext, rid: RID) -> Bundle | None:
+        return self.func(ctx, rid)
+    
+    @classmethod
+    def create(cls, rid_types: tuple[RIDType]):
+        def decorator(func: Callable) -> DerefHandler:
+            handler = cls(func, rid_types)
+            return handler
+        return decorator
 
 
 class BundleSource(StrEnum):
@@ -23,106 +37,74 @@ class Effector:
     """Subsystem for dereferencing RIDs."""
     
     cache: Cache
-    resolver: "NetworkResolver | None"
-    processor: "ProcessorInterface | None"
-    action_context: "ActionContext | None"
-    _action_table: dict[
-        type[RID], 
-        Callable[
-            ["ActionContext", RID], 
-            Bundle | None
-        ]
-    ] = dict()
+    resolver: NetworkResolver
+    kobj_queue: KobjQueue
+    handler_context: HandlerContext
     
     def __init__(
         self, 
         cache: Cache,
+        resolver: NetworkResolver,
+        kobj_queue: KobjQueue,
+        handler_context: HandlerContext,
+        deref_handlers: list[DerefHandler]
     ):
         self.cache = cache
-        self.resolver = None
-        self.processor = None
-        self.action_context = None
-        self._action_table = self.__class__._action_table.copy()
-        
-    def set_processor(self, processor: "ProcessorInterface"):
-        self.processor = processor
-        
-    def set_resolver(self, resolver: "NetworkResolver"):
         self.resolver = resolver
+        self.kobj_queue = kobj_queue
+        self.handler_context = handler_context
+        self.deref_handlers = deref_handlers
         
-    def set_action_context(self, action_context: "ActionContext"):
-        self.action_context = action_context
-        
-    @classmethod
-    def register_default_action(cls, rid_type: RIDType):
-        def decorator(func: Callable) -> Callable:
-            cls._action_table[rid_type] = func
-            return func
-        return decorator
-        
-    def register_action(self, rid_type: RIDType):
-        """Registers a new dereference action for an RID type.
-        
-        Example:
-            This function should be used as a decorator on an action function::
-            
-                @node.register_action(KoiNetNode)
-                def deref_koi_net_node(ctx: ActionContext, rid: KoiNetNode):
-                    # return a Bundle or None
-                    return
-        """
-        def decorator(func: Callable) -> Callable:
-            self._action_table[rid_type] = func
-            return func
-        return decorator
+        self.handler_context.set_effector(self)
     
     def _try_cache(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
         bundle = self.cache.read(rid)
         
         if bundle:
-            logger.debug("Cache hit")
+            log.debug("Cache hit")
             return bundle, BundleSource.CACHE
         else:
-            logger.debug("Cache miss")
+            log.debug("Cache miss")
             return None
-                    
+            
     def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
-        if type(rid) not in self._action_table:
-            logger.debug("No action available")
+        action = None
+        for handler in self.deref_handlers:
+            if type(rid) not in handler.rid_types:
+                continue
+            action = handler
+            break
+        
+        if not action:
+            log.debug("No action found")
             return None
         
-        logger.debug("Action available")
-        func = self._action_table[type(rid)]
-        bundle = func(
-            ctx=self.action_context, 
-            rid=rid
-        )
+        bundle = action(ctx=self.handler_context, rid=rid)
         
         if bundle:
-            logger.debug("Action hit")
+            log.debug("Action hit")
             return bundle, BundleSource.ACTION
         else:
-            logger.debug("Action miss")
+            log.debug("Action miss")
             return None
-
         
     def _try_network(self, rid: RID) -> tuple[Bundle, KoiNetNode] | None:
         bundle, source = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
-            logger.debug("Network hit")
+            log.debug("Network hit")
             return bundle, source
         else:
-            logger.debug("Network miss")
+            log.debug("Network miss")
             return None
         
-    
     def deref(
         self, 
         rid: RID,
         refresh_cache: bool = False,
         use_network: bool = False,
-        handle_result: bool = True
+        handle_result: bool = True,
+        write_through: bool = False
     ) -> Bundle | None:
         """Dereferences an RID.
         
@@ -134,10 +116,11 @@ class Effector:
             rid: RID to dereference
             refresh_cache: skips cache read when `True` 
             use_network: enables fetching from other nodes when `True`
-            handle_result: handles resulting bundle with knowledge pipeline when `True`
+            handle_result: sends resulting bundle to kobj queue when `True`
+            write_through: waits for kobj queue to empty when `True`
         """
         
-        logger.debug(f"Dereferencing {rid!r}")
+        log.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (
             # if `refresh_cache`, skip try cache
@@ -153,12 +136,12 @@ class Effector:
             and bundle is not None 
             and source != BundleSource.CACHE
         ):            
-            self.processor.handle(
+            self.kobj_queue.push(
                 bundle=bundle, 
                 source=source if type(source) is KoiNetNode else None
             )
-
-            # TODO: refactor for general solution, param to write through to cache before continuing
-            # like `self.processor.kobj_queue.join()``
-
+            
+            if write_through:
+                self.kobj_queue.q.join()
+                
         return bundle
