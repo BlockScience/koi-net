@@ -1,3 +1,4 @@
+import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
@@ -6,6 +7,8 @@ from ..network.request_handler import RequestHandler
 from ..processor.kobj_queue import KobjQueue
 from ..protocol.api_models import ErrorResponse
 from ..protocol.node import NodeProfile, NodeType
+
+log = structlog.stdlib.get_logger()
 
 
 class SyncManager:
@@ -38,7 +41,7 @@ class SyncManager:
         if not node_providers:
             return
         
-        # log.debug(f"Catching up with `orn:koi-net.node` providers: {node_providers}")
+        log.debug(f"Catching up with `orn:koi-net.node` providers: {node_providers}")
         self.catch_up_with(node_providers, [KoiNetNode])
     
     def catch_up_with(self, nodes, rid_types):

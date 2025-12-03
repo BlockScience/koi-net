@@ -89,7 +89,7 @@ console_renderer = structlog.dev.ConsoleRenderer(
 class LogSystem:
     """Handles initializing the logging system."""
     
-    def __init__(self):
+    def __init__(self):        
         file_handler = RotatingFileHandler(
             filename="log.ndjson",
             maxBytes=10 * 1024 * 1024,
@@ -139,3 +139,6 @@ class LogSystem:
             logger_factory=structlog.stdlib.LoggerFactory(),
             cache_logger_on_first_use=True,
         )
+        
+    def get_logger(self):
+        return structlog.stdlib.get_logger()
