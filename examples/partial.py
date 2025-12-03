@@ -12,5 +12,4 @@ class MyPartialNode(PartialNode):
     config_schema = MyPartialNodeConfig
 
 if __name__ == "__main__":
-    node = MyPartialNode()
-    node.run()
+    MyPartialNode().run()

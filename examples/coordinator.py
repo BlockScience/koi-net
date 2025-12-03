@@ -65,5 +65,4 @@ class CoordinatorNode(FullNode):
     knowledge_handlers = FullNode.knowledge_handlers + [handshake_handler]
 
 if __name__ == "__main__":
-    node = CoordinatorNode()
-    # node.entrypoint.run()
+    CoordinatorNode().run()
