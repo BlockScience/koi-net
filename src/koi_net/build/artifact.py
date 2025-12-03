@@ -1,30 +1,36 @@
 import inspect
 from collections import deque
-from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
-from koi_net.assembler_consts import COMP_TYPE_OVERRIDE, START_FUNC_NAME, START_ORDER_OVERRIDE, STOP_FUNC_NAME, STOP_ORDER_OVERRIDE
+if TYPE_CHECKING:
+    from .assembler import NodeAssembler
 
+from .consts import (
+    COMP_TYPE_OVERRIDE, 
+    START_FUNC_NAME, 
+    START_ORDER_OVERRIDE, 
+    STOP_FUNC_NAME, 
+    STOP_ORDER_OVERRIDE,
+    CompType
+)
 
-class CompType(StrEnum):
-    FACTORY = "FACTORY"
-    OBJECT = "OBJECT"
 
 class AssemblyArtifact:
-    assembler: Any
+    assembler: "NodeAssembler"
     comp_dict: dict[str, Any]
     dep_graph: dict[str, list[str]]
     comp_types: dict[str, CompType]
     init_order: list[str]
     start_order: list[str]
     stop_order: list[str]
+    graphviz: str
     
-    def __init__(self, assembler):
+    def __init__(self, assembler: "NodeAssembler"):
         self.assembler = assembler
         
     def collect_comps(self):
-        """Collects components into `comp_dict` from class definition."""
+        """Collects components from class definition."""
         
         self.comp_dict = {}
         # adds components from class and all base classes. skips `type`, and runs in reverse so that sub classes override super class values
@@ -39,53 +45,60 @@ class AssemblyArtifact:
     def build_dependencies(self):
         """Builds dependency graph and component type map.
         
-        Graph representation is an adjacency list: each key is a component 
-        name, and the value is a tuple containing a list of dependency 
-        component names.
+        Graph representation is an adjacency list: the key is a component 
+        name, and the value is a tuple containing names of the depedencies.
         """
         
         self.comp_types = {}
         self.dep_graph = {}
         for comp_name, comp in self.comp_dict.items():
-            explicit_type = getattr(comp, COMP_TYPE_OVERRIDE, None)
             
             dep_names = []
+            
+            explicit_type = getattr(comp, COMP_TYPE_OVERRIDE, None)
             if explicit_type:
                 self.comp_types[comp_name] = explicit_type
             
+            # non callable components are objects treated "as is"
             elif not callable(comp):
                 self.comp_types[comp_name] = CompType.OBJECT
             
-            elif isinstance(comp, type) and issubclass(comp, BaseModel):
-                self.comp_types[comp_name] = CompType.OBJECT
-            
+            # callable components default to singletons
             else:
                 sig = inspect.signature(comp)
-                self.comp_types[comp_name] = CompType.FACTORY
+                self.comp_types[comp_name] = CompType.SINGLETON
                 dep_names = list(sig.parameters)
+                
+                invalid_deps = set(dep_names) - set(self.comp_dict)
+                if invalid_deps:
+                    raise Exception(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
                 
             self.dep_graph[comp_name] = dep_names
         
         [print(f"{i}: {comp_name} -> {deps}") for i, (comp_name, deps) in enumerate(self.dep_graph.items())]
     
     def build_init_order(self):
-        # adj list: n -> outgoing neighbors
+        """Builds component initialization order using Kahn's algorithm."""
         
+        # adj list: n -> outgoing neighbors
+        adj = self.dep_graph
         # reverse adj list: n -> incoming neighbors
         r_adj: dict[str, list[str]] = {}
         
         # computes reverse adjacency list
-        for node in self.dep_graph:
+        for node in adj:
             r_adj.setdefault(node, [])
-            for n in self.dep_graph[node]:
+            for n in adj[node]:
                 r_adj.setdefault(n, [])
                 r_adj[n].append(node)
         
-        out_degree: dict[str, int] = {
+        # how many outgoing edges each node has
+        out_degree = {
             n: len(neighbors) 
-            for n, neighbors in self.dep_graph.items()
+            for n, neighbors in adj.items()
         }
         
+        # initializing queue: nodes w/o dependencies
         queue = deque()
         for node in out_degree:
             if out_degree[node] == 0:
@@ -93,56 +106,55 @@ class AssemblyArtifact:
         
         self.init_order = []
         while queue:
+            # removes node from graph
             n = queue.popleft()
             self.init_order.append(n)
-                
+            
+            # updates out degree for nodes dependent on this node
             for next_n in r_adj[n]:
                 out_degree[next_n] -= 1
+                # adds nodes now without dependencies to queue
                 if out_degree[next_n] == 0:
                     queue.append(next_n)
         
         if len(self.init_order) != len(self.dep_graph):
-            cycle_nodes = set(self.dep_graph.keys()) - set(self.init_order)
+            cycle_nodes = set(self.dep_graph) - set(self.init_order)
             raise Exception(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
         
         print("\ninit order")
         [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.init_order)]
         
     def build_start_order(self):
-        start_order_override = getattr(
-            self.assembler, START_ORDER_OVERRIDE, None)
+        """Builds component start order.
         
-        if start_order_override:
-            self.start_order = start_order_override
-        else:
-            self.start_order = []
-            for comp_name in self.init_order:
-                comp = self.comp_dict[comp_name]
-                if getattr(comp, START_FUNC_NAME, None):
-                    self.start_order.append(comp_name)
+        Checks if components define a start function in init order. Can
+        be overridden by setting start order override in the `NodeAssembler`.
+        """
+        self.start_order = getattr(self.assembler, START_ORDER_OVERRIDE, None) or [
+            comp_name for comp_name in self.init_order 
+            if getattr(self.comp_dict[comp_name], START_FUNC_NAME, None)
+        ]
         
         print("\nstart order")
         [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.start_order)]
         
     def build_stop_order(self):
-        stop_order_override = getattr(
-            self.assembler, STOP_ORDER_OVERRIDE, None)
+        """Builds component stop order.
         
-        if stop_order_override:
-            self.stop_order = stop_order_override
-        else:
-            self.stop_order = []
-            for comp_name in reversed(self.init_order):
-                comp = self.comp_dict[comp_name]
-                if getattr(comp, STOP_FUNC_NAME, None):
-                    self.stop_order.append(comp_name)
+        Checks if components define a stop function in init order. Can
+        be overridden by setting stop order override in the `NodeAssembler`.
+        """
+        self.stop_order = getattr(self.assembler, STOP_ORDER_OVERRIDE, None) or [
+            comp_name for comp_name in self.init_order 
+            if getattr(self.comp_dict[comp_name], STOP_FUNC_NAME, None)
+        ]
         
         print("\nstop order")
         [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.stop_order)]
         
     
     def visualize(self) -> str:
-        """Returns representation of dependency graph in Graphviz DOT language."""
+        """Creates representation of dependency graph in Graphviz DOT language."""
         
         s = "digraph G {\n"
         for node, neighbors in self.dep_graph.items():

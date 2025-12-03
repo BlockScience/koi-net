@@ -20,7 +20,7 @@ class NodePoller(EntryPoint):
         self,
         config: PartialNodeConfig,
         kobj_queue: KobjQueue,
-        resolver: NetworkResolver,
+        resolver: NetworkResolver
     ):
         self.kobj_queue = kobj_queue
         self.resolver = resolver
