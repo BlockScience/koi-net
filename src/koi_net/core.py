@@ -4,6 +4,8 @@ from .build.assembler import NodeAssembler
 from .config.core import NodeConfig
 from .config.proxy import ConfigProxy
 from .config.loader import ConfigLoader
+from .config.full_node import FullNodeConfig
+from .config.partial_node import PartialNodeConfig
 from .processor.context import HandlerContext
 from .effector import DerefHandler, Effector
 from .behaviors.handshaker import Handshaker
@@ -71,6 +73,8 @@ class BaseNode(NodeAssembler):
 
 class FullNode(BaseNode):
     entrypoint: NodeServer = NodeServer
+    config: FullNodeConfig
 
 class PartialNode(BaseNode):
     entrypoint: NodePoller = NodePoller
+    config: PartialNodeConfig

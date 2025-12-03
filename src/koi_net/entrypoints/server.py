@@ -81,6 +81,5 @@ class NodeServer(EntryPoint):
             app=self.app,
             host=self.config.server.host,
             port=self.config.server.port,
-            log_config=None,
-            access_log=False
+            log_config=None
         )
