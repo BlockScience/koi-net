@@ -1,11 +1,8 @@
-import structlog
-from rid_lib.types.koi_net_node import KoiNetNode
+from rid_lib.types import KoiNetNode
 from .config.core import NodeConfig
 from .protocol.node import NodeProfile
 
-log = structlog.stdlib.get_logger()
 
-    
 class NodeIdentity:
     """Represents a node's identity (RID, profile)."""
     
