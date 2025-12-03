@@ -3,14 +3,14 @@ from typing import Any, Self
 
 import structlog
 
-from .artifact import AssemblyArtifact, CompType
+from .artifact import BuildArtifact, CompType
 from .container import NodeContainer
 
 log = structlog.stdlib.get_logger()
 
 
 class NodeAssembler:
-    _artifact: AssemblyArtifact = None
+    _artifact: BuildArtifact = None
     
     # optional order overrides:
     _start_order: list[str]
@@ -22,7 +22,7 @@ class NodeAssembler:
         
         # builds assembly artifact if it doesn't exist
         if not cls._artifact:
-            cls._artifact = AssemblyArtifact(cls)
+            cls._artifact = BuildArtifact(cls)
             cls._artifact.build()
         
         components = cls._build_components(cls._artifact)
@@ -30,7 +30,7 @@ class NodeAssembler:
         return NodeContainer(cls._artifact, **components)
     
     @staticmethod
-    def _build_components(artifact: AssemblyArtifact):
+    def _build_components(artifact: BuildArtifact):
         """Returns assembled components as a dict."""
         
         print("\nbuilding components")

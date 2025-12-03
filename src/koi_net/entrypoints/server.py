@@ -28,6 +28,8 @@ class NodeServer(EntryPoint):
         self.config = config
         self.response_handler = response_handler
         
+        self.build_app()
+        
     def build_endpoints(self, router: APIRouter):
         """Builds endpoints for API router."""
         for path, models in API_MODEL_MAP.items():
@@ -74,8 +76,6 @@ class NodeServer(EntryPoint):
     
     def run(self):
         """Starts FastAPI server and event handler."""
-        
-        self.build_app()
         
         uvicorn.run(
             app=self.app,
