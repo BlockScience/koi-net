@@ -1,5 +1,7 @@
 import threading
 
+from koi_net.build import comp_order
+
 
 class End:
     """Class for STOP_WORKER sentinel pushed to worker queues."""
@@ -7,6 +9,7 @@ class End:
 
 STOP_WORKER = End()
 
+@comp_order.worker
 class ThreadWorker:
     """Base class for thread workers."""
     

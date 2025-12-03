@@ -1,22 +1,23 @@
 import inspect
 from collections import deque
 from typing import TYPE_CHECKING, Any
-from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from .assembler import NodeAssembler
 
 from .consts import (
+    COMP_ORDER_OVERRIDE,
     COMP_TYPE_OVERRIDE, 
     START_FUNC_NAME, 
     START_ORDER_OVERRIDE, 
     STOP_FUNC_NAME, 
     STOP_ORDER_OVERRIDE,
+    CompOrder,
     CompType
 )
 
+if TYPE_CHECKING:
+    from .assembler import NodeAssembler
 
-class AssemblyArtifact:
+
+class BuildArtifact:
     assembler: "NodeAssembler"
     comp_dict: dict[str, Any]
     dep_graph: dict[str, list[str]]
@@ -130,10 +131,24 @@ class AssemblyArtifact:
         Checks if components define a start function in init order. Can
         be overridden by setting start order override in the `NodeAssembler`.
         """
-        self.start_order = getattr(self.assembler, START_ORDER_OVERRIDE, None) or [
-            comp_name for comp_name in self.init_order 
-            if getattr(self.comp_dict[comp_name], START_FUNC_NAME, None)
-        ]
+        
+        self.start_order = getattr(self.assembler, START_ORDER_OVERRIDE, None)
+        
+        if self.start_order:
+            return
+        
+        workers = []
+        start_order = []
+        for comp_name in self.init_order:
+            comp = self.comp_dict[comp_name]
+            if getattr(comp, START_FUNC_NAME, None):
+                if getattr(comp, COMP_ORDER_OVERRIDE, None) == CompOrder.WORKER:
+                    workers.append(comp_name)
+                else:
+                    start_order.append(comp_name) 
+        
+        # order workers first
+        self.start_order = workers + start_order
         
         print("\nstart order")
         [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.start_order)]
@@ -144,11 +159,26 @@ class AssemblyArtifact:
         Checks if components define a stop function in init order. Can
         be overridden by setting stop order override in the `NodeAssembler`.
         """
-        self.stop_order = getattr(self.assembler, STOP_ORDER_OVERRIDE, None) or [
-            comp_name for comp_name in self.init_order 
-            if getattr(self.comp_dict[comp_name], STOP_FUNC_NAME, None)
-        ]
+        self.stop_order = getattr(self.assembler, STOP_ORDER_OVERRIDE, None)
         
+        if self.stop_order:
+            return
+        
+        workers = []
+        stop_order = []
+        for comp_name in self.init_order:
+            comp = self.comp_dict[comp_name]
+            if getattr(comp, STOP_FUNC_NAME, None):
+                if getattr(comp, COMP_ORDER_OVERRIDE, None) == CompOrder.WORKER:
+                    workers.append(comp_name)
+                else:
+                    stop_order.append(comp_name) 
+        
+        # order workers first (last)
+        self.stop_order = workers + stop_order
+        # reverse order from start order
+        self.stop_order.reverse()
+                
         print("\nstop order")
         [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.stop_order)]
         

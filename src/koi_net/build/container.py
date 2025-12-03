@@ -1,7 +1,7 @@
 import structlog
 
 from ..entrypoints.base import EntryPoint
-from .artifact import AssemblyArtifact
+from .artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
 
 log = structlog.stdlib.get_logger()
@@ -9,7 +9,7 @@ log = structlog.stdlib.get_logger()
 
 class NodeContainer:
     """Dummy 'shape' for node containers built by assembler."""
-    _artifact: AssemblyArtifact
+    _artifact: BuildArtifact
     
     entrypoint: EntryPoint
     
