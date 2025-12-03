@@ -1,8 +1,8 @@
 import structlog
-from koi_net.handshaker import Handshaker
-from koi_net.protocol.errors import ErrorType
-from koi_net.protocol.event import EventType
 from rid_lib.types import KoiNetNode
+from ..behaviors.handshaker import Handshaker
+from ..protocol.errors import ErrorType
+from ..protocol.event import EventType
 from ..processor.kobj_queue import KobjQueue
 
 log = structlog.stdlib.get_logger()

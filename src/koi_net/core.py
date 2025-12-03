@@ -6,8 +6,8 @@ from .config.proxy import ConfigProxy
 from .config.loader import ConfigLoader
 from .processor.context import HandlerContext
 from .effector import DerefHandler, Effector
-from .handshaker import Handshaker
-from .sync_manager import SyncManager
+from .behaviors.handshaker import Handshaker
+from .behaviors.sync_manager import SyncManager
 from .identity import NodeIdentity
 from .workers import KnowledgeProcessingWorker, EventProcessingWorker
 from .network.error_handler import ErrorHandler
@@ -21,8 +21,7 @@ from .processor.pipeline import KnowledgePipeline
 from .processor.kobj_queue import KobjQueue
 from .processor.handler import KnowledgeHandler
 from .secure_manager import SecureManager
-from .catcher_upper import CatcherUpper
-from .self_starter import SelfStart
+from .behaviors.profile_monitor import ProfileMonitor
 from .entrypoints import NodeServer, NodePoller
 from .processor.knowledge_handlers import (
     basic_manifest_handler, 
@@ -68,8 +67,7 @@ class BaseNode(NodeAssembler):
     pipeline: KnowledgePipeline = KnowledgePipeline
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
-    catcher_upper: CatcherUpper = CatcherUpper
-    self_start: SelfStart = SelfStart
+    profile_monitor: ProfileMonitor = ProfileMonitor
 
 class FullNode(BaseNode):
     entrypoint: NodeServer = NodeServer
