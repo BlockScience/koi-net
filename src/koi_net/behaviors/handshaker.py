@@ -40,7 +40,7 @@ class Handshaker:
         if self.cache.read(self.config.koi_net.first_contact.rid):
             return
         
-        if not self.graph.get_neighbors(
+        if self.graph.get_neighbors(
             direction="in", allowed_type=KoiNetNode):
             return
         
