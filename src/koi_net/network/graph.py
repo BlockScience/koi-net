@@ -1,4 +1,4 @@
-import logging
+import structlog
 from typing import Literal
 import networkx as nx
 from rid_lib import RIDType
@@ -7,7 +7,7 @@ from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..identity import NodeIdentity
 from ..protocol.edge import EdgeProfile, EdgeStatus
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
 class NetworkGraph:
@@ -21,27 +21,34 @@ class NetworkGraph:
         self.cache = cache
         self.dg = nx.DiGraph()
         self.identity = identity
+    
+    def start(self):
+        self.generate()
         
     def generate(self):
         """Generates directed graph from cached KOI nodes and edges."""
-        logger.debug("Generating network graph")
+        log.debug("Generating network graph")
         self.dg.clear()
         for rid in self.cache.list_rids():
             if type(rid) == KoiNetNode:                
                 self.dg.add_node(rid)
-                logger.debug(f"Added node {rid!r}")
+                log.debug(f"Added node {rid!r}")
                 
             elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
                 if not edge_bundle:
-                    logger.warning(f"Failed to load {rid!r}")
+                    log.warning(f"Failed to load {rid!r}")
                     continue
                 edge_profile = edge_bundle.validate_contents(EdgeProfile)
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
-                logger.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
-        logger.debug("Done")
+                log.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
+        log.debug("Done")
         
-    def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> KoiNetEdge | None:
+    def get_edge(
+        self, 
+        source: KoiNetNode, 
+        target: KoiNetNode
+    ) -> KoiNetEdge | None:
         """Returns edge RID given the RIDs of a source and target node."""
         if (source, target) in self.dg.edges:
             edge_data = self.dg.get_edge_data(source, target)
@@ -59,16 +66,16 @@ class NetworkGraph:
         All edges returned by default, specify `direction` to restrict 
         to incoming or outgoing edges only.
         """
-                        
+        
         edges = []
-        if direction != "in" and self.dg.out_edges:
+        if (direction is None or direction == "out") and self.dg.out_edges:
             out_edges = self.dg.out_edges(self.identity.rid)
             edges.extend(out_edges)
-                
-        if direction != "out" and self.dg.in_edges:
+        
+        if (direction is None or direction == "in") and self.dg.in_edges:
             in_edges = self.dg.in_edges(self.identity.rid)
             edges.extend(in_edges)
-                    
+        
         edge_rids = []
         for edge in edges:
             edge_data = self.dg.get_edge_data(*edge)
@@ -97,7 +104,7 @@ class NetworkGraph:
             edge_bundle = self.cache.read(edge_rid)
             
             if not edge_bundle: 
-                logger.warning(f"Failed to find edge {edge_rid!r} in cache")
+                log.warning(f"Failed to find edge {edge_rid!r} in cache")
                 continue
             
             edge_profile = edge_bundle.validate_contents(EdgeProfile)
@@ -112,6 +119,5 @@ class NetworkGraph:
                 neighbors.add(edge_profile.source)
             elif edge_profile.source == self.identity.rid:
                 neighbors.add(edge_profile.target)
-                
+            
         return list(neighbors)
-        

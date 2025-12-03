@@ -1,16 +1,12 @@
-import logging
-from rid_lib.types.koi_net_node import KoiNetNode
-from .config import NodeConfig
+from rid_lib.types import KoiNetNode
+from .config.core import NodeConfig
 from .protocol.node import NodeProfile
 
 
-logger = logging.getLogger(__name__)
-
-    
 class NodeIdentity:
     """Represents a node's identity (RID, profile)."""
     
-    config: NodeConfig    
+    config: NodeConfig
     
     def __init__(self, config: NodeConfig):
         self.config = config

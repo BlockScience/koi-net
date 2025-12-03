@@ -1,3 +1,5 @@
+"""Defines KOI-net protocol errors."""
+
 from enum import StrEnum
 
 

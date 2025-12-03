@@ -1,0 +1,20 @@
+{
+    "title": "Fetch Bundles",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "fetch_bundles"
+        },
+        "rids": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "type",
+        "rids"
+    ]
+}

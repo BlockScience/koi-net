@@ -1,0 +1,32 @@
+{
+    "title": "Bundles Payload",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "const": "bundles_payload"
+        },
+        "bundles": {
+            "type": "array",
+            "items": {
+                "$ref": "./bundle.schema.json"
+            }
+        },
+        "not_found": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "deferred": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "type",
+        "bundles"
+    ]
+}

@@ -28,9 +28,12 @@ def generate_edge_bundle(
     rid_types: list[RIDType],
     edge_type: EdgeType
 ) -> Bundle:
+    """Returns edge bundle."""
+    
     edge_rid = KoiNetEdge(sha256_hash(
         str(source) + str(target)
     ))
+    
     edge_profile = EdgeProfile(
         source=source,
         target=target,
@@ -38,8 +41,10 @@ def generate_edge_bundle(
         edge_type=edge_type,
         status=EdgeStatus.PROPOSED
     )
+    
     edge_bundle = Bundle.generate(
         edge_rid,
         edge_profile.model_dump()
     )
+    
     return edge_bundle

@@ -1,0 +1,49 @@
+{
+    "$defs": {
+        "EdgeStatus": {
+            "title": "Edge Status",
+            "type": "string",
+            "enum": [
+                "PROPOSED",
+                "APPROVED"
+            ]
+        },
+        "EdgeType": {
+            "title": "Edge Type",
+            "type": "string",
+            "enum": [
+                "WEBHOOK",
+                "POLL"
+            ]
+        }
+    },
+    "title": "Edge Profile",
+    "type": "object",
+    "properties": {
+        "source": {
+            "type": "string"
+        },
+        "target": {
+            "type": "string"
+        },
+        "edge_type": {
+            "$ref": "#/$defs/EdgeType"
+        },
+        "status": {
+            "$ref": "#/$defs/EdgeStatus"
+        },
+        "rid_types": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "source",
+        "target",
+        "edge_type",
+        "status",
+        "rid_types"
+    ]
+}

@@ -1,12 +1,14 @@
 rid-lib
 __pycache__
-*.json
 *.pem
 *.yaml
+*.ndjson*
 venv
 .env
 prototypes
 .vscode
 dist/
 docs/
+tests/
+.rid_cache/
 *.ndjson

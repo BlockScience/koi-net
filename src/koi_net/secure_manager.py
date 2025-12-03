@@ -1,8 +1,6 @@
-import logging
-from functools import wraps
-
+import structlog
 import cryptography.exceptions
-from rid_lib.ext import Bundle
+from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode
 from .identity import NodeIdentity
@@ -18,42 +16,44 @@ from .protocol.errors import (
     InvalidSignatureError,
     InvalidTargetError
 )
-from .effector import Effector
-from .config import NodeConfig
+from .config.core import NodeConfig
 
-logger = logging.getLogger(__name__)
+log = structlog.stdlib.get_logger()
 
 
-class Secure:
+class SecureManager:
     """Subsystem handling secure protocol logic."""
     identity: NodeIdentity
-    effector: Effector
+    cache: Cache
     config: NodeConfig
     priv_key: PrivateKey
     
     def __init__(
         self, 
         identity: NodeIdentity, 
-        effector: Effector,
+        cache: Cache,
         config: NodeConfig
     ):
         self.identity = identity
-        self.effector = effector
+        self.cache = cache
         self.config = config
-
-        self.priv_key = self._load_priv_key()
         
-    def _load_priv_key(self) -> PrivateKey:
+    def start(self):
+        self.load_priv_key()
+        
+    def load_priv_key(self) -> PrivateKey:
         """Loads private key from PEM file path in config."""
+        
+        # TODO: handle missing private key
         with open(self.config.koi_net.private_key_pem_path, "r") as f:
             priv_key_pem = f.read()
         
-        return PrivateKey.from_pem(
+        self.priv_key = PrivateKey.from_pem(
             priv_key_pem=priv_key_pem,
             password=self.config.env.priv_key_password
         )
         
-    def _handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
+    def handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
         """Attempts to find node profile in proided envelope.
         
         If an unknown node sends an envelope, it may still be able to be
@@ -89,8 +89,8 @@ class Secure:
         """Validates signed envelope from another node."""
         
         node_bundle = (
-            self.effector.deref(envelope.source_node) or
-            self._handle_unknown_node(envelope)
+            self.cache.read(envelope.source_node) or
+            self.handle_unknown_node(envelope)
         )
         
         if not node_bundle:
@@ -112,27 +112,4 @@ class Secure:
         # check that this node is the target of the envelope
         if envelope.target_node != self.identity.rid:
             raise InvalidTargetError(f"Envelope target {envelope.target_node!r} is not me")
-        
-    def envelope_handler(self, func):
-        """Wrapper function validates envelopes for server endpoints.
-        
-        Validates incoming envelope and passes payload to endpoint
-        handler. Resulting payload is returned as a signed envelope.
-        """
-        @wraps(func)
-        async def wrapper(req: SignedEnvelope, *args, **kwargs) -> SignedEnvelope | None:
-            logger.info("Validating envelope")
-            
-            self.validate_envelope(req)            
-            logger.info("Calling endpoint handler")
-            
-            result = await func(req, *args, **kwargs)            
-            
-            if result is not None:
-                logger.info("Creating response envelope")
-                return self.create_envelope(
-                    payload=result,
-                    target=req.source_node
-                )
-        return wrapper
 
