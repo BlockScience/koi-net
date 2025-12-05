@@ -51,7 +51,6 @@ class EventProcessingWorker(ThreadWorker):
         self.event_queue.q.put(STOP_WORKER)
         
     def run(self):
-        log.info("Started event worker")
         while True:
             try:
                 item = self.event_queue.q.get(timeout=self.config.koi_net.event_worker.queue_timeout)
