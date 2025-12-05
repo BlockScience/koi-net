@@ -29,7 +29,6 @@ class KnowledgeProcessingWorker(ThreadWorker):
         self.kobj_queue.q.put(STOP_WORKER)
         
     def run(self):
-        log.info("Started kobj worker")
         while True:
             try:
                 item = self.kobj_queue.q.get(timeout=self.config.koi_net.kobj_worker.queue_timeout)
