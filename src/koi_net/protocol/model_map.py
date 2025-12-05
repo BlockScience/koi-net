@@ -27,6 +27,7 @@ class Models(NamedTuple):
     response_envelope: type[SignedEnvelope] | None
 
 
+# maps API paths to request and response models
 API_MODEL_MAP: dict[str, Models] = {
     BROADCAST_EVENTS_PATH: Models(
         request=EventsPayload,

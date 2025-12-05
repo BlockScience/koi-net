@@ -21,6 +21,9 @@ class NetworkGraph:
         self.cache = cache
         self.dg = nx.DiGraph()
         self.identity = identity
+    
+    def start(self):
+        self.generate()
         
     def generate(self):
         """Generates directed graph from cached KOI nodes and edges."""
@@ -41,7 +44,11 @@ class NetworkGraph:
                 log.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
         log.debug("Done")
         
-    def get_edge(self, source: KoiNetNode, target: KoiNetNode,) -> KoiNetEdge | None:
+    def get_edge(
+        self, 
+        source: KoiNetNode, 
+        target: KoiNetNode
+    ) -> KoiNetEdge | None:
         """Returns edge RID given the RIDs of a source and target node."""
         if (source, target) in self.dg.edges:
             edge_data = self.dg.get_edge_data(source, target)
@@ -59,16 +66,16 @@ class NetworkGraph:
         All edges returned by default, specify `direction` to restrict 
         to incoming or outgoing edges only.
         """
-                        
+        
         edges = []
-        if direction != "in" and self.dg.out_edges:
+        if (direction is None or direction == "out") and self.dg.out_edges:
             out_edges = self.dg.out_edges(self.identity.rid)
             edges.extend(out_edges)
-                
-        if direction != "out" and self.dg.in_edges:
+        
+        if (direction is None or direction == "in") and self.dg.in_edges:
             in_edges = self.dg.in_edges(self.identity.rid)
             edges.extend(in_edges)
-                    
+        
         edge_rids = []
         for edge in edges:
             edge_data = self.dg.get_edge_data(*edge)
@@ -112,6 +119,5 @@ class NetworkGraph:
                 neighbors.add(edge_profile.source)
             elif edge_profile.source == self.identity.rid:
                 neighbors.add(edge_profile.target)
-                
+            
         return list(neighbors)
-        

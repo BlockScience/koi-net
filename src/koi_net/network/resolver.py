@@ -52,15 +52,21 @@ class NetworkResolver:
                 continue
             
             node_bundle = self.cache.read(node_rid)
-            
             node_profile = node_bundle.validate_contents(NodeProfile)
             
-            if (node_profile.node_type == NodeType.FULL) and (rid_type in node_profile.provides.state):
-                log.debug(f"Found provider {node_rid!r}")
-                provider_nodes.append(node_rid)
+            if node_profile.node_type != NodeType.FULL:
+                continue
+            
+            if rid_type not in node_profile.provides.state:
+                continue
+            
+            provider_nodes.append(node_rid)
         
-        if not provider_nodes:
+        if provider_nodes:
+            log.debug(f"Found provider(s) {provider_nodes}")
+        else:
             log.debug("Failed to find providers")
+            
         return provider_nodes
             
     def fetch_remote_bundle(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
@@ -71,6 +77,9 @@ class NetworkResolver:
         for node_rid in self.get_state_providers(type(rid)):
             payload = self.request_handler.fetch_bundles(
                 node=node_rid, rids=[rid])
+            
+            if type(payload) == ErrorResponse:
+                continue
             
             if payload.bundles:
                 remote_bundle = payload.bundles[0]
@@ -91,6 +100,9 @@ class NetworkResolver:
             payload = self.request_handler.fetch_manifests(
                 node=node_rid, rids=[rid])
             
+            if type(payload) == ErrorResponse:
+                continue
+            
             if payload.manifests:
                 remote_manifest = payload.manifests[0]
                 log.debug(f"Got bundle from {node_rid!r}")
@@ -104,27 +116,28 @@ class NetworkResolver:
     def poll_neighbors(self) -> dict[KoiNetNode, list[Event]]:
         """Polls all neighbor nodes and returns compiled list of events.
         
-        Neighbor nodes also include the first contact, regardless of
-        whether the first contact profile is known to this node.
+        Neighbor nodes include any node this node shares an edge with,
+        or the first contact, if no neighbors are found.
+        
+        NOTE: This function does not poll nodes that don't share edges
+        with this node. Events sent by non neighboring nodes will not
+        be polled.
         """
         
-        graph_neighbors = self.graph.get_neighbors()
-        neighbors = []
-        
-        if graph_neighbors:
-            for node_rid in graph_neighbors:
-                node_bundle = self.cache.read(node_rid)
-                if not node_bundle: 
-                    continue
-                node_profile = node_bundle.validate_contents(NodeProfile)
-                if node_profile.node_type != NodeType.FULL: 
-                    continue
-                neighbors.append(node_rid)
+        neighbors: list[KoiNetNode] = []
+        for node_rid in self.graph.get_neighbors():
+            node_bundle = self.cache.read(node_rid)
+            if not node_bundle: 
+                continue
+            node_profile = node_bundle.validate_contents(NodeProfile)
+            if node_profile.node_type != NodeType.FULL: 
+                continue
+            neighbors.append(node_rid)
             
-        elif self.config.koi_net.first_contact.rid:
+        if not neighbors and self.config.koi_net.first_contact.rid:
             neighbors.append(self.config.koi_net.first_contact.rid)
         
-        event_dict = dict()
+        event_dict: dict[KoiNetNode, list[Event]] = {}
         for node_rid in neighbors:
             try:
                 payload = self.request_handler.poll_events(
@@ -134,13 +147,12 @@ class NetworkResolver:
                 
                 if type(payload) == ErrorResponse:
                     continue
-                    
+                
                 if payload.events:
                     log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
-                    
                     event_dict[node_rid] = payload.events
                     
-            except httpx.ConnectError:
+            except httpx.RequestError:
                 log.debug(f"Failed to reach node {node_rid!r}")
                 continue
         

@@ -9,8 +9,7 @@ class MyPartialNodeConfig(PartialNodeConfig):
     )
 
 class MyPartialNode(PartialNode):
-    config_cls = MyPartialNodeConfig
+    config_schema = MyPartialNodeConfig
 
 if __name__ == "__main__":
-    node = MyPartialNode()
-    node.entrypoint.run()
+    MyPartialNode().run()

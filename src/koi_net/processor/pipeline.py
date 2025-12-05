@@ -34,7 +34,7 @@ class KnowledgePipeline:
         request_handler: RequestHandler,
         event_queue: EventQueue,
         graph: NetworkGraph,
-        knowledge_handlers: list[KnowledgeHandler] = []
+        knowledge_handlers: list[KnowledgeHandler]
     ):
         self.handler_context = handler_context
         self.cache = cache
@@ -70,7 +70,7 @@ class KnowledgePipeline:
             
             log.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
             
-            resp = handler.func(
+            resp = handler(
                 ctx=self.handler_context,
                 kobj=kobj.model_copy()
             )
@@ -79,29 +79,52 @@ class KnowledgePipeline:
             if resp is STOP_CHAIN:
                 log.debug(f"Handler chain stopped by {handler.func.__name__}")
                 return STOP_CHAIN
+            
             # kobj unmodified
             elif resp is None:
                 continue
+            
             # kobj modified by handler
             elif isinstance(resp, KnowledgeObject):
                 kobj = resp
                 log.debug(f"Knowledge object modified by {handler.func.__name__}")
+            
             else:
                 raise ValueError(f"Handler {handler.func.__name__} returned invalid response '{resp}'")
-                    
+            
         return kobj
     
     def process(self, kobj: KnowledgeObject):
-        """Sends provided knowledge obejct through knowledge processing pipeline.
+        """Sends knowledge object through knowledge processing pipeline.
         
-        Handler chains are called in between major events in the pipeline, indicated by their handler type. Each handler type is guaranteed to have access to certain knowledge, and may affect a subsequent action in the pipeline. The five handler types are as follows:
-        - RID - provided RID; if event type is `FORGET`, this handler decides whether to delete the knowledge from the cache by setting the normalized event type to `FORGET`, otherwise this handler decides whether to validate the manifest (and fetch it if not provided).
-        - Manifest - provided RID, manifest; decides whether to validate the bundle (and fetch it if not provided).
-        - Bundle - provided RID, manifest, contents (bundle); decides whether to write knowledge to the cache by setting the normalized event type to `NEW` or `UPDATE`.
-        - Network - provided RID, manifest, contents (bundle); decides which nodes (if any) to broadcast an event about this knowledge to. (Note, if event type is `FORGET`, the manifest and contents will be retrieved from the local cache, and indicate the last state of the knowledge before it was deleted.)
-        - Final - provided RID, manifests, contents (bundle); final action taken after network broadcast.
+        Handler chains are called in between major events in the 
+        pipeline, indicated by their handler type. Each handler type is 
+        guaranteed to have access to certain knowledge, and may affect a 
+        subsequent action in the pipeline. The five handler types are as 
+        follows:
+        - RID - provided RID; if event type is `FORGET`, this handler 
+        decides whether to delete the knowledge from the cache by 
+        setting the normalized event type to `FORGET`, otherwise this 
+        handler decides whether to validate the manifest (and fetch it 
+        if not provided). After processing, if event type is `FORGET`, 
+        the manifest and contents will be retrieved from the local cache, 
+        and indicate the last state of the knowledge before it was 
+        deleted.
+        - Manifest - provided RID, manifest; decides whether to validate 
+        the bundle (and fetch it if not provided).
+        - Bundle - provided RID, manifest, contents (bundle); decides 
+        whether to write knowledge to the cache by setting the 
+        normalized event type to `NEW` or `UPDATE`.
+        - Network - provided RID, manifest, contents (bundle); decides 
+        which nodes (if any) to broadcast an event about this knowledge 
+        to.
+        - Final - provided RID, manifests, contents (bundle); final 
+        action taken after network broadcast.
         
-        The pipeline may be stopped by any point by a single handler returning the `STOP_CHAIN` sentinel. In that case, the process will exit immediately. Further handlers of that type and later handler chains will not be called.
+        The pipeline may be stopped by any point by a single handler 
+        returning the `STOP_CHAIN` sentinel. In that case, the process 
+        will exit immediately. Further handlers of that type and later 
+        handler chains will not be called.
         """
         
         log.debug(f"Handling {kobj!r}")
@@ -110,7 +133,7 @@ class KnowledgePipeline:
         
         if kobj.event_type == EventType.FORGET:
             bundle = self.cache.read(kobj.rid)
-            if not bundle: 
+            if not bundle:
                 log.debug("Local bundle not found")
                 return
             
@@ -131,7 +154,7 @@ class KnowledgePipeline:
                     node=kobj.source,
                     rids=[kobj.rid]
                 )
-                    
+                
                 if not payload.manifests:
                     log.debug("Failed to find manifest")
                     return
@@ -142,7 +165,7 @@ class KnowledgePipeline:
             if kobj is STOP_CHAIN: return
             
             # attempt to retrieve bundle
-            if not kobj.bundle:
+            if not kobj.contents:
                 log.debug("Bundle not found")
                 if kobj.source is None:
                     return
@@ -157,13 +180,13 @@ class KnowledgePipeline:
                     log.debug("Failed to find bundle")
                     return
                 
-                bundle = payload.bundles[0]                    
+                bundle = payload.bundles[0]
                 
                 if kobj.manifest != bundle.manifest:
                     log.warning("Retrieved bundle contains a different manifest")
                 
                 kobj.manifest = bundle.manifest
-                kobj.contents = bundle.contents                
+                kobj.contents = bundle.contents
                 
         kobj = self.call_handler_chain(HandlerType.Bundle, kobj)
         if kobj is STOP_CHAIN: return
@@ -177,7 +200,7 @@ class KnowledgePipeline:
             self.cache.delete(kobj.rid)
             
         else:
-            log.debug("Normalized event type was never set, no cache or network operations will occur")
+            log.debug("Normalized event type was not set, no cache or network operations will occur")
             return
         
         if type(kobj.rid) in (KoiNetNode, KoiNetEdge):

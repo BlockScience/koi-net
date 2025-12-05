@@ -11,3 +11,4 @@ dist/
 docs/
 tests/
 .rid_cache/
+*.ndjson

@@ -12,15 +12,21 @@ log = structlog.stdlib.get_logger()
 T = TypeVar("T", bound=RequestModels | ResponseModels)
 
 class SignedEnvelope(BaseModel, Generic[T]):
-    model_config = ConfigDict(exclude_none=True)
-    
     payload: T
     source_node: KoiNetNode
     target_node: KoiNetNode
     signature: str
     
-    def verify_with(self, pub_key: PublicKey):        
+    model_config = ConfigDict(exclude_none=True)
+    
+    def verify_with(self, pub_key: PublicKey):
+        """Verifies signed envelope with public key.
+        
+        Raises `cryptography.exceptions.InvalidSignature` on failure.
+        """
+        
         # IMPORTANT: calling `model_dump()` loses all typing! when converting between SignedEnvelope and UnsignedEnvelope, use the Pydantic classes, not the dictionary form
+        
         unsigned_envelope = UnsignedEnvelope[T](
             payload=self.payload,
             source_node=self.source_node,
@@ -28,20 +34,22 @@ class SignedEnvelope(BaseModel, Generic[T]):
         )
         
         log.debug(f"Verifying envelope: {unsigned_envelope.model_dump_json(exclude_none=True)}")
-                
+
         pub_key.verify(
             self.signature,
             unsigned_envelope.model_dump_json(exclude_none=True).encode()
         )
 
 class UnsignedEnvelope(BaseModel, Generic[T]):
-    model_config = ConfigDict(exclude_none=True)
-    
     payload: T
     source_node: KoiNetNode
     target_node: KoiNetNode
     
+    model_config = ConfigDict(exclude_none=True)
+    
     def sign_with(self, priv_key: PrivateKey) -> SignedEnvelope[T]:
+        """Signs with private key and returns `SignedEnvelope`."""
+        
         log.debug(f"Signing envelope: {self.model_dump_json(exclude_none=True)}")
         log.debug(f"Type: [{type(self.payload)}]")
         
