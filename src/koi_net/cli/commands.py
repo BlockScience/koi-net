@@ -6,8 +6,8 @@ from rich.table import Table
 
 from importlib.metadata import entry_points
 
-from koi_net.cli.models import KoiNetworkConfig
-from koi_net.core import NodeInterface
+from .models import KoiNetworkConfig
+# from koi_net.build.container import NodeContainer
 import shutil
 
 app = typer.Typer()
@@ -48,7 +48,7 @@ def list_nodes():
             node_type = net_config.nodes.get(dir)
             
             ep = list(installed_nodes.select(name=node_type))[0]
-            create_node: Callable[[], NodeInterface] = ep.load()
+            create_node = ep.load()
             
             node = create_node()
             
@@ -94,6 +94,6 @@ def start(name: str):
     os.chdir(name)
     node_type = net_config.nodes.get(name)
     ep = list(installed_nodes.select(name=node_type))[0]
-    create_node: Callable[[], NodeInterface] = ep.load()
+    create_node = ep.load()
     
-    create_node().server.run()
+    create_node().run()
