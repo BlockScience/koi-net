@@ -60,6 +60,7 @@ class ErrorResponse(BaseModel):
 
 type RequestModels = EventsPayload | PollEvents | FetchRids | FetchManifests | FetchBundles
 type ResponseModels = RidsPayload | ManifestsPayload | BundlesPayload | EventsPayload | ErrorResponse
+
 type ApiModels = Annotated[
     RequestModels | ResponseModels,
     Field(discriminator="type")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "koi-net"
-version = "1.2.0b3"
+version = "1.2.0"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
@@ -35,9 +35,6 @@ docs = [
     "sphinx-autodoc-typehints>=3.0.1",
     "sphinx-rtd-theme>=3.0.2",
 ]
-
-[project.scripts]
-koi = "koi_net.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"

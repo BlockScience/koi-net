@@ -14,7 +14,7 @@ class QueuedEvent(BaseModel):
     target: KoiNetNode
 
 class EventQueue:
-    """Handles out going network event queues."""
+    """Queue for outgoing network events."""
     q: Queue[QueuedEvent]
     
     def __init__(self):
@@ -23,8 +23,8 @@ class EventQueue:
     def push(self, event: Event, target: KoiNetNode):
         """Pushes event to queue of specified node.
         
-        Event will be sent to webhook or poll queue depending on the 
-        node type and edge type of the specified node.
+        Event will be sent to webhook or poll queue by the event worker
+        depending on the node type and edge type of the specified node.
         """
         
         self.q.put(QueuedEvent(target=target, event=event))

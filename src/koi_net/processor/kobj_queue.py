@@ -10,7 +10,7 @@ log = structlog.stdlib.get_logger()
 
 
 class KobjQueue:
-    """Provides access to this node's knowledge processing pipeline."""
+    """Queue for knowledge objects entering the processing pipeline."""
     q: Queue[KnowledgeObject]
     
     def __init__(self):
@@ -26,14 +26,14 @@ class KobjQueue:
         event_type: EventType | None = None,
         source: KoiNetNode | None = None
     ):
-        """Queues knowledge object to be handled by processing pipeline.
+        """Pushes knowledge object to queue.
         
-        Knowledge may take the form of an RID, manifest, bundle, event, 
+        Input may take the form of an RID, manifest, bundle, event, 
         or knowledge object (with an optional event type for RID, 
         manifest, or bundle objects). All objects will be normalized 
-        to knowledge objects and queued. If `flush` is `True`, the queue 
-        will be flushed immediately after adding the new knowledge.
+        to knowledge objects and queued.
         """
+        
         if rid:
             _kobj = KnowledgeObject.from_rid(rid, event_type, source)
         elif manifest:

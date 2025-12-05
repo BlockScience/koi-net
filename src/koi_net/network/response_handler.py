@@ -4,15 +4,13 @@ from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
-from koi_net.network.poll_event_buffer import PollEventBuffer
+from koi_net.network.event_buffer import EventBuffer
 from koi_net.processor.kobj_queue import KobjQueue
 from koi_net.protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from koi_net.protocol.envelope import SignedEnvelope
-from koi_net.protocol.model_map import API_MODEL_MAP
-from koi_net.secure import Secure
+from koi_net.secure_manager import SecureManager
 
 from ..protocol.api_models import (
-    ApiModels,
     EventsPayload,
     PollEvents,
     RidsPayload,
@@ -31,22 +29,22 @@ class ResponseHandler:
     
     cache: Cache
     kobj_queue: KobjQueue
-    poll_event_buf: PollEventBuffer
+    poll_event_buf: EventBuffer
     
     def __init__(
         self, 
         cache: Cache,
         kobj_queue: KobjQueue,
-        poll_event_buf: PollEventBuffer,
-        secure: Secure
+        poll_event_buf: EventBuffer,
+        secure_manager: SecureManager
     ):
         self.cache = cache
         self.kobj_queue = kobj_queue
         self.poll_event_buf = poll_event_buf
-        self.secure = secure
+        self.secure_manager = secure_manager
     
     def handle_response(self, path: str, req: SignedEnvelope):
-        self.secure.validate_envelope(req)
+        self.secure_manager.validate_envelope(req)
         
         response_map = {
             BROADCAST_EVENTS_PATH: self.broadcast_events_handler,
@@ -61,7 +59,7 @@ class ResponseHandler:
         if response is None:
             return
         
-        return self.secure.create_envelope(
+        return self.secure_manager.create_envelope(
             payload=response,
             target=req.source_node
         )
@@ -77,8 +75,8 @@ class ResponseHandler:
         req: PollEvents, 
         source: KoiNetNode
     ) -> EventsPayload:
-        log.info(f"Request to poll events")
         events = self.poll_event_buf.flush(source, limit=req.limit)
+        log.info(f"Request to poll events, returning {len(events)} event(s)")
         return EventsPayload(events=events)
         
     def fetch_rids_handler(
@@ -87,18 +85,16 @@ class ResponseHandler:
         source: KoiNetNode
     ) -> RidsPayload:
         """Returns response to fetch RIDs request."""
-        log.info(f"Request to fetch rids, allowed types {req.rid_types}")
         rids = self.cache.list_rids(req.rid_types)
-        
+        log.info(f"Request to fetch rids, allowed types {req.rid_types}, returning {len(rids)} RID(s)")
         return RidsPayload(rids=rids)
         
-    def fetch_manifests_handler(self, 
+    def fetch_manifests_handler(
+        self, 
         req: FetchManifests, 
         source: KoiNetNode
     ) -> ManifestsPayload:
-        """Returns response to fetch manifests request."""
-        log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}")
-        
+        """Returns response to fetch manifests request."""        
         manifests: list[Manifest] = []
         not_found: list[RID] = []
         
@@ -109,6 +105,7 @@ class ResponseHandler:
             else:
                 not_found.append(rid)
         
+        log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}, returning {len(manifests)} manifest(s)")
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
     def fetch_bundles_handler(
@@ -117,7 +114,6 @@ class ResponseHandler:
         source: KoiNetNode
     ) -> BundlesPayload:
         """Returns response to fetch bundles request."""
-        log.info(f"Request to fetch bundles, requested rids {req.rids}")
         
         bundles: list[Bundle] = []
         not_found: list[RID] = []
@@ -128,5 +124,6 @@ class ResponseHandler:
                 bundles.append(bundle)
             else:
                 not_found.append(rid)
-            
+                
+        log.info(f"Request to fetch bundles, requested rids {req.rids}, returning {len(bundles)} bundle(s)")
         return BundlesPayload(bundles=bundles, not_found=not_found)
