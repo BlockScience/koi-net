@@ -76,7 +76,8 @@ def create(type: str, name: str):
     os.mkdir(name)
     os.chdir(name)
     
-    ep.load()
+    node = ep.load()()
+    node.config_loader.start()
     
     os.chdir('..')
     
