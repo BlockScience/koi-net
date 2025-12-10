@@ -4,11 +4,12 @@ from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
-from koi_net.network.event_buffer import EventBuffer
-from koi_net.processor.kobj_queue import KobjQueue
-from koi_net.protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
-from koi_net.protocol.envelope import SignedEnvelope
-from koi_net.secure_manager import SecureManager
+from ..processor.kobj_queue import KobjQueue
+from ..protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
+from ..protocol.envelope import SignedEnvelope
+from ..secure_manager import SecureManager
+from .event_buffer import EventBuffer
+
 
 from ..protocol.api_models import (
     EventsPayload,

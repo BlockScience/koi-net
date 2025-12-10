@@ -4,13 +4,13 @@ import structlog
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode, KoiNetEdge
-from koi_net.protocol.node import NodeType
-from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
-from .knowledge_object import KnowledgeObject
-from .context import HandlerContext
+from ..protocol.node import NodeType
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType, generate_edge_bundle
 from ..protocol.node import NodeProfile
+from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
+from .knowledge_object import KnowledgeObject
+from .context import HandlerContext
 
 log = structlog.stdlib.get_logger()
 
