@@ -124,7 +124,6 @@ class BuildArtifact:
                 if out_degree[next_n] == 0:
                     queue.append(next_n)
         
-        # TODO: check if there's an undefined dependency first
         if len(self.init_order) != len(self.dep_graph):
             cycle_nodes = set(self.dep_graph) - set(self.init_order)
             raise BuildError(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
