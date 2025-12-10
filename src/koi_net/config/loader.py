@@ -1,6 +1,6 @@
 from ruamel.yaml import YAML
 
-from koi_net.config.proxy import ConfigProxy
+from .proxy import ConfigProxy
 from .core import NodeConfig
 
 
