@@ -1,8 +1,11 @@
+from pydantic import ValidationError
 import structlog
 import httpx
 from rid_lib import RID
 from rid_lib.ext import Cache
 from rid_lib.types.koi_net_node import KoiNetNode
+
+from koi_net.protocol.errors import ErrorType
 
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
@@ -28,6 +31,18 @@ from ..protocol.consts import (
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.model_map import API_MODEL_MAP
 from ..secure_manager import SecureManager
+from ..exceptions import (
+    RemoteInvalidKeyError,
+    RemoteInvalidSignatureError,
+    RemoteInvalidTargetError,
+    RemoteProtocolError,
+    SelfRequestError,
+    PartialNodeQueryError,
+    NodeNotFoundError,
+    ServerError,
+    TransportError,
+    RemoteUnknownNodeError
+)
 from .error_handler import ErrorHandler
 
 log = structlog.stdlib.get_logger()
@@ -94,23 +109,51 @@ class RequestHandler:
         
         try:
             result = httpx.post(url, data=data)
+            result.raise_for_status()
             self.error_handler.reset_timeout_counter(node)
             
-        except httpx.RequestError as err:
+        except httpx.RequestError as e:
             log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
-            raise err
+            raise TransportError(e)
         
-        if result.status_code != 200:
-            resp = ErrorResponse.model_validate_json(result.text)
-            self.error_handler.handle_protocol_error(resp.error, node)
-            return resp
+        except httpx.HTTPStatusError:
+            """Possible errors:
+            
+            4xx - KOI-net protocol error, validate body
+            404/405 - not implementing endpoints, or misconfigured URL
+            
+            500 - some internal server error
+            """
+            try:
+                resp = ErrorResponse.model_validate_json(result.text)
+                self.error_handler.handle_protocol_error(resp.error, node)
+                
+                match resp.error:
+                    case ErrorType.UnknownNode:
+                        raise RemoteUnknownNodeError(f"Peer {node} ")
+                    case ErrorType.InvalidKey:
+                        raise RemoteInvalidKeyError(f"")
+                    case ErrorType.InvalidSignature:
+                        raise RemoteInvalidSignatureError()
+                    case ErrorType.InvalidTarget:
+                        raise RemoteInvalidTargetError()
+                    case _:
+                        raise RemoteProtocolError(f"Unknown error type '{resp.error}'")
+            
+            except ValidationError as e:
+                raise ServerError(e)
+            
         
         resp_env_model = API_MODEL_MAP[path].response_envelope
-        if not resp_env_model: 
+        if not resp_env_model:
             return
         
-        resp_envelope = resp_env_model.model_validate_json(result.text)
+        try:
+            resp_envelope = resp_env_model.model_validate_json(result.text)
+        except ValidationError as e:
+            raise ServerError(e)
+        
         self.secure_manager.validate_envelope(resp_envelope)
         
         return resp_envelope.payload
