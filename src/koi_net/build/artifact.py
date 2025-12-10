@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 
+from ..exceptions import BuildError
 from .consts import (
     COMP_ORDER_OVERRIDE,
     COMP_TYPE_OVERRIDE, 
@@ -77,7 +78,7 @@ class BuildArtifact:
                 
                 invalid_deps = set(dep_names) - set(self.comp_dict)
                 if invalid_deps:
-                    raise Exception(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
+                    raise BuildError(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
                 
             self.dep_graph[comp_name] = dep_names
         
@@ -125,7 +126,7 @@ class BuildArtifact:
         
         if len(self.init_order) != len(self.dep_graph):
             cycle_nodes = set(self.dep_graph) - set(self.init_order)
-            raise Exception(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
+            raise BuildError(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
         
         log.debug(f"Resolved initialization order: {' -> '.join(self.init_order)}")
         

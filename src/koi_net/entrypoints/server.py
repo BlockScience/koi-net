@@ -7,7 +7,7 @@ from .base import EntryPoint
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
-from ..protocol.errors import ProtocolError
+from ..protocol.errors import EXCEPTION_TO_ERROR_TYPE, ProtocolError
 from ..config.full_node import FullNodeConfig
 
 log = structlog.stdlib.get_logger()
@@ -67,7 +67,8 @@ class NodeServer(EntryPoint):
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
         log.error(exc)
-        resp = ErrorResponse(error=exc.error_type)
+        resp = ErrorResponse(
+            error=EXCEPTION_TO_ERROR_TYPE[type(exc)])
         log.info(f"Returning error response: {resp}")
         return JSONResponse(
             status_code=400,
