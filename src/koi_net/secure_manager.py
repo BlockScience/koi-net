@@ -10,7 +10,7 @@ from .protocol.api_models import ApiModels, EventsPayload
 from .protocol.event import EventType
 from .protocol.node import NodeProfile
 from .protocol.secure import PrivateKey
-from .protocol.errors import (
+from .exceptions import (
     UnknownNodeError,
     InvalidKeyError,
     InvalidSignatureError,

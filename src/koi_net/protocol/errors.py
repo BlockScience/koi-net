@@ -1,6 +1,13 @@
 """Defines KOI-net protocol errors."""
 
 from enum import StrEnum
+from ..exceptions import (
+    ProtocolError,
+    UnknownNodeError,
+    InvalidKeyError,
+    InvalidSignatureError,
+    InvalidTargetError
+)
 
 
 class ErrorType(StrEnum):
@@ -9,17 +16,9 @@ class ErrorType(StrEnum):
     InvalidSignature = "invalid_signature"
     InvalidTarget = "invalid_target"
 
-class ProtocolError(Exception):
-    error_type: ErrorType
-    
-class UnknownNodeError(ProtocolError):
-    error_type = ErrorType.UnknownNode
-    
-class InvalidKeyError(ProtocolError):
-    error_type = ErrorType.InvalidKey
-    
-class InvalidSignatureError(ProtocolError):
-    error_type = ErrorType.InvalidSignature
-
-class InvalidTargetError(ProtocolError):
-    error_type = ErrorType.InvalidTarget
+EXCEPTION_TO_ERROR_TYPE: dict[ProtocolError, ErrorType] = {
+    UnknownNodeError: ErrorType.UnknownNode,
+    InvalidKeyError: ErrorType.InvalidKey,
+    InvalidSignatureError: ErrorType.InvalidSignature,
+    InvalidTargetError: ErrorType.InvalidTarget
+}

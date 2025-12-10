@@ -44,6 +44,7 @@ class EventProcessingWorker(ThreadWorker):
         """Broadcasts all events to target in event buffer."""
         try:
             self.request_handler.broadcast_events(target, events=events)
+        # TODO: better error handling
         except Exception as e:
             traceback.print_exc()
             
@@ -101,5 +102,6 @@ class EventProcessingWorker(ThreadWorker):
                     if (now - start_time) >= self.config.koi_net.event_worker.max_wait_time: 
                         self.flush_and_broadcast(target)
                         
-            except Exception as e:
+            except Exception:
                 traceback.print_exc()
+                continue
