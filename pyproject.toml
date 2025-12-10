@@ -22,7 +22,6 @@ dependencies = [
     "cryptography>=45.0.3",
     "fastapi>=0.115.12",
     "uvicorn>=0.34.2",
-    "rich>=14.1.0",
     "structlog>=25.4.0",
 ]
 
