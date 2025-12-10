@@ -3,6 +3,7 @@ from typing import Any, Self
 
 import structlog
 
+from ..exceptions import BuildError
 from .artifact import BuildArtifact, CompType
 from .container import NodeContainer
 
@@ -51,7 +52,7 @@ class NodeAssembler:
                 dependencies = {}
                 for dep in artifact.dep_graph[comp_name]:
                     if dep not in components:
-                        raise Exception(f"Couldn't find required component '{dep}'")
+                        raise BuildError(f"Couldn't find required component '{dep}'")
                     dependencies[dep] = components[dep]
                 components[comp_name] = comp(**dependencies)
         log.debug("Done")

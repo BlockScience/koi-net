@@ -33,26 +33,6 @@ from .error_handler import ErrorHandler
 log = structlog.stdlib.get_logger()
 
 
-class KoiNetRequestError(Exception):
-    pass
-
-# Custom error types for request handling
-class SelfRequestError(KoiNetRequestError):
-    """Raised when a node tries to request itself."""
-    pass
-
-class PartialNodeQueryError(KoiNetRequestError):
-    """Raised when attempting to query a partial node."""
-    pass
-
-class NodeNotFoundError(KoiNetRequestError):
-    """Raised when a node URL cannot be found."""
-    pass
-
-class UnknownPathError(KoiNetRequestError):
-    """Raised when an unknown path is requested."""
-    pass
-
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     

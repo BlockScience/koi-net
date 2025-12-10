@@ -46,5 +46,6 @@ class KnowledgeProcessingWorker(ThreadWorker):
             except queue.Empty:
                 pass
             
-            except Exception as e:
+            except Exception:
                 traceback.print_exc()
+                continue
