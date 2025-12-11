@@ -58,7 +58,7 @@ class EventBuffer:
         node: KoiNetNode, 
         limit: int = 0,
         force_flush: bool = False
-    ) -> Generator[list[Event]]:
+    ) -> Generator[list[Event], None, None]:
         """Context managed safe flush, only commits on successful exit.
         
         Exceptions will result in buffer rollback to the previous state.

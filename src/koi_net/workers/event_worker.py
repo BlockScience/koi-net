@@ -46,8 +46,8 @@ class EventProcessingWorker(ThreadWorker):
         try:
             with self.broadcast_event_buf.safe_flush(target, force_flush) as events:
                 self.request_handler.broadcast_events(target, events=events)
-        except RequestError as err:
-            log.error(err)
+        except RequestError:
+            pass
         
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
