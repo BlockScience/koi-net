@@ -1,11 +1,14 @@
 import time
+from contextlib import contextmanager
+from typing import Generator
 from rid_lib.types import KoiNetNode
 
 from ..protocol.event import Event
 
 
 class EventBuffer:
-    """Stores outgoing events intended for polling nodes."""
+    """Stores outgoing events sent to other nodes."""
+
     buffers: dict[KoiNetNode, list[Event]]
     start_time: dict[KoiNetNode, float]
     
@@ -19,8 +22,7 @@ class EventBuffer:
         Sets start time to now if unset.
         """
         
-        if node not in self.buffers:
-            self.start_time[node] = time.time()
+        self.start_time.setdefault(node, time.time())
         
         event_buf = self.buffers.setdefault(node, [])
         event_buf.append(event)
@@ -34,9 +36,7 @@ class EventBuffer:
         
         Resets start time.
         """
-        
-        if node in self.start_time:
-            del self.start_time[node]
+        self.start_time.pop(node, None)
         
         if node not in self.buffers:
             return []
@@ -51,3 +51,41 @@ class EventBuffer:
             del self.buffers[node]
         
         return flushed_events
+    
+    @contextmanager
+    def safe_flush(
+        self, 
+        node: KoiNetNode, 
+        limit: int = 0,
+        force_flush: bool = False
+    ) -> Generator[list[Event]]:
+        """Context managed safe flush, only commits on successful exit.
+        
+        Exceptions will result in buffer rollback to the previous state.
+        """
+        
+        self.start_time.pop(node, None)
+        
+        if node not in self.buffers:
+            yield []
+            return
+        
+        event_buf = self.buffers[node].copy()
+        in_place = limit and len(event_buf) > limit
+        
+        try:
+            if in_place:
+                yield event_buf[:limit]
+                self.buffers[node] = event_buf[limit:]
+            else:
+                yield event_buf.copy()
+                self.buffers.pop(node, None)
+        
+        except Exception:
+            # if force, flushes buffers and reraises exception
+            if force_flush:
+                if in_place:
+                    self.buffers[node] = event_buf[limit:]
+                else:
+                    self.buffers.pop(node, None)
+            raise
