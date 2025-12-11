@@ -1,3 +1,28 @@
+"""KOI-net library exceptions.
+
+Exception hierarchy map:
+- `KoiNetError`
+  - `BuildError`
+  - `RequestError`
+    - `ClientError`
+      - `SelfRequestError`
+      - `PartialNodeQueryError`
+      - `NodeNotFoundError`
+    - `TransportError`
+    - `ServerError`
+      - `RemoteProtocolError`
+        - `RemoteUnknownNodeError`
+        - `RemoteInvalidKeyError`
+        - `RemoteInvalidSignatureError`
+        - `RemoteInvalidTargetError`
+  - `ProtocolError`
+    - `UnknownNodeError`
+    - `InvalidKeyError`
+    - `InvalidSignatureError`
+    - `InvalidTargetError`
+"""
+
+
 # BASE EXCEPTION
 class KoiNetError(Exception):
     """Base exception."""
@@ -41,28 +66,28 @@ class ServerError(RequestError):
 
 # PROTOCOL ERRORS
 class RemoteProtocolError(ServerError):
-    """Base for protocol response errors."""
+    """Base for protocol errors raised by peer node."""
     pass
 
 class RemoteUnknownNodeError(RemoteProtocolError):
-    """Raised when peer node is unknown."""
+    """Raised by peer node when this node is unknown."""
     pass
     
 class RemoteInvalidKeyError(RemoteProtocolError):
-    """Raised when peer node's public key doesn't match their RID."""
+    """Raised by peer node when this node's public key doesn't match their RID."""
     pass
     
 class RemoteInvalidSignatureError(RemoteProtocolError):
-    """Raised when peer node's envelope signature is invalid."""
+    """Raised by peer node when this node's envelope signature is invalid."""
     pass
 
 class RemoteInvalidTargetError(RemoteProtocolError):
-    """Raised when peer node's target is not this node."""
+    """Raised by peer node when this node's envelope target is not it's RID."""
     pass
 
 
 class ProtocolError(KoiNetError):
-    """Base for protocol response errors."""
+    """Base for protocol errors raised by this node."""
     pass
 
 class UnknownNodeError(ProtocolError):
