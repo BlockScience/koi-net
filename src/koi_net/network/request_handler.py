@@ -123,7 +123,7 @@ class RequestHandler:
             4xx - KOI-net protocol error, validate body
             404/405 - not implementing endpoints, or misconfigured URL
             
-            500 - some internal server error
+            500 - internal server error
             """
             try:
                 resp = ErrorResponse.model_validate_json(result.text)
@@ -131,15 +131,13 @@ class RequestHandler:
                 
                 match resp.error:
                     case ErrorType.UnknownNode:
-                        raise RemoteUnknownNodeError(f"Peer {node} ")
+                        raise RemoteUnknownNodeError(f"Peer couldn't resolve this node's RID")
                     case ErrorType.InvalidKey:
-                        raise RemoteInvalidKeyError(f"")
+                        raise RemoteInvalidKeyError(f"Peer marked this node's public key as invalid")
                     case ErrorType.InvalidSignature:
-                        raise RemoteInvalidSignatureError()
+                        raise RemoteInvalidSignatureError("Peer marked envelope signature as invalid")
                     case ErrorType.InvalidTarget:
-                        raise RemoteInvalidTargetError()
-                    case _:
-                        raise RemoteProtocolError(f"Unknown error type '{resp.error}'")
+                        raise RemoteInvalidTargetError("Envelope target is not the peer node")
             
             except ValidationError as e:
                 raise ServerError(e)
