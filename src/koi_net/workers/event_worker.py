@@ -1,6 +1,7 @@
 import queue
 import traceback
 import time
+from httpx import RequestError
 import structlog
 
 from rid_lib.ext import Cache
@@ -38,16 +39,16 @@ class EventProcessingWorker(ThreadWorker):
         
         super().__init__()
         
-    def flush_and_broadcast(self, target: KoiNetNode):
-        events = self.broadcast_event_buf.flush(target)
-        
+    def flush_and_broadcast(self, target: KoiNetNode, force_flush: bool = False):
         """Broadcasts all events to target in event buffer."""
+        
+        # TODO: deal with automated retries when unreachable node's buffer is full
         try:
-            self.request_handler.broadcast_events(target, events=events)
-        # TODO: better error handling
-        except Exception as e:
-            traceback.print_exc()
-            
+            with self.broadcast_event_buf.safe_flush(target, force_flush) as events:
+                self.request_handler.broadcast_events(target, events=events)
+        except RequestError as err:
+            log.error(err)
+        
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
         
