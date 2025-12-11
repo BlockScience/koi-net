@@ -2,10 +2,10 @@ import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..exceptions import RequestError
 from ..network.graph import NetworkGraph
 from ..network.request_handler import RequestHandler
 from ..processor.kobj_queue import KobjQueue
-from ..protocol.api_models import ErrorResponse
 from ..protocol.node import NodeProfile, NodeType
 
 log = structlog.stdlib.get_logger()
@@ -55,10 +55,11 @@ class SyncManager:
             if node_profile.node_type != NodeType.FULL:
                 continue
             
-            payload = self.request_handler.fetch_manifests(
-                node, rid_types=rid_types)
-            
-            if type(payload) is ErrorResponse:
+            try:
+                payload = self.request_handler.fetch_manifests(
+                    node, rid_types=rid_types)
+            except RequestError as err:
+                log.error(err)
                 continue
             
             for manifest in payload.manifests:

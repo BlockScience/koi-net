@@ -175,15 +175,14 @@ class RequestHandler:
         node: RID, 
         req: PollEvents | None = None,
         **kwargs
-    ) -> EventsPayload | ErrorResponse:
+    ) -> EventsPayload:
         """Polls events from a node.
         
         Pass `PollEvents` object as `req` or fields as kwargs.
         """
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Polled {len(resp.events)} events from {node!r}")
+        log.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
     def fetch_rids(
@@ -191,15 +190,14 @@ class RequestHandler:
         node: RID, 
         req: FetchRids | None = None,
         **kwargs
-    ) -> RidsPayload | ErrorResponse:
+    ) -> RidsPayload:
         """Fetches RIDs from a node.
         
         Pass `FetchRids` object as `req` or fields as kwargs.
         """
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
+        log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
     def fetch_manifests(
@@ -207,15 +205,14 @@ class RequestHandler:
         node: RID, 
         req: FetchManifests | None = None,
         **kwargs
-    ) -> ManifestsPayload | ErrorResponse:
+    ) -> ManifestsPayload:
         """Fetches manifests from a node.
         
         Pass `FetchManifests` object as `req` or fields as kwargs.
         """
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
+        log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
     def fetch_bundles(
@@ -223,13 +220,12 @@ class RequestHandler:
         node: RID, 
         req: FetchBundles | None = None,
         **kwargs
-    ) -> BundlesPayload | ErrorResponse:
+    ) -> BundlesPayload:
         """Fetches bundles from a node.
         
         Pass `FetchBundles` object as `req` or fields as kwargs.
         """
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
+        log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp
