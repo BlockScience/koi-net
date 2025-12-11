@@ -1,11 +1,11 @@
-from pydantic import ValidationError
+from functools import wraps
+
 import structlog
 import httpx
 from rid_lib import RID
 from rid_lib.ext import Cache
-from rid_lib.types.koi_net_node import KoiNetNode
-
-from koi_net.protocol.errors import ErrorType
+from rid_lib.types import KoiNetNode
+from pydantic import ValidationError
 
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
@@ -28,6 +28,7 @@ from ..protocol.consts import (
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH
 )
+from ..protocol.errors import ErrorType
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.model_map import API_MODEL_MAP
 from ..secure_manager import SecureManager
@@ -35,7 +36,7 @@ from ..exceptions import (
     RemoteInvalidKeyError,
     RemoteInvalidSignatureError,
     RemoteInvalidTargetError,
-    RemoteProtocolError,
+    RequestError,
     SelfRequestError,
     PartialNodeQueryError,
     NodeNotFoundError,
@@ -47,6 +48,17 @@ from .error_handler import ErrorHandler
 
 log = structlog.stdlib.get_logger()
 
+
+def report_exception(func):
+    """Logs request errors as warnings."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except RequestError as err:
+            log.warning(err)
+            raise
+    return wrapper
 
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
@@ -87,6 +99,7 @@ class RequestHandler:
         log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
     
+    @report_exception
     def make_request(
         self,
         node: KoiNetNode,
