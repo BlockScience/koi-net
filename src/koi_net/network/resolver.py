@@ -77,8 +77,7 @@ class NetworkResolver:
             try:
                 payload = self.request_handler.fetch_bundles(
                     node=node_rid, rids=[rid])
-            except RequestError as err:
-                log.error(err)
+            except RequestError:
                 continue
             
             if payload.bundles:
@@ -100,8 +99,7 @@ class NetworkResolver:
             try:
                 payload = self.request_handler.fetch_manifests(
                     node=node_rid, rids=[rid])
-            except RequestError as err:
-                log.error(err)
+            except RequestError:
                 continue
             
             if payload.manifests:
@@ -145,8 +143,7 @@ class NetworkResolver:
                     node=node_rid, 
                     rid=self.identity.rid
                 )
-            except RequestError as err:
-                log.error(err)
+            except RequestError:
                 continue
                 
             log.debug(f"Received {len(payload.events)} events from {node_rid!r}")

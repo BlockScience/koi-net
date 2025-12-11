@@ -58,8 +58,7 @@ class SyncManager:
             try:
                 payload = self.request_handler.fetch_manifests(
                     node, rid_types=rid_types)
-            except RequestError as err:
-                log.error(err)
+            except RequestError:
                 continue
             
             for manifest in payload.manifests:
