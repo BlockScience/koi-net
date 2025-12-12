@@ -1,4 +1,4 @@
-from koi_net.config.core import NodeConfig
+from .core import NodeConfig
 
 
 class ConfigProxy:
@@ -15,6 +15,6 @@ class ConfigProxy:
     
     def __getattr__(self, name):
         if not self._config:
-            raise Exception("Proxy called before config loaded")
+            raise RuntimeError("Proxy called before config loaded")
             
         return getattr(self._config, name)

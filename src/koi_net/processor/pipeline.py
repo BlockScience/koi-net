@@ -1,6 +1,8 @@
 import structlog
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
+
+from ..exceptions import RequestError
 from ..protocol.event import EventType
 from ..network.request_handler import RequestHandler
 from ..network.event_queue import EventQueue
@@ -150,12 +152,11 @@ class KnowledgePipeline:
                     return
             
                 log.debug("Attempting to fetch remote manifest from source")
-                payload = self.request_handler.fetch_manifests(
-                    node=kobj.source,
-                    rids=[kobj.rid]
-                )
-                
-                if not payload.manifests:
+                try:
+                    payload = self.request_handler.fetch_manifests(
+                        node=kobj.source,
+                        rids=[kobj.rid])
+                except RequestError:
                     log.debug("Failed to find manifest")
                     return
                 
@@ -171,12 +172,12 @@ class KnowledgePipeline:
                     return
                 
                 log.debug("Attempting to fetch remote bundle from source")
-                payload = self.request_handler.fetch_bundles(
-                    node=kobj.source,
-                    rids=[kobj.rid]
-                )
-                
-                if not payload.bundles:
+                try:
+                    payload = self.request_handler.fetch_bundles(
+                        node=kobj.source,
+                        rids=[kobj.rid]
+                    )
+                except RequestError:
                     log.debug("Failed to find bundle")
                     return
                 

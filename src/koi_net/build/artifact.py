@@ -2,6 +2,9 @@ import inspect
 from collections import deque
 from typing import TYPE_CHECKING, Any
 
+import structlog
+
+from ..exceptions import BuildError
 from .consts import (
     COMP_ORDER_OVERRIDE,
     COMP_TYPE_OVERRIDE, 
@@ -15,6 +18,8 @@ from .consts import (
 
 if TYPE_CHECKING:
     from .assembler import NodeAssembler
+
+log = structlog.stdlib.get_logger()
 
 
 class BuildArtifact:
@@ -42,6 +47,7 @@ class BuildArtifact:
                     continue
                 
                 self.comp_dict[k] = v
+        log.debug(f"Collected {len(self.comp_dict)} components")
     
     def build_dependencies(self):
         """Builds dependency graph and component type map.
@@ -72,11 +78,11 @@ class BuildArtifact:
                 
                 invalid_deps = set(dep_names) - set(self.comp_dict)
                 if invalid_deps:
-                    raise Exception(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
+                    raise BuildError(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
                 
             self.dep_graph[comp_name] = dep_names
         
-        [print(f"{i}: {comp_name} -> {deps}") for i, (comp_name, deps) in enumerate(self.dep_graph.items())]
+        log.debug("Built dependency graph")
     
     def build_init_order(self):
         """Builds component initialization order using Kahn's algorithm."""
@@ -120,10 +126,9 @@ class BuildArtifact:
         
         if len(self.init_order) != len(self.dep_graph):
             cycle_nodes = set(self.dep_graph) - set(self.init_order)
-            raise Exception(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
+            raise BuildError(f"Found cycle in dependency graph, the following nodes could not be ordered: {cycle_nodes}")
         
-        print("\ninit order")
-        [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.init_order)]
+        log.debug(f"Resolved initialization order: {' -> '.join(self.init_order)}")
         
     def build_start_order(self):
         """Builds component start order.
@@ -150,8 +155,7 @@ class BuildArtifact:
         # order workers first
         self.start_order = workers + start_order
         
-        print("\nstart order")
-        [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.start_order)]
+        log.debug(f"Resolved start order: {' -> '.join(self.start_order)}")
         
     def build_stop_order(self):
         """Builds component stop order.
@@ -178,11 +182,9 @@ class BuildArtifact:
         self.stop_order = workers + stop_order
         # reverse order from start order
         self.stop_order.reverse()
-                
-        print("\nstop order")
-        [print(f"{i}: {comp_name}") for i, comp_name in enumerate(self.stop_order)]
         
-    
+        log.debug(f"Resolved stop order: {' -> '.join(self.stop_order)}")
+
     def visualize(self) -> str:
         """Creates representation of dependency graph in Graphviz DOT language."""
         
@@ -197,9 +199,11 @@ class BuildArtifact:
         self.graphviz = s
     
     def build(self):
+        log.debug("Creating build artifact...")
         self.collect_comps()
         self.build_dependencies()
         self.build_init_order()
         self.build_start_order()
         self.build_stop_order()
         self.visualize()
+        log.debug("Done")

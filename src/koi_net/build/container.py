@@ -34,6 +34,7 @@ class NodeContainer:
         for comp_name in self._artifact.start_order:
             comp = getattr(self, comp_name)
             start_func = getattr(comp, START_FUNC_NAME)
+            log.info(f"Starting {comp_name}...")
             start_func()
             
     def stop(self):
@@ -41,4 +42,5 @@ class NodeContainer:
         for comp_name in self._artifact.stop_order:
             comp = getattr(self, comp_name)
             stop_func = getattr(comp, STOP_FUNC_NAME)
+            log.info(f"Stopping {comp_name}...")
             stop_func()

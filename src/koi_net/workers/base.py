@@ -1,6 +1,6 @@
 import threading
 
-from koi_net.build import comp_order
+from ..build import comp_order
 
 
 class End:

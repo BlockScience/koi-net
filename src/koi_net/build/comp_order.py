@@ -1,4 +1,4 @@
-from koi_net.build.consts import COMP_ORDER_OVERRIDE, CompOrder
+from .consts import COMP_ORDER_OVERRIDE, CompOrder
 
 
 def worker(cls):
