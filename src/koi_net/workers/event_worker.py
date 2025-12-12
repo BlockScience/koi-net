@@ -1,7 +1,6 @@
 import queue
 import traceback
 import time
-from httpx import RequestError
 import structlog
 
 from rid_lib.ext import Cache
@@ -12,6 +11,7 @@ from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
 from ..network.event_buffer import EventBuffer
 from ..protocol.node import NodeProfile, NodeType
+from ..exceptions import RequestError
 from .base import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
@@ -47,6 +47,7 @@ class EventProcessingWorker(ThreadWorker):
             with self.broadcast_event_buf.safe_flush(target, force_flush) as events:
                 self.request_handler.broadcast_events(target, events=events)
         except RequestError:
+            log.warning("Failed to reach target, event buffer reset")
             pass
         
     def stop(self):
