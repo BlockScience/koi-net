@@ -11,6 +11,7 @@ from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
 from ..network.event_buffer import EventBuffer
 from ..protocol.node import NodeProfile, NodeType
+from ..exceptions import RequestError
 from .base import ThreadWorker, STOP_WORKER
 
 log = structlog.stdlib.get_logger()
@@ -38,36 +39,38 @@ class EventProcessingWorker(ThreadWorker):
         
         super().__init__()
         
-    def flush_and_broadcast(self, target: KoiNetNode):
-        events = self.broadcast_event_buf.flush(target)
-        
+    def flush_and_broadcast(self, target: KoiNetNode, force_flush: bool = False):
         """Broadcasts all events to target in event buffer."""
+        
+        # TODO: deal with automated retries when unreachable node's buffer is full
         try:
-            self.request_handler.broadcast_events(target, events=events)
-        # TODO: better error handling
-        except Exception as e:
-            traceback.print_exc()
-            
+            with self.broadcast_event_buf.safe_flush(target, force_flush) as events:
+                self.request_handler.broadcast_events(target, events=events)
+        except RequestError:
+            log.warning("Failed to reach target, event buffer reset")
+            pass
+        
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
-        
+    
     def run(self):
         while True:
             try:
-                item = self.event_queue.q.get(timeout=self.config.koi_net.event_worker.queue_timeout)
+                item = self.event_queue.q.get(
+                    timeout=self.config.koi_net.event_worker.queue_timeout)
                 
                 try:
                     if item is STOP_WORKER:
                         log.info(f"Received 'STOP_WORKER' signal, flushing all buffers...")
                         for target in list(self.broadcast_event_buf.buffers.keys()):
-                            self.flush_and_broadcast(target)
+                            self.flush_and_broadcast(target, force_flush=True)
                         return
                     
                     log.info(f"Dequeued {item.event!r} -> {item.target!r}")
                     
                     # determines which buffer to push event to based on target node type
                     node_bundle = self.cache.read(item.target)
-                    if node_bundle: 
+                    if node_bundle:
                         node_profile = node_bundle.validate_contents(NodeProfile)
                         
                         if node_profile.node_type == NodeType.FULL:
@@ -83,8 +86,9 @@ class EventProcessingWorker(ThreadWorker):
                     else:
                         log.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
                         continue
-                        
-                    if self.broadcast_event_buf.buf_len(item.target) > self.config.koi_net.event_worker.max_buf_len:
+                    
+                    buf_len = self.broadcast_event_buf.buf_len(item.target)
+                    if buf_len > self.config.koi_net.event_worker.max_buf_len:
                         self.flush_and_broadcast(target)
 
                 finally:
@@ -92,13 +96,13 @@ class EventProcessingWorker(ThreadWorker):
 
             except queue.Empty:
                 # On timeout, check all buffers for max wait time
-                for target in list(self.broadcast_event_buf.buffers.keys()):
+                for target in list(self.broadcast_event_buf.buffers):
                     start_time = self.broadcast_event_buf.start_time.get(target)
-                    now = time.time()
                     
                     if (start_time is None) or (self.broadcast_event_buf.buf_len(target) == 0):
                         continue
                     
+                    now = time.time()
                     if (now - start_time) >= self.config.koi_net.event_worker.max_wait_time: 
                         self.flush_and_broadcast(target)
                         

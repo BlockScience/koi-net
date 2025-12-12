@@ -106,7 +106,7 @@ class SecureManager:
         pub_key = PublicKey.from_der(node_profile.public_key)
         try:
             envelope.verify_with(pub_key)
-        except cryptography.exceptions.InvalidSignature as err:
+        except cryptography.exceptions.InvalidSignature:
             raise InvalidSignatureError(f"Signature {envelope.signature} is invalid.")
         
         # check that this node is the target of the envelope

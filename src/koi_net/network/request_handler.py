@@ -1,8 +1,11 @@
+from functools import wraps
+
 import structlog
 import httpx
 from rid_lib import RID
 from rid_lib.ext import Cache
-from rid_lib.types.koi_net_node import KoiNetNode
+from rid_lib.types import KoiNetNode
+from pydantic import ValidationError
 
 from ..identity import NodeIdentity
 from ..protocol.api_models import (
@@ -25,13 +28,37 @@ from ..protocol.consts import (
     FETCH_MANIFESTS_PATH,
     FETCH_BUNDLES_PATH
 )
+from ..protocol.errors import ErrorType
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.model_map import API_MODEL_MAP
 from ..secure_manager import SecureManager
+from ..exceptions import (
+    RemoteInvalidKeyError,
+    RemoteInvalidSignatureError,
+    RemoteInvalidTargetError,
+    RequestError,
+    SelfRequestError,
+    PartialNodeQueryError,
+    NodeNotFoundError,
+    ServerError,
+    TransportError,
+    RemoteUnknownNodeError
+)
 from .error_handler import ErrorHandler
 
 log = structlog.stdlib.get_logger()
 
+
+def report_exception(func):
+    """Logs request errors as warnings."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except RequestError as err:
+            log.warning(err)
+            raise
+    return wrapper
 
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
@@ -72,6 +99,7 @@ class RequestHandler:
         log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
     
+    @report_exception
     def make_request(
         self,
         node: KoiNetNode,
@@ -94,23 +122,49 @@ class RequestHandler:
         
         try:
             result = httpx.post(url, data=data)
+            result.raise_for_status()
             self.error_handler.reset_timeout_counter(node)
             
-        except httpx.RequestError as err:
+        except httpx.RequestError as e:
             log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
-            raise err
+            raise TransportError(e)
         
-        if result.status_code != 200:
-            resp = ErrorResponse.model_validate_json(result.text)
-            self.error_handler.handle_protocol_error(resp.error, node)
-            return resp
+        except httpx.HTTPStatusError:
+            """Possible errors:
+            
+            4xx - KOI-net protocol error, validate body
+            404/405 - not implementing endpoints, or misconfigured URL
+            
+            500 - internal server error
+            """
+            try:
+                resp = ErrorResponse.model_validate_json(result.text)
+                self.error_handler.handle_protocol_error(resp.error, node)
+                
+                match resp.error:
+                    case ErrorType.UnknownNode:
+                        raise RemoteUnknownNodeError(f"Peer couldn't resolve this node's RID")
+                    case ErrorType.InvalidKey:
+                        raise RemoteInvalidKeyError(f"Peer marked this node's public key as invalid")
+                    case ErrorType.InvalidSignature:
+                        raise RemoteInvalidSignatureError("Peer marked envelope signature as invalid")
+                    case ErrorType.InvalidTarget:
+                        raise RemoteInvalidTargetError("Envelope target is not the peer node")
+            
+            except ValidationError as e:
+                raise ServerError(e)
+            
         
         resp_env_model = API_MODEL_MAP[path].response_envelope
-        if not resp_env_model: 
+        if not resp_env_model:
             return
         
-        resp_envelope = resp_env_model.model_validate_json(result.text)
+        try:
+            resp_envelope = resp_env_model.model_validate_json(result.text)
+        except ValidationError as e:
+            raise ServerError(e)
+        
         self.secure_manager.validate_envelope(resp_envelope)
         
         return resp_envelope.payload
@@ -134,15 +188,14 @@ class RequestHandler:
         node: RID, 
         req: PollEvents | None = None,
         **kwargs
-    ) -> EventsPayload | ErrorResponse:
+    ) -> EventsPayload:
         """Polls events from a node.
         
         Pass `PollEvents` object as `req` or fields as kwargs.
         """
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Polled {len(resp.events)} events from {node!r}")
+        log.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
     def fetch_rids(
@@ -150,15 +203,14 @@ class RequestHandler:
         node: RID, 
         req: FetchRids | None = None,
         **kwargs
-    ) -> RidsPayload | ErrorResponse:
+    ) -> RidsPayload:
         """Fetches RIDs from a node.
         
         Pass `FetchRids` object as `req` or fields as kwargs.
         """
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
+        log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
     def fetch_manifests(
@@ -166,15 +218,14 @@ class RequestHandler:
         node: RID, 
         req: FetchManifests | None = None,
         **kwargs
-    ) -> ManifestsPayload | ErrorResponse:
+    ) -> ManifestsPayload:
         """Fetches manifests from a node.
         
         Pass `FetchManifests` object as `req` or fields as kwargs.
         """
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
+        log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
     def fetch_bundles(
@@ -182,13 +233,12 @@ class RequestHandler:
         node: RID, 
         req: FetchBundles | None = None,
         **kwargs
-    ) -> BundlesPayload | ErrorResponse:
+    ) -> BundlesPayload:
         """Fetches bundles from a node.
         
         Pass `FetchBundles` object as `req` or fields as kwargs.
         """
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
-        if type(resp) != ErrorResponse:
-            log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
+        log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp

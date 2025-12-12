@@ -67,8 +67,7 @@ class NodeServer(EntryPoint):
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
         log.error(exc)
-        resp = ErrorResponse(
-            error=EXCEPTION_TO_ERROR_TYPE[type(exc)])
+        resp = ErrorResponse(error=EXCEPTION_TO_ERROR_TYPE[type(exc)])
         log.info(f"Returning error response: {resp}")
         return JSONResponse(
             status_code=400,

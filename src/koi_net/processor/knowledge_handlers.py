@@ -4,13 +4,15 @@ import structlog
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode, KoiNetEdge
-from koi_net.protocol.node import NodeType
-from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
-from .knowledge_object import KnowledgeObject
-from .context import HandlerContext
+
+from ..exceptions import RequestError
+from ..protocol.node import NodeType
 from ..protocol.event import Event, EventType
 from ..protocol.edge import EdgeProfile, EdgeStatus, EdgeType, generate_edge_bundle
 from ..protocol.node import NodeProfile
+from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
+from .knowledge_object import KnowledgeObject
+from .context import HandlerContext
 
 log = structlog.stdlib.get_logger()
 
@@ -217,10 +219,15 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     ctx.kobj_queue.push(bundle=edge_bundle)
     
     log.info("Catching up on network state")
-    payload = ctx.request_handler.fetch_rids(
-        node=kobj.rid, 
-        rid_types=available_rid_types
-    )
+    try:
+        payload = ctx.request_handler.fetch_rids(
+            node=kobj.rid, 
+            rid_types=available_rid_types
+        )
+    except RequestError:
+        log.info("Failed to reach node")
+        return
+        
     for rid in payload.rids:
         if rid == ctx.identity.rid:
             log.info("Skipping myself")

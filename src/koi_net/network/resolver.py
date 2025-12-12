@@ -1,5 +1,4 @@
 import structlog
-import httpx
 from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache, Bundle
@@ -9,9 +8,9 @@ from .graph import NetworkGraph
 from .request_handler import RequestHandler
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
-from ..protocol.api_models import ErrorResponse
 from ..identity import NodeIdentity
 from ..config.core import NodeConfig
+from ..exceptions import RequestError
 
 log = structlog.stdlib.get_logger()
 
@@ -75,10 +74,10 @@ class NetworkResolver:
         log.debug(f"Fetching remote bundle {rid!r}")
         remote_bundle, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
-            payload = self.request_handler.fetch_bundles(
-                node=node_rid, rids=[rid])
-            
-            if type(payload) == ErrorResponse:
+            try:
+                payload = self.request_handler.fetch_bundles(
+                    node=node_rid, rids=[rid])
+            except RequestError:
                 continue
             
             if payload.bundles:
@@ -97,10 +96,10 @@ class NetworkResolver:
         log.debug(f"Fetching remote manifest {rid!r}")
         remote_manifest, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
-            payload = self.request_handler.fetch_manifests(
-                node=node_rid, rids=[rid])
-            
-            if type(payload) == ErrorResponse:
+            try:
+                payload = self.request_handler.fetch_manifests(
+                    node=node_rid, rids=[rid])
+            except RequestError:
                 continue
             
             if payload.manifests:
@@ -144,16 +143,10 @@ class NetworkResolver:
                     node=node_rid, 
                     rid=self.identity.rid
                 )
-                
-                if type(payload) == ErrorResponse:
-                    continue
-                
-                if payload.events:
-                    log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
-                    event_dict[node_rid] = payload.events
-                    
-            except httpx.RequestError:
-                log.debug(f"Failed to reach node {node_rid!r}")
+            except RequestError:
                 continue
-        
+                
+            log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
+            event_dict[node_rid] = payload.events
+            
         return event_dict
