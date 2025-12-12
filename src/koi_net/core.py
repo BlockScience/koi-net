@@ -1,5 +1,4 @@
 from .cache import Cache
-from .log_system import LogSystem
 from .build.assembler import NodeAssembler
 from .config.core import NodeConfig
 from .config.proxy import ConfigProxy
@@ -36,7 +35,6 @@ from .processor.knowledge_handlers import (
 )
 
 class BaseNode(NodeAssembler):
-    log_system: LogSystem = LogSystem
     kobj_queue: KobjQueue = KobjQueue
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer

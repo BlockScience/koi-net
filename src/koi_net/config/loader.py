@@ -1,6 +1,6 @@
 from ruamel.yaml import YAML
 
-from koi_net.config.proxy import ConfigProxy
+from .proxy import ConfigProxy
 from .core import NodeConfig
 
 
@@ -51,10 +51,10 @@ class ConfigLoader:
                 config_data = self.proxy._config.model_dump(mode="json")
                 yaml.dump(config_data, f)
                 
-            except Exception as e:
+            except Exception:
                 # rewrites original content if YAML dump fails
                 if self.file_content:
                     f.seek(0)
                     f.truncate()
                     f.write(self.file_content)
-                raise e
+                raise

@@ -3,6 +3,7 @@ from typing import Any, Self
 
 import structlog
 
+from ..exceptions import BuildError
 from .artifact import BuildArtifact, CompType
 from .container import NodeContainer
 
@@ -20,6 +21,8 @@ class NodeAssembler:
     def __new__(cls) -> Self | NodeContainer:
         """Returns assembled node container."""
         
+        log.debug(f"Assembling '{cls.__name__}'")
+        
         # builds assembly artifact if it doesn't exist
         if not cls._artifact:
             cls._artifact = BuildArtifact(cls)
@@ -27,20 +30,19 @@ class NodeAssembler:
         
         components = cls._build_components(cls._artifact)
         
+        log.debug("Returning assembled node")
         return NodeContainer(cls._artifact, **components)
     
     @staticmethod
     def _build_components(artifact: BuildArtifact):
         """Returns assembled components as a dict."""
         
-        print("\nbuilding components")
+        log.debug("Building components...")
         components: dict[str, Any] = {}
         for comp_name in artifact.init_order:
         # for comp_name, (comp_type, dep_names) in dep_graph.items():
             comp = artifact.comp_dict[comp_name]
             comp_type = artifact.comp_types[comp_name]
-            
-            print(comp, comp_type)
             
             if comp_type == CompType.OBJECT:
                 components[comp_name] = comp
@@ -50,8 +52,9 @@ class NodeAssembler:
                 dependencies = {}
                 for dep in artifact.dep_graph[comp_name]:
                     if dep not in components:
-                        raise Exception(f"Couldn't find required component '{dep}'")
+                        raise BuildError(f"Couldn't find required component '{dep}'")
                     dependencies[dep] = components[dep]
                 components[comp_name] = comp(**dependencies)
-                
+        log.debug("Done")
+        
         return components
