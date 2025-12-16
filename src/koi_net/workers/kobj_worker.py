@@ -2,7 +2,7 @@ import queue
 import traceback
 import structlog
 
-from ..config.core import NodeConfig
+from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
 from .base import ThreadWorker, STOP_WORKER
@@ -15,7 +15,7 @@ class KnowledgeProcessingWorker(ThreadWorker):
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: BaseNodeConfig,
         kobj_queue: KobjQueue,
         pipeline: KnowledgePipeline
     ):

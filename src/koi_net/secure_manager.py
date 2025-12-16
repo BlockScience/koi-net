@@ -16,7 +16,7 @@ from .exceptions import (
     InvalidSignatureError,
     InvalidTargetError
 )
-from .config.core import NodeConfig
+from .config.base import BaseNodeConfig
 
 log = structlog.stdlib.get_logger()
 
@@ -25,14 +25,14 @@ class SecureManager:
     """Subsystem handling secure protocol logic."""
     identity: NodeIdentity
     cache: Cache
-    config: NodeConfig
+    config: BaseNodeConfig
     priv_key: PrivateKey
     
     def __init__(
         self, 
         identity: NodeIdentity, 
         cache: Cache,
-        config: NodeConfig
+        config: BaseNodeConfig
     ):
         self.identity = identity
         self.cache = cache

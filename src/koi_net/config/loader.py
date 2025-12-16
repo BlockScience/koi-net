@@ -1,7 +1,7 @@
 from ruamel.yaml import YAML
 
 from .proxy import ConfigProxy
-from .core import NodeConfig
+from .base import BaseNodeConfig
 
 
 class ConfigLoader:
@@ -10,12 +10,12 @@ class ConfigLoader:
     file_path: str = "config.yaml"
     file_content: str
     
-    config_schema: type[NodeConfig]
+    config_schema: type[BaseNodeConfig]
     proxy: ConfigProxy
     
     def __init__(
         self, 
-        config_schema: type[NodeConfig],
+        config_schema: type[BaseNodeConfig],
         config: ConfigProxy
     ):
         self.config_schema = config_schema

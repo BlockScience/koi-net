@@ -3,7 +3,7 @@ from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
 from ..network.graph import NetworkGraph
-from ..config.core import NodeConfig
+from ..config.base import BaseNodeConfig
 from ..identity import NodeIdentity
 from ..network.event_queue import EventQueue
 from ..protocol.event import Event, EventType
@@ -18,7 +18,7 @@ class Handshaker:
         cache: Cache, 
         identity: NodeIdentity, 
         event_queue: EventQueue,
-        config: NodeConfig,
+        config: BaseNodeConfig,
         graph: NetworkGraph
     ):
         self.config = config

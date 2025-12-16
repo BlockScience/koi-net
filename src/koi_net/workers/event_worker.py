@@ -6,7 +6,7 @@ import structlog
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..config.core import NodeConfig
+from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
 from ..network.event_buffer import EventBuffer
@@ -22,7 +22,7 @@ class EventProcessingWorker(ThreadWorker):
     
     def __init__(
         self,
-        config: NodeConfig,
+        config: BaseNodeConfig,
         cache: Cache,
         event_queue: EventQueue,
         request_handler: RequestHandler,

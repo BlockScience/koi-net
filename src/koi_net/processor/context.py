@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from rid_lib.ext import Cache
 
 from ..network.resolver import NetworkResolver
-from ..config.core import NodeConfig
+from ..config.base import BaseNodeConfig
 from ..config.loader import ConfigLoader
 from ..network.graph import NetworkGraph
 from ..network.event_queue import EventQueue
@@ -21,7 +21,7 @@ class HandlerContext:
     """Context object provides knowledge handlers access to other components."""
     
     identity: NodeIdentity
-    config: NodeConfig
+    config: BaseNodeConfig
     config_loader: ConfigLoader
     cache: Cache
     event_queue: EventQueue

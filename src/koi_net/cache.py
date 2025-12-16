@@ -4,11 +4,11 @@ from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import b64_encode, b64_decode
 
-from .config.core import NodeConfig
+from .config.base import BaseNodeConfig
 
 
 class Cache:
-    def __init__(self, config: NodeConfig):
+    def __init__(self, config: BaseNodeConfig):
         self.config = config
         
     @property
