@@ -1,7 +1,10 @@
+import socket
 import structlog
 import uvicorn
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
+
+from koi_net.config.loader import ConfigLoader
 
 from .base import EntryPoint
 from ..network.response_handler import ResponseHandler
@@ -23,9 +26,11 @@ class NodeServer(EntryPoint):
     def __init__(
         self,
         config: FullNodeConfig,
-        response_handler: ResponseHandler,
+        config_loader: ConfigLoader,
+        response_handler: ResponseHandler
     ):
         self.config = config
+        self.config_loader = config_loader
         self.response_handler = response_handler
         
         self.build_app()
@@ -74,8 +79,26 @@ class NodeServer(EntryPoint):
             content=resp.model_dump(mode="json")
         )
     
+    def acquire_port(self):
+        derived_url = self.config.koi_net.node_profile.base_url == self.config.server.url
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            address = (self.config.server.host, self.config.server.port)
+            while s.connect_ex(address) == 0:
+                log.debug(f"port {address[1]} in use")
+                self.config.server.port += 1
+                address = (address[0], self.config.server.port)
+        log.debug(f"acquired port {address[1]}")
+        
+        if derived_url:
+            self.config.koi_net.node_profile.base_url = self.config.server.url
+        
+        self.config_loader.save_to_yaml()
+    
     def run(self):
         """Starts FastAPI server and event handler."""
+        
+        self.acquire_port()
         
         uvicorn.run(
             app=self.app,

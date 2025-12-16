@@ -6,6 +6,9 @@ from rich.table import Table
 
 from importlib.metadata import entry_points
 
+from koi_net.config.base import EnvConfig
+from koi_net.core import BaseNode
+
 from .models import KoiNetworkConfig
 # from koi_net.build.container import NodeContainer
 import shutil
@@ -13,7 +16,7 @@ import shutil
 app = typer.Typer()
 console = Console()
 
-installed_nodes = entry_points(group='koi_net.node')
+installed_nodes = entry_points(group="koi_net.node")
 
 net_config = KoiNetworkConfig.load_from_yaml()
 
@@ -64,24 +67,38 @@ def list_nodes():
     console.print(table)
 
 @app.command()
-def create(type: str, name: str):
+def create(node_type: str, node_name: str | None = None):
     # if name not in installed_nodes:
     #     console.print(f"[bold red]Error:[/bold red] node type '{name}' doesn't exist")
     #     raise typer.Exit(code=1)
 
-    eps = installed_nodes.select(name=type)
+    node_name = node_name or node_type
+
+    eps = installed_nodes.select(name=node_type)
     if eps:
         ep = list(eps)[0]
     
-    os.mkdir(name)
-    os.chdir(name)
+    os.mkdir(node_name)
+    os.chdir(node_name)
     
-    node = ep.load()()
+    NodeClass: BaseNode = ep.load()
+    
+    for name, field in NodeClass.config_schema.model_fields.items():
+        print(name, field)
+        if issubclass(field.annotation, EnvConfig):
+            print("FOUND")
+            for n, subfield in field.annotation.model_fields.items():
+                print(n, subfield)
+        
+    breakpoint()
+    
+    node = NodeClass()
+    
     node.config_loader.start()
     
     os.chdir('..')
     
-    net_config.nodes[name] = type
+    net_config.nodes[node_name] = node_type
     net_config.save_to_yaml()
     
 @app.command()
