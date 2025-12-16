@@ -1,4 +1,4 @@
-from .core import NodeConfig
+from .base import BaseNodeConfig
 
 
 class ConfigProxy:
@@ -8,7 +8,7 @@ class ConfigProxy:
     destroying the original reference. Handled as if it were a config
     model by other classes, loaded and saved by the `ConfigLoader`.
     """
-    _config: NodeConfig
+    _config: BaseNodeConfig
     
     def __init__(self):
         self._config = None

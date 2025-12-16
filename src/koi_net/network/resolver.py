@@ -9,7 +9,7 @@ from .request_handler import RequestHandler
 from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
-from ..config.core import NodeConfig
+from ..config.base import BaseNodeConfig
 from ..exceptions import RequestError
 
 log = structlog.stdlib.get_logger()
@@ -18,7 +18,7 @@ log = structlog.stdlib.get_logger()
 class NetworkResolver:
     """Handles resolving nodes or knowledge objects from the network."""
     
-    config: NodeConfig    
+    config: BaseNodeConfig    
     identity: NodeIdentity
     cache: Cache
     graph: NetworkGraph
@@ -26,7 +26,7 @@ class NetworkResolver:
     
     def __init__(
         self, 
-        config: NodeConfig,
+        config: BaseNodeConfig,
         cache: Cache, 
         identity: NodeIdentity,
         graph: NetworkGraph,

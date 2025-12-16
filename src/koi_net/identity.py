@@ -1,14 +1,14 @@
 from rid_lib.types import KoiNetNode
-from .config.core import NodeConfig
+from .config.base import BaseNodeConfig
 from .protocol.node import NodeProfile
 
 
 class NodeIdentity:
     """Represents a node's identity (RID, profile)."""
     
-    config: NodeConfig
+    config: BaseNodeConfig
     
-    def __init__(self, config: NodeConfig):
+    def __init__(self, config: BaseNodeConfig):
         self.config = config
         
     @property

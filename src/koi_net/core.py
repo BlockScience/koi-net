@@ -1,6 +1,6 @@
 from .cache import Cache
 from .build.assembler import NodeAssembler
-from .config.core import NodeConfig
+from .config.base import BaseNodeConfig
 from .config.proxy import ConfigProxy
 from .config.loader import ConfigLoader
 from .config.full_node import FullNodeConfig
@@ -39,8 +39,8 @@ class BaseNode(NodeAssembler):
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
-    config_schema = NodeConfig
-    config: NodeConfig = ConfigProxy
+    config_schema = BaseNodeConfig
+    config: BaseNodeConfig = ConfigProxy
     config_loader: ConfigLoader = ConfigLoader
     knowledge_handlers: list[KnowledgeHandler] = [
         basic_rid_handler,

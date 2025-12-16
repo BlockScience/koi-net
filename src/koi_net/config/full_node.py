@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator
-from .core import NodeConfig, KoiNetConfig as BaseKoiNetConfig
+from .base import BaseNodeConfig, KoiNetConfig as BaseKoiNetConfig
 from ..protocol.node import (
     NodeProfile as BaseNodeProfile, 
     NodeType, 
@@ -32,7 +32,7 @@ class ServerConfig(BaseModel):
     def url(self) -> str:
         return f"http://{self.host}:{self.port}{self.path or ''}"
 
-class FullNodeConfig(NodeConfig):
+class FullNodeConfig(BaseNodeConfig):
     """Node config class for full nodes."""
     koi_net: KoiNetConfig
     server: ServerConfig = ServerConfig()

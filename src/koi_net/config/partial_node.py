@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from .core import NodeConfig, KoiNetConfig as BaseKoiNetConfig
+from .base import BaseNodeConfig, KoiNetConfig as BaseKoiNetConfig
 from ..protocol.node import (
     NodeProfile as BaseNodeProfile, 
     NodeType, 
@@ -20,7 +20,7 @@ class PollerConfig(BaseModel):
     """Poller config for partial nodes."""
     polling_interval: int = 5
 
-class PartialNodeConfig(NodeConfig):
+class PartialNodeConfig(BaseNodeConfig):
     """Node config class for partial nodes."""
     koi_net: KoiNetConfig
     poller: PollerConfig = PollerConfig()
