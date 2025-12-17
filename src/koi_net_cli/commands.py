@@ -1,17 +1,17 @@
 import os
+import shutil
+from importlib.metadata import entry_points
+
 import typer
-from typing import Callable
+from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
-from importlib.metadata import entry_points
-
-from koi_net.config.base import EnvConfig
+from koi_net.config.base import BaseNodeConfig, EnvConfig
 from koi_net.core import BaseNode
 
 from .models import KoiNetworkConfig
 # from koi_net.build.container import NodeContainer
-import shutil
 
 app = typer.Typer()
 console = Console()
@@ -44,62 +44,77 @@ def list_nodes():
             if not (os.path.isfile(file_path) and file == "config.yaml"):
                 continue
             
-            print(os.getcwd())
             os.chdir(dir)
-            print(os.getcwd())
-                        
+            
             node_type = net_config.nodes.get(dir)
             
-            ep = list(installed_nodes.select(name=node_type))[0]
-            create_node = ep.load()
+            ep, *_ = installed_nodes.select(name=node_type)
+            NodeClass: type[BaseNode] = ep.load()
             
-            node = create_node()
+            config_proxy = NodeClass.config()
+            NodeClass.config_loader(
+                config_schema=NodeClass.config_schema,
+                config=config_proxy
+            )
+            config_proxy: BaseNodeConfig
+        
+            # print(node.identity.rid)
             
-            print(ep)
-            print(dir)
-            print(node.identity.rid)
-            
-            table.add_row(dir, str(node.identity.rid))
+            table.add_row(dir, str(config_proxy.koi_net.node_rid))
             
             os.chdir('..')
-            print(os.getcwd())
     
     console.print(table)
 
 @app.command()
 def create(node_type: str, node_name: str | None = None):
-    # if name not in installed_nodes:
-    #     console.print(f"[bold red]Error:[/bold red] node type '{name}' doesn't exist")
-    #     raise typer.Exit(code=1)
+    if node_type not in list(map(lambda ep: ep.name, installed_nodes)):
+        console.print(f"[bold red]Error:[/bold red] node type '{node_type}' doesn't exist")
+        raise typer.Exit(code=1)
 
     node_name = node_name or node_type
-
-    eps = installed_nodes.select(name=node_type)
-    if eps:
-        ep = list(eps)[0]
     
-    os.mkdir(node_name)
-    os.chdir(node_name)
-    
-    NodeClass: BaseNode = ep.load()
-    
-    for name, field in NodeClass.config_schema.model_fields.items():
-        print(name, field)
-        if issubclass(field.annotation, EnvConfig):
-            print("FOUND")
-            for n, subfield in field.annotation.model_fields.items():
-                print(n, subfield)
-        
-    breakpoint()
-    
-    node = NodeClass()
-    
-    node.config_loader.start()
-    
-    os.chdir('..')
+    try:
+        os.mkdir(node_name)
+    except FileExistsError:
+        console.print(f"A node with the name '{node_name}' already exists!")
+        raise typer.Exit(code=1)
     
     net_config.nodes[node_name] = node_type
     net_config.save_to_yaml()
+    
+    init(node_name)
+
+@app.command()
+def init(node_name: str):
+    os.chdir(node_name)
+    
+    node_type = net_config.nodes[node_name]
+    
+    eps = installed_nodes.select(name=node_type)
+    if eps:
+        ep = list(eps)[0]
+        
+    NodeClass: type[BaseNode] = ep.load()
+    
+    for _, field in NodeClass.config_schema.model_fields.items():
+        field_type = field.annotation
+        if issubclass(field_type, EnvConfig):
+            try:
+                field_type()
+            except ValidationError as exc:
+                console.print("Missing required environment variables:")
+                for err in exc.errors():
+                    if err["type"] == "missing":
+                        env_var_name = err["loc"][0].upper()
+                        console.print(f"\t[bold red]{env_var_name}[/bold red]")
+                console.print(f"Set these variables and run [bold blue]koi init {node_name}[/bold blue] to try again")
+                raise typer.Exit(code=1)
+    
+    node = NodeClass()
+    node.config_loader.start()
+    
+    os.chdir('..')
     
 @app.command()
 def remove(name: str):

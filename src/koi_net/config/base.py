@@ -1,5 +1,5 @@
 import structlog
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from ..build import comp_type
 from ..protocol.secure import PrivateKey
@@ -19,7 +19,10 @@ class BaseNodeConfig(BaseModel):
     """
     
     koi_net: KoiNetConfig
-    env: EnvConfig = EnvConfig()
+    # note: EnvConfig has to use a default factory, otherwise it will
+    # evaluated during the library import and cause an error if any
+    # env variables are undefined
+    env: EnvConfig = Field(default_factory=EnvConfig)
     
     @model_validator(mode="after")
     def generate_rid_cascade(self):
