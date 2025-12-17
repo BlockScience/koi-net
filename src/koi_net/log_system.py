@@ -107,7 +107,8 @@ file_handler = RotatingFileHandler(
     filename=LOG_FILE_PATH,
     maxBytes=MAX_LOG_SIZE,
     backupCount=MAX_LOG_BACKUPS,
-    encoding=LOG_ENCODING
+    encoding=LOG_ENCODING,
+    delay=True
 )
 
 file_handler.setFormatter(
