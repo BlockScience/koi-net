@@ -1,24 +1,27 @@
+from typing import Generic, TypeVar
 from ruamel.yaml import YAML
 
 from .proxy import ConfigProxy
 from .base import BaseNodeConfig
 
 
-class ConfigLoader:
+T = TypeVar("T", bound=BaseNodeConfig)
+
+class ConfigLoader(Generic[T]):
     """Loads node config from a YAML file, and proxies access to it."""
     
     file_path: str = "config.yaml"
     file_content: str
     
-    config_schema: type[BaseNodeConfig]
-    proxy: ConfigProxy
+    schema: type[T]
+    proxy: ConfigProxy[T]
     
     def __init__(
         self, 
-        config_schema: type[BaseNodeConfig],
-        config: ConfigProxy
+        config_schema: type[T],
+        config: ConfigProxy[T]
     ):
-        self.config_schema = config_schema
+        self.schema = config_schema
         self.proxy = config
         
         # this is a special case to allow config state dependent components
@@ -37,10 +40,12 @@ class ConfigLoader:
             with open(self.file_path, "r") as f:
                 self.file_content = f.read()
             config_data = yaml.load(self.file_content)
-            self.proxy._config = self.config_schema.model_validate(config_data)
+            config = self.schema.model_validate(config_data)
+            self.proxy._set_delegate(config)
         
         except FileNotFoundError:
-            self.proxy._config = self.config_schema()
+            config = self.schema()
+            self.proxy._set_delegate(config)
         
     def save_to_yaml(self):
         """Saves config to YAML file."""
@@ -48,7 +53,8 @@ class ConfigLoader:
         
         with open(self.file_path, "w") as f:
             try:
-                config_data = self.proxy._config.model_dump(mode="json")
+                config = self.proxy._get_delegate()
+                config_data = config.model_dump(mode="json")
                 yaml.dump(config_data, f)
                 
             except Exception:

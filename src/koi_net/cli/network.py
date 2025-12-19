@@ -2,10 +2,9 @@ import pkgutil
 import importlib
 from importlib.metadata import entry_points
 
-from koi_net.cache import BaseNodeConfig
-
-from koi_net.exceptions import NodeNotFoundError
-from .models import ConfigLoader, ConfigProxy, KoiNetworkConfig
+from ..config.proxy import ConfigProxy
+from ..exceptions import NodeNotFoundError
+from .models import NetworkConfigLoader, KoiNetworkConfig
 from .node import NodeInterface
 
 ENTRY_POINT_GROUP = "koi_net.node"
@@ -16,7 +15,7 @@ MODULE_POSTFIX = "_node"
 class NetworkInterface:
     def __init__(self, config_path: str = "koi-net-config.yaml"):
         self.config: KoiNetworkConfig = ConfigProxy()
-        self.config_loader = ConfigLoader(
+        self.config_loader = NetworkConfigLoader(
             file_path=config_path,
             schema=KoiNetworkConfig,
             proxy=self.config
