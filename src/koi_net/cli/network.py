@@ -2,9 +2,11 @@ import pkgutil
 import importlib
 from importlib.metadata import entry_points
 
+from koi_net.cache import BaseNodeConfig
+
 from koi_net.exceptions import NodeNotFoundError
-from koi_net_cli.models import ConfigLoader, ConfigProxy, KoiNetworkConfig
-from koi_net_cli.node import NodeInterface
+from .models import ConfigLoader, ConfigProxy, KoiNetworkConfig
+from .node import NodeInterface
 
 ENTRY_POINT_GROUP = "koi_net.node"
 MODULE_PREFIX = "koi_net_"
@@ -27,13 +29,20 @@ class NetworkInterface:
     def load_nodes(self):
         for name, module in self.config.nodes.items():
             self.nodes[name] = NodeInterface(name, module)
-    
+            
     def start(self):
         for name, node in self.nodes.items():
             print(f"starting {name}...")
             node.start()
-        
-        
+            
+        try:
+            for node in self.nodes.values():
+                node.process.wait()
+        except KeyboardInterrupt:
+            print("stopping network...")
+            for name, node in self.nodes.items():
+                print(f"stopping {name}...")
+                node.stop()
             
     def stop(self):
         for name, node in self.nodes.items():

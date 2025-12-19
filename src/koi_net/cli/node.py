@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import functools
 import importlib
 import inspect
@@ -6,13 +7,14 @@ import shutil
 import signal
 import subprocess
 import sys
+from typing import Generator
 
 from pydantic import ValidationError
 
 from koi_net.config.base import BaseNodeConfig
 from koi_net.config.env_config import EnvConfig
 from koi_net.core import BaseNode
-from koi_net_cli.exceptions import MissingEnvVariablesError, NodeExistsError
+from .exceptions import MissingEnvVariablesError, NodeExistsError
 
 
 """
@@ -98,9 +100,13 @@ class NodeInterface:
     
     @in_directory
     def start(self):
-        self.process = subprocess.Popen((
-            sys.executable, "-m", self.module
-        ))
+        self.process = subprocess.Popen(
+            (sys.executable, "-m", self.module),
+            creationflags=(
+                subprocess.DETACHED_PROCESS |
+                subprocess.CREATE_NEW_PROCESS_GROUP
+            )
+        )
     
     def stop(self):
         try:
@@ -111,12 +117,25 @@ class NodeInterface:
     @in_directory
     def get_config(self) -> BaseNodeConfig:
         node_class = self.get_node_class()
+        self.config_proxy = node_class.config()
+        self.config_loader = node_class.config_loader(
+            config_schema=node_class.config_schema,
+            config=self.config_proxy
+        )
+        return self.config_proxy
+
+    @contextmanager
+    def mutate_config(self) -> Generator[BaseNodeConfig, None, None]:
+        os.chdir(self.name)
+        node_class = self.get_node_class()
         config_proxy = node_class.config()
-        node_class.config_loader(
+        config_loader = node_class.config_loader(
             config_schema=node_class.config_schema,
             config=config_proxy
         )
-        return config_proxy
+        yield config_proxy
+        config_loader.save_to_yaml()
+        os.chdir("..")
 
 
 
