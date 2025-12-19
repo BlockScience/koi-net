@@ -111,6 +111,9 @@ def set_first_contact(name: str, force: bool = False):
             if not force and n_config.koi_net.first_contact.rid:
                 continue
             
+            if node.name == network.config.first_contact:
+                continue
+            
             n_config.koi_net.first_contact.rid = fc_rid
             n_config.koi_net.first_contact.url = fc_url
             updated_nodes += 1
