@@ -1,22 +1,12 @@
-import os
-import shutil
-from importlib.metadata import entry_points
-import subprocess
-
 import typer
-from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-
-from koi_net.config.base import BaseNodeConfig, EnvConfig
-from koi_net.core import BaseNode
-from koi_net_cli.network import NetworkInterface
-from koi_net_cli.node import MissingEnvVariablesError, NodeExistsError
-
-from .models import KoiNetworkConfig
-# from koi_net.build.container import NodeContainer
 from dotenv import load_dotenv
+
+from .network import NetworkInterface
+from .node import MissingEnvVariablesError, NodeExistsError
+
 
 load_dotenv()
 
@@ -95,3 +85,35 @@ def delete(name: str):
 def start(name: str):
     network = NetworkInterface()
     network.nodes[name].start()
+    
+@app.command()
+def network_start():
+    network = NetworkInterface()
+    network.start()
+    
+@app.command()
+def set_first_contact(name: str, force: bool = False):
+    network = NetworkInterface()
+
+    print(f"First contact updated from '{network.config.first_contact}' -> '{name}'")
+    
+    network.config.first_contact = name
+    network.config_loader.save_to_yaml()
+    
+    fc_node = network.nodes[network.config.first_contact]
+    fc_config = fc_node.get_config()
+    fc_rid = fc_config.koi_net.node_rid
+    fc_url = fc_config.koi_net.node_profile.base_url
+    
+    updated_nodes = 0
+    for node in network.nodes.values():
+        with node.mutate_config() as n_config:
+            if not force and n_config.koi_net.first_contact.rid:
+                continue
+            
+            n_config.koi_net.first_contact.rid = fc_rid
+            n_config.koi_net.first_contact.url = fc_url
+            updated_nodes += 1
+    
+    print(f"Updated config for {updated_nodes} node(s)")
+        
