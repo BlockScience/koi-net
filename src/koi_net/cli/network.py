@@ -13,12 +13,11 @@ MODULE_POSTFIX = "_node"
 
 
 class NetworkInterface:
-    def __init__(self, config_path: str = "koi-net-config.yaml"):
+    def __init__(self):
         self.config: KoiNetworkConfig = ConfigProxy()
         self.config_loader = NetworkConfigLoader(
-            file_path=config_path,
-            schema=KoiNetworkConfig,
-            proxy=self.config
+            config_schema=KoiNetworkConfig,
+            config=self.config
         )
         
         self.nodes: dict[str, NodeInterface] = {}

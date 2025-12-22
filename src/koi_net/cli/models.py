@@ -8,4 +8,4 @@ class KoiNetworkConfig(BaseModel):
     nodes: dict[str, str] = {}
 
 class NetworkConfigLoader(ConfigLoader):
-    file_path: str = "network-config.yaml"
+    file_path: str = "koi-network-config.yaml"
