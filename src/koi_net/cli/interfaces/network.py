@@ -1,10 +1,12 @@
 import pkgutil
 import importlib
 from importlib.metadata import entry_points
+import time
 
-from ..config.proxy import ConfigProxy
-from ..exceptions import NodeNotFoundError
-from .models import NetworkConfigLoader, KoiNetworkConfig
+from koi_net.config.proxy import ConfigProxy
+from koi_net.exceptions import NodeNotFoundError
+
+from ..models import NetworkConfigLoader, KoiNetworkConfig
 from .node import NodeInterface
 
 ENTRY_POINT_GROUP = "koi_net.node"
@@ -28,19 +30,11 @@ class NetworkInterface:
         for name, module in self.config.nodes.items():
             self.nodes[name] = NodeInterface(name, module)
             
-    def start(self):
+    def start(self, delay: float = 0.0):
         for name, node in self.nodes.items():
             print(f"starting {name}...")
             node.start()
-            
-        try:
-            for node in self.nodes.values():
-                node.process.wait()
-        except KeyboardInterrupt:
-            print("stopping network...")
-            for name, node in self.nodes.items():
-                print(f"stopping {name}...")
-                node.stop()
+            time.sleep(delay)
             
     def stop(self):
         for name, node in self.nodes.items():
@@ -68,14 +62,20 @@ class NetworkInterface:
         else:
             raise Exception("more than one endpoint with that name found")
         
-    def get_node_modules(self) -> list[str]:
-        return {
-            ep.module for ep in entry_points(group=ENTRY_POINT_GROUP)
-        } | {
-            module.name for module in pkgutil.iter_modules()
-            if module.name.startswith(MODULE_PREFIX) 
-            and module.name.endswith(MODULE_POSTFIX)
+    def get_node_modules(self) -> dict[str, set[str]]:
+        module_map = {
+            ep.module: {ep.name} for ep in entry_points(group=ENTRY_POINT_GROUP)
         }
+        for module in pkgutil.iter_modules():
+            if not (module.name.startswith(MODULE_PREFIX) 
+                and module.name.endswith(MODULE_POSTFIX)):
+                continue
+            
+            if module.name in module_map:
+                module_alias = module.name[len(MODULE_PREFIX):-len(MODULE_POSTFIX)]
+                module_map[module.name].add(module_alias)
+        
+        return module_map
         
     def create_node(self, node_name: str, node_module_ref: str | None = None):
         node_module = self.qualify_node_reference(node_module_ref or node_name)

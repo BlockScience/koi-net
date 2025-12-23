@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import functools
 import importlib
 import inspect
@@ -8,13 +7,15 @@ import signal
 import subprocess
 import sys
 from typing import Generator
+from contextlib import contextmanager
 
 from pydantic import ValidationError
 
 from koi_net.config.base import BaseNodeConfig
 from koi_net.config.env_config import EnvConfig
 from koi_net.core import BaseNode
-from .exceptions import MissingEnvVariablesError, NodeExistsError
+
+from ..exceptions import MissingEnvVariablesError, NodeExistsError
 
 
 """
@@ -37,28 +38,32 @@ class NodeInterface:
         self.module = module
         self.process = None
         
-    @staticmethod
-    def in_directory(fn):
-        @functools.wraps(fn)
-        def wrapper(self: "NodeInterface", *args, **kwargs):
-            os.chdir(self.name)
-            resp = None
-            try:
-                resp = fn(self, *args, **kwargs)
-            finally:
-                os.chdir("..")
-            return resp
-        return wrapper
+        self.node_class = self.load_node_class()
     
-    def get_node_class(self) -> type[BaseNode]:
+    def load_node_class(self) -> type[BaseNode]:
         core = importlib.import_module(f"{self.module}.core")
 
-        for name, obj in inspect.getmembers(core):
+        for _, obj in inspect.getmembers(core):
             if getattr(obj, "__module__", None) != core.__name__:
                 continue
             
             if issubclass(obj, BaseNode):
                 return obj
+            
+    @staticmethod
+    def in_directory(fn):
+        @functools.wraps(fn)
+        def wrapper(self: "NodeInterface", *args, **kwargs):
+            os.chdir(self.name)
+            print(f"entering {self.name}...")
+            resp = None
+            try:
+                resp = fn(self, *args, **kwargs)
+            finally:
+                os.chdir("..")
+                print(f"leaving {self.name}...")
+            return resp
+        return wrapper
     
     @classmethod
     def create(cls, name: str, module: str):
@@ -71,8 +76,7 @@ class NodeInterface:
     
     @in_directory
     def init(self):
-        node_class = self.get_node_class()
-        for field in node_class.config_schema.model_fields.values():
+        for field in self.node_class.config_schema.model_fields.values():
             field_type = field.annotation
             if issubclass(field_type, EnvConfig):
                 try:
@@ -87,9 +91,23 @@ class NodeInterface:
                         message="Missing required environment variables",
                         vars=vars
                     )
-                    
         
-        node_class().config_loader.start()
+        self.node_class().config_loader.start()
+    
+    @in_directory
+    def get_config(self) -> BaseNodeConfig:
+        return self.node_class().config
+
+    @contextmanager
+    @in_directory
+    def mutate_config(self) -> Generator[BaseNodeConfig, None, None]:
+        node = self.node_class()
+        yield node.config
+        node.config_loader.save_to_yaml()
+    
+    @in_directory
+    def wipe(self):
+        self.node_class().cache.drop()
     
     def delete(self):
         if self.process.poll() is None:
@@ -102,40 +120,16 @@ class NodeInterface:
     def start(self):
         self.process = subprocess.Popen(
             (sys.executable, "-m", self.module),
-            creationflags=(
-                subprocess.DETACHED_PROCESS |
-                subprocess.CREATE_NEW_PROCESS_GROUP
-            )
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         )
     
     def stop(self):
         try:
             self.process.send_signal(signal.SIGINT)
         except ValueError:
-            self.process.send_signal(signal.CTRL_C_EVENT)
+            self.process.send_signal(signal.CTRL_BREAK_EVENT)
 
-    @in_directory
-    def get_config(self) -> BaseNodeConfig:
-        node_class = self.get_node_class()
-        self.config_proxy = node_class.config()
-        self.config_loader = node_class.config_loader(
-            config_schema=node_class.config_schema,
-            config=self.config_proxy
-        )
-        return self.config_proxy
-
-    @contextmanager
-    def mutate_config(self) -> Generator[BaseNodeConfig, None, None]:
-        os.chdir(self.name)
-        node_class = self.get_node_class()
-        config_proxy = node_class.config()
-        config_loader = node_class.config_loader(
-            config_schema=node_class.config_schema,
-            config=config_proxy
-        )
-        yield config_proxy
-        config_loader.save_to_yaml()
-        os.chdir("..")
+    
 
 
 

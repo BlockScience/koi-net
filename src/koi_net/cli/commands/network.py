@@ -1,11 +1,11 @@
+import time
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from dotenv import load_dotenv
 
-from .network import NetworkInterface
-from .node import MissingEnvVariablesError, NodeExistsError
+from ..interfaces.network import NetworkInterface
 
 
 load_dotenv()
@@ -19,10 +19,12 @@ def list_node_types():
     network = NetworkInterface()
     
     table = Table()
+    table.add_column("aliases", style="cyan")
     table.add_column("node types", style="magenta")
 
-    for module in network.get_node_modules():
-        table.add_row(module)
+    for module, aliases in network.get_node_modules().items():
+        print(module, aliases)
+        table.add_row(", ".join(aliases), module)
     console.print(table)
     
 @app.command()
@@ -38,58 +40,22 @@ def list_nodes():
         table.add_row(name, node.module, str(node_conf.koi_net.node_rid))
         
     console.print(table)
-
-@app.command()
-def create(node_type: str, node_name: str | None = None):
-    # if node_type not in list(map(lambda ep: ep.name, installed_nodes)):
-    #     console.print(f"[bold red]Error:[/bold red] node type '{node_type}' doesn't exist")
-    #     raise typer.Exit(code=1)
-    
-    node_name = node_name or node_type
-    
-    network = NetworkInterface()
-    try:
-        network.create_node(node_name, node_type)
-        init(node_name)
-    except NodeExistsError:
-        console.print(f"[red]Node '{node_name}' already exists[/red]")
     
 @app.command()
-def init(node_name: str):
+def start(delay: int = 1):
     network = NetworkInterface()
-    
-    if node_name not in network.nodes:
-        console.print(f"[red]Node '{node_name}' doesn't exist[/red]")
-        return
+    print("starting network...")
+    network.start(delay=delay)
     
     try:
-        node = network.nodes[node_name]
-        node.init()
-        node_rid = node.get_config().koi_net.node_rid
-        console.print(f"Initialized node '{node_name}' as {node_rid}")
-    except MissingEnvVariablesError as err:
-        text = "\n".join([f"[bold red]{v}[/bold red]" for v in err.vars])
-        panel = Panel.fit(
-            text, 
-            border_style="red",
-            title="Cannot initialize node, missing the following enironment variables:")
-        console.print(panel)
-        console.print(f"Run [cyan]koi init {node_name}[/cyan] after setting")
-    
-@app.command()
-def delete(name: str):
-    network = NetworkInterface()
-    network.delete_node(name)
-    
-@app.command()
-def start(name: str):
-    network = NetworkInterface()
-    network.nodes[name].start()
-    
-@app.command()
-def network_start():
-    network = NetworkInterface()
-    network.start()
+        while any(n.process.poll() is None for n in network.nodes.values()):
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("stopping network...")
+        network.stop()
+        
+        for node in network.nodes.values():
+            node.process.wait()
     
 @app.command()
 def set_first_contact(name: str, force: bool = False):
