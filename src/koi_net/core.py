@@ -1,3 +1,5 @@
+from koi_net.build.base import BaseAssembly
+from .log_system import LogSystem
 from .cache import Cache
 from .build.assembler import NodeAssembler
 from .config.base import BaseNodeConfig
@@ -34,7 +36,8 @@ from .processor.knowledge_handlers import (
     secure_profile_handler
 )
 
-class BaseNode(NodeAssembler):
+class BaseNode(BaseAssembly):
+    _log_system: LogSystem = LogSystem
     kobj_queue: KobjQueue = KobjQueue
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer
@@ -68,11 +71,15 @@ class BaseNode(NodeAssembler):
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
     profile_monitor: ProfileMonitor = ProfileMonitor
+    
+    def __new__(cls, *args, **kwargs):
+        cls._log_system(*args, **kwargs)
+        return super().__new__(cls, *args, **kwargs)
 
 class FullNode(BaseNode):
-    entrypoint: NodeServer = NodeServer
+    server: NodeServer = NodeServer
     config: FullNodeConfig
 
 class PartialNode(BaseNode):
-    entrypoint: NodePoller = NodePoller
+    poller: NodePoller = NodePoller
     config: PartialNodeConfig

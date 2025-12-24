@@ -27,6 +27,7 @@ class KnowledgeProcessingWorker(ThreadWorker):
         
     def stop(self):
         self.kobj_queue.q.put(STOP_WORKER)
+        super().stop()
         
     def run(self):
         while True:

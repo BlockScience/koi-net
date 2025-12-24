@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import importlib
 import inspect
@@ -37,33 +38,29 @@ class NodeInterface:
         self.name = name
         self.module = module
         self.process = None
-        
-        self.node_class = self.load_node_class()
     
-    def load_node_class(self) -> type[BaseNode]:
-        core = importlib.import_module(f"{self.module}.core")
-
-        for _, obj in inspect.getmembers(core):
-            if getattr(obj, "__module__", None) != core.__name__:
-                continue
-            
-            if issubclass(obj, BaseNode):
-                return obj
-            
     @staticmethod
     def in_directory(fn):
         @functools.wraps(fn)
         def wrapper(self: "NodeInterface", *args, **kwargs):
-            os.chdir(self.name)
-            print(f"entering {self.name}...")
-            resp = None
-            try:
-                resp = fn(self, *args, **kwargs)
-            finally:
-                os.chdir("..")
-                print(f"leaving {self.name}...")
-            return resp
+            prev_path = os.getcwd()
+            with contextlib.chdir(self.name) as d:
+                print(prev_path, "->", os.getcwd())
+                return fn(self, *args, **kwargs)
         return wrapper
+    
+    @property
+    def node_class(self) -> type[BaseNode]:
+        core = importlib.import_module(f"{self.module}.core")
+
+        for _, obj in inspect.getmembers(core):
+            # only look at objects defined in the module
+            if getattr(obj, "__module__", None) != core.__name__:
+                continue
+            
+            # identified node class for the module
+            if issubclass(obj, BaseNode):
+                return obj
     
     @classmethod
     def create(cls, name: str, module: str):
@@ -110,23 +107,26 @@ class NodeInterface:
         self.node_class().cache.drop()
     
     def delete(self):
-        if self.process.poll() is None:
+        if self.process and self.process.poll() is None:
             print("Can't delete node while it's running, stop it first.")
             return False
         shutil.rmtree(self.name)
         return True
     
     @in_directory
-    def start(self):
+    def start(self, suppress_output: bool = True):
         self.process = subprocess.Popen(
             (sys.executable, "-m", self.module),
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdout=subprocess.DEVNULL if suppress_output else None,
+            stderr=subprocess.DEVNULL if suppress_output else None
         )
     
     def stop(self):
         try:
             self.process.send_signal(signal.SIGINT)
         except ValueError:
+            self.process.send_signal(signal.CTRL_C_EVENT)
             self.process.send_signal(signal.CTRL_BREAK_EVENT)
 
     

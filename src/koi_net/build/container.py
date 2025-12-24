@@ -1,3 +1,4 @@
+import threading
 import structlog
 
 from ..entrypoints.base import EntryPoint
@@ -11,7 +12,7 @@ class NodeContainer:
     """Dummy 'shape' for node containers built by assembler."""
     _artifact: BuildArtifact
     
-    entrypoint: EntryPoint
+    shutdown_event: threading.Event
     
     def __init__(self, artifact, **kwargs):
         self._artifact = artifact
@@ -21,11 +22,11 @@ class NodeContainer:
             setattr(self, name, comp)
     
     def run(self):
+        print("running this...")
         try:
             self.start()
-            self.entrypoint.run()
-        except KeyboardInterrupt:
-            log.info("Keyboard interrupt!")
+            print("event set?", self.shutdown_event.is_set())
+            self.shutdown_event.wait()
         finally:
             self.stop()
     
