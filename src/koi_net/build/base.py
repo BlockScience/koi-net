@@ -11,12 +11,9 @@ class ControlLoop:
         self.thread = threading.Thread(target=self.run, daemon=True)
         
     def run(self):
-        print("running...")
         for line in sys.stdin:
             if line.strip() == "STOP":
                 self.shutdown_event.set()
-            else:
-                print(line, end="")
                 
         self.shutdown_event.set()
         
