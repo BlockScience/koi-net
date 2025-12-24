@@ -1,4 +1,6 @@
 import socket
+import threading
+import time
 import structlog
 import uvicorn
 from fastapi import FastAPI, APIRouter
@@ -16,9 +18,9 @@ from ..config.full_node import FullNodeConfig
 log = structlog.stdlib.get_logger()
 
 
-class NodeServer(EntryPoint):
+class NodeServer(uvicorn.Server):
     """Entry point for full nodes, manages FastAPI server."""
-    config: FullNodeConfig
+    _config: FullNodeConfig
     response_handler: ResponseHandler
     app: FastAPI
     router: APIRouter
@@ -29,11 +31,21 @@ class NodeServer(EntryPoint):
         config_loader: ConfigLoader,
         response_handler: ResponseHandler
     ):
-        self.config = config
+        self._config = config
         self.config_loader = config_loader
         self.response_handler = response_handler
         
         self.build_app()
+        
+        self.thread = threading.Thread(target=self.run)
+        
+        super().__init__(config=uvicorn.Config(
+            app=self.app,
+            host=self._config.server.host,
+            port=self._config.server.port,
+            log_config=None,
+            lifespan="off"
+        ))
         
     def build_endpoints(self, router: APIRouter):
         """Builds endpoints for API router."""
@@ -80,29 +92,26 @@ class NodeServer(EntryPoint):
         )
     
     def acquire_port(self):
-        derived_url = self.config.koi_net.node_profile.base_url == self.config.server.url
+        derived_url = self._config.koi_net.node_profile.base_url == self._config.server.url
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            address = (self.config.server.host, self.config.server.port)
+            address = (self._config.server.host, self._config.server.port)
             while s.connect_ex(address) == 0:
                 log.debug(f"port {address[1]} in use")
-                self.config.server.port += 1
-                address = (address[0], self.config.server.port)
+                self._config.server.port += 1
+                address = (address[0], self._config.server.port)
         log.debug(f"acquired port {address[1]}")
         
         if derived_url:
-            self.config.koi_net.node_profile.base_url = self.config.server.url
+            self._config.koi_net.node_profile.base_url = self._config.server.url
         
         self.config_loader.save_to_yaml()
     
-    def run(self):
-        """Starts FastAPI server and event handler."""
-        
+    def start(self):
         self.acquire_port()
+        self.thread.start()
         
-        uvicorn.run(
-            app=self.app,
-            host=self.config.server.host,
-            port=self.config.server.port,
-            log_config=None
-        )
+    def stop(self):
+        self.should_exit = True
+        if self.thread.is_alive():
+            self.thread.join()

@@ -58,6 +58,10 @@ def delete(name: str):
     network = NetworkInterface()
     network.delete_node(name)
     
+    if network.config.first_contact == name:
+        network.config.first_contact = None
+        network.config_loader.save_to_yaml()
+    
 @app.command()
 def start(name: str):
     network = NetworkInterface()

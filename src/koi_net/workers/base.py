@@ -21,6 +21,10 @@ class ThreadWorker:
     def start(self):
         self.thread.start()
         
+    def stop(self):
+        if self.thread.is_alive():
+            self.thread.join()
+        
     def run(self):
         """Processing loop for thread."""
         pass

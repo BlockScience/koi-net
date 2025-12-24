@@ -52,6 +52,7 @@ class EventProcessingWorker(ThreadWorker):
         
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
+        super().stop()
     
     def run(self):
         while True:
