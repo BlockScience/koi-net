@@ -63,15 +63,13 @@ def delete(name: str):
         network.config_loader.save_to_yaml()
     
 @app.command()
-def start(name: str):
+def start(name: str, verbose: bool = False):
     network = NetworkInterface()
     node = network.nodes[name]
-    node.start()
+    node.start(suppress_output=not verbose)
     try:
         while node.process.poll() is None:
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("stopping node...")
         node.stop()
-    
         node.process.wait()

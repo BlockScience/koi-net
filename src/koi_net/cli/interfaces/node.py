@@ -118,20 +118,15 @@ class NodeInterface:
         self.process = subprocess.Popen(
             (sys.executable, "-m", self.module),
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL if suppress_output else None,
-            stderr=subprocess.DEVNULL if suppress_output else None
+            stderr=subprocess.DEVNULL if suppress_output else None,
+            text=True
         )
     
     def stop(self):
-        try:
-            self.process.send_signal(signal.SIGINT)
-        except ValueError:
-            self.process.send_signal(signal.CTRL_C_EVENT)
-            self.process.send_signal(signal.CTRL_BREAK_EVENT)
-
-    
-
-
+        self.process.stdin.write("STOP\n")
+        self.process.stdin.flush()
 
 if __name__ == "__main__":
     node = NodeInterface("coordinator", "koi_net_coordinator_node")

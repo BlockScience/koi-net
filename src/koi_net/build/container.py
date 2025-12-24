@@ -1,7 +1,6 @@
 import threading
 import structlog
 
-from ..entrypoints.base import EntryPoint
 from .artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
 
@@ -22,11 +21,12 @@ class NodeContainer:
             setattr(self, name, comp)
     
     def run(self):
-        print("running this...")
         try:
             self.start()
-            print("event set?", self.shutdown_event.is_set())
             self.shutdown_event.wait()
+        except KeyboardInterrupt:
+            log.info("Received keyboard interrupt")
+            self.shutdown_event.set()
         finally:
             self.stop()
     

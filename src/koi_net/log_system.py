@@ -44,8 +44,6 @@ class LogSystem:
         num_log_file_backups: int = 5,
         log_file_encoding: str = "utf-8"
     ):
-        print("initializing log system...")
-        
         self.use_file_handler = use_file_handler
         self.use_console_handler = use_console_handler
         self.file_handler_log_level = file_handler_log_level
