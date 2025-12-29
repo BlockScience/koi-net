@@ -12,11 +12,12 @@ from contextlib import contextmanager
 
 from pydantic import ValidationError
 
+from koi_net.cli import utils
 from koi_net.config.base import BaseNodeConfig
 from koi_net.config.env_config import EnvConfig
 from koi_net.core import BaseNode
 
-from ..exceptions import MissingEnvVariablesError, NodeExistsError
+from ..exceptions import MissingEnvVariablesError, LocalNodeExistsError
 
 
 """
@@ -29,8 +30,7 @@ node type name (module: `koi_net_coordinator_node`)
 node name -> node type name: (stored in koi net config)
 """
 
-ENTRY_POINT_GROUP = "koi_net.node"
-
+CORE_MODULE = ".core"
 
 
 class NodeInterface:
@@ -38,19 +38,21 @@ class NodeInterface:
         self.name = name
         self.module = module
         self.process = None
+        
+        self.node_class = self.load_node_class()
     
     @staticmethod
     def in_directory(fn):
+        """Decorator to safely execute with a node directory."""
         @functools.wraps(fn)
         def wrapper(self: "NodeInterface", *args, **kwargs):
             with contextlib.chdir(self.name):
                 return fn(self, *args, **kwargs)
         return wrapper
     
-    @property
-    def node_class(self) -> type[BaseNode]:
-        core = importlib.import_module(f"{self.module}.core")
-
+    def load_node_class(self) -> type[BaseNode]:
+        core = importlib.import_module(self.module + CORE_MODULE)
+        
         for _, obj in inspect.getmembers(core):
             # only look at objects defined in the module
             if getattr(obj, "__module__", None) != core.__name__:
@@ -60,14 +62,14 @@ class NodeInterface:
             if issubclass(obj, BaseNode):
                 return obj
     
-    @classmethod
-    def create(cls, name: str, module: str):
+    def create(self):
         try:
-            os.mkdir(name)
+            os.mkdir(self.name)
         except FileExistsError:
-            raise NodeExistsError(f"Node of name '{name}' already exists")
-        
-        return cls(name, module)
+            raise LocalNodeExistsError(f"Node of name '{self.name}' already exists")
+    
+    def exists(self) -> bool:
+        return os.path.isdir(self.name)
     
     @in_directory
     def init(self):
@@ -77,14 +79,13 @@ class NodeInterface:
                 try:
                     field_type()
                 except ValidationError as exc:
-                    vars = [
-                        err["loc"][0].upper()
-                        for err in exc.errors()
-                        if err["type"] == "missing"
-                    ]
                     raise MissingEnvVariablesError(
                         message="Missing required environment variables",
-                        vars=vars
+                        vars=[
+                            err["loc"][0].upper()
+                            for err in exc.errors()
+                            if err["type"] == "missing"
+                        ]
                     )
         
         self.node_class().config_loader.start()
@@ -117,15 +118,18 @@ class NodeInterface:
             (sys.executable, "-m", self.module),
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL if suppress_output else None,
-            stderr=subprocess.DEVNULL if suppress_output else None,
+            stdout=subprocess.PIPE,
             text=True
         )
+        
+        for line in self.process.stdout:
+            if line.strip() == "READY":
+                return
+            elif not suppress_output:
+                sys.stdout.write(line)
+                sys.stdout.flush()
     
     def stop(self):
         self.process.stdin.write("STOP\n")
         self.process.stdin.flush()
-
-if __name__ == "__main__":
-    node = NodeInterface("coordinator", "koi_net_coordinator_node")
-    node.init()
+        self.process.wait()

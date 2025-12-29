@@ -23,6 +23,7 @@ class NodeContainer:
     def run(self):
         try:
             self.start()
+            print("READY", flush=True)
             self.shutdown_event.wait()
         except KeyboardInterrupt:
             log.info("Received keyboard interrupt")
