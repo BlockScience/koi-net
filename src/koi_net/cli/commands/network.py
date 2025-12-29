@@ -1,3 +1,4 @@
+import os
 import time
 import typer
 from rich.console import Console
@@ -14,32 +15,11 @@ load_dotenv()
 app = typer.Typer()
 console = Console()
 
-@app.command()
-def list_node_types():
-    network = NetworkInterface()
-    
-    table = Table()
-    table.add_column("aliases", style="cyan")
-    table.add_column("node types", style="magenta")
 
-    for module, aliases in network.get_node_modules().items():
-        table.add_row(", ".join(aliases), module)
-    console.print(table)
-    
 @app.command()
-def list_nodes():
-    table = Table(title="created nodes")
-    table.add_column("name", style="cyan")
-    table.add_column("type", style="green")
-    table.add_column("rid", style="magenta")
+def sync():
+    NetworkInterface().sync()
 
-    network = NetworkInterface()
-    for name, node in network.nodes.items():
-        node_conf = node.get_config()
-        table.add_row(name, node.module, str(node_conf.koi_net.node_rid))
-        
-    console.print(table)
-    
 @app.command()
 def start(delay: int = 1):
     network = NetworkInterface()

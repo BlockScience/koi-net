@@ -1,17 +1,10 @@
-import pkgutil
-import importlib
-from importlib.metadata import entry_points
 import time
 
 from koi_net.config.proxy import ConfigProxy
-from koi_net.exceptions import NodeNotFoundError
 
+from ..exceptions import LocalNodeNotFoundError
 from ..models import NetworkConfigLoader, KoiNetworkConfig
 from .node import NodeInterface
-
-ENTRY_POINT_GROUP = "koi_net.node"
-MODULE_PREFIX = "koi_net_"
-MODULE_POSTFIX = "_node"
 
 
 class NetworkInterface:
@@ -30,68 +23,43 @@ class NetworkInterface:
         for name, module in self.config.nodes.items():
             self.nodes[name] = NodeInterface(name, module)
             
+    def sync(self, verbose: bool = False):
+        for name, node in self.nodes.items():
+            if node.exists():
+                continue
+            
+            node.create()
+            node.init()
+            
     def start(self, delay: float = 0.0):
         for name, node in self.nodes.items():
             print(f"starting {name}...")
             node.start()
-            time.sleep(delay)
+            # time.sleep(delay)
+        print("done!")
             
     def stop(self):
         for name, node in self.nodes.items():
             print(f"stopping {name}...")
             node.stop()
+        print("done!")
         
-    def qualify_node_reference(self, node_module_ref: str) -> str | None:
-        eps = entry_points(group=ENTRY_POINT_GROUP, name=node_module_ref)
-        if len(eps) == 0:
-            try:
-                importlib.import_module(node_module_ref)
-                return node_module_ref
-            except ImportError:
-                try:
-                    expanded_ref = MODULE_PREFIX + node_module_ref + MODULE_POSTFIX
-                    importlib.import_module(expanded_ref)
-                    return expanded_ref
-                except ImportError:
-                    raise Exception(f"no node module of name '{node_module_ref}' exists")
-            
-        elif len(eps) == 1:
-            ep, = eps
-            return ep.module
+    def add_node(self, name: str, module: str, no_local: bool = False):
+        node = NodeInterface(name, module)
+        if not no_local:
+            node.create()
         
-        else:
-            raise Exception("more than one endpoint with that name found")
-        
-    def get_node_modules(self) -> dict[str, set[str]]:
-        module_map = {
-            ep.module: {ep.name} for ep in entry_points(group=ENTRY_POINT_GROUP)
-        }
-        for module in pkgutil.iter_modules():
-            if not (module.name.startswith(MODULE_PREFIX) 
-                and module.name.endswith(MODULE_POSTFIX)):
-                continue
-            
-            module_alias = module.name[len(MODULE_PREFIX):-len(MODULE_POSTFIX)]
-            module_map.setdefault(module.name, set()).add(module_alias)
-            
-        
-        return module_map
-        
-    def create_node(self, node_name: str, node_module_ref: str | None = None):
-        node_module = self.qualify_node_reference(node_module_ref or node_name)
-        
-        self.nodes[node_name] = NodeInterface.create(node_name, node_module)
-        
-        self.config.nodes[node_name] = node_module
+        self.nodes[name] = node
+        self.config.nodes[name] = module
         self.config_loader.save_to_yaml()
         
-    def delete_node(self, node_name: str):
-        if node_name not in self.nodes:
-            raise NodeNotFoundError(f"Node '{node_name}' not found")
+    def remove_node(self, name: str):
+        if name not in self.nodes:
+            raise LocalNodeNotFoundError(f"Node '{name}' not found")
         
-        self.nodes[node_name].delete()
-        del self.nodes[node_name]
-        del self.config.nodes[node_name]
+        self.nodes[name].delete()
+        del self.nodes[name]
+        del self.config.nodes[name]
         self.config_loader.save_to_yaml()
         
         
