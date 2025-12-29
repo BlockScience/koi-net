@@ -1,7 +1,6 @@
 from koi_net.build.base import BaseAssembly
 from .log_system import LogSystem
 from .cache import Cache
-from .build.assembler import NodeAssembler
 from .config.base import BaseNodeConfig
 from .config.proxy import ConfigProxy
 from .config.loader import ConfigLoader
