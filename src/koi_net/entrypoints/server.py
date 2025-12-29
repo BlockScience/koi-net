@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 
 from koi_net.config.loader import ConfigLoader
 
-from .base import EntryPoint
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
