@@ -23,7 +23,6 @@ def list_node_types():
     table.add_column("node types", style="magenta")
 
     for module, aliases in network.get_node_modules().items():
-        print(module, aliases)
         table.add_row(", ".join(aliases), module)
     console.print(table)
     

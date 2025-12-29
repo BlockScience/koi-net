@@ -43,9 +43,7 @@ class NodeInterface:
     def in_directory(fn):
         @functools.wraps(fn)
         def wrapper(self: "NodeInterface", *args, **kwargs):
-            prev_path = os.getcwd()
-            with contextlib.chdir(self.name) as d:
-                print(prev_path, "->", os.getcwd())
+            with contextlib.chdir(self.name):
                 return fn(self, *args, **kwargs)
         return wrapper
     

@@ -71,9 +71,9 @@ class NetworkInterface:
                 and module.name.endswith(MODULE_POSTFIX)):
                 continue
             
-            if module.name in module_map:
-                module_alias = module.name[len(MODULE_PREFIX):-len(MODULE_POSTFIX)]
-                module_map[module.name].add(module_alias)
+            module_alias = module.name[len(MODULE_PREFIX):-len(MODULE_POSTFIX)]
+            module_map.setdefault(module.name, set()).add(module_alias)
+            
         
         return module_map
         
