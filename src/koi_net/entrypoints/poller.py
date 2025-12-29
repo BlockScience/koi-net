@@ -25,7 +25,7 @@ class NodePoller:
         self.kobj_queue = kobj_queue
         self.resolver = resolver
         self.config = config
-        self.should_exit = False
+        self.exit_event = threading.Event()
         
         self.thread = threading.Thread(target=self.run)
 
@@ -37,18 +37,17 @@ class NodePoller:
 
     def run(self):
         """Runs polling event loop."""
-        while not self.should_exit:
-            start_time = time.time()
+        while not self.exit_event.is_set():
+            start_time = time.monotonic()
             self.poll()
-            elapsed = time.time() - start_time
-            sleep_time = self.config.poller.polling_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+            elapsed = time.monotonic() - start_time
+            wait_time = max(0, self.config.poller.polling_interval - elapsed)
+            self.exit_event.wait(wait_time)
                 
     def start(self):
         self.thread.start()
         
     def stop(self):
-        self.should_exit = True
+        self.exit_event.set()
         if self.thread.is_alive():
             self.thread.join()
