@@ -44,20 +44,24 @@ class NetworkInterface:
             node.stop()
         print("done!")
         
-    def add_node(self, name: str, module: str, no_local: bool = False):
+    def add_node(self, name: str, module: str, config_only: bool = False):
         node = NodeInterface(name, module)
-        if not no_local:
+        if not config_only:
             node.create()
         
         self.nodes[name] = node
         self.config.nodes[name] = module
         self.config_loader.save_to_yaml()
         
-    def remove_node(self, name: str):
+    def remove_node(self, name: str, config_only: bool = False):
         if name not in self.nodes:
             raise LocalNodeNotFoundError(f"Node '{name}' not found")
         
-        self.nodes[name].delete()
+        if not config_only:
+            node = self.nodes[name]
+            if node.exists():
+                node.delete()
+        
         del self.nodes[name]
         del self.config.nodes[name]
         self.config_loader.save_to_yaml()
