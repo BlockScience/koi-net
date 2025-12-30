@@ -12,6 +12,7 @@ log = structlog.stdlib.get_logger()
 
 class NodeAssembler:
     _artifact: BuildArtifact = None
+    _container: type[NodeContainer] = NodeContainer
     
     # optional order overrides:
     _start_order: list[str]
@@ -31,7 +32,7 @@ class NodeAssembler:
         components = cls._build_components(cls._artifact)
         
         log.debug("Returning assembled node")
-        return NodeContainer(cls._artifact, **components)
+        return cls._container(cls._artifact, **components)
     
     @staticmethod
     def _build_components(artifact: BuildArtifact):

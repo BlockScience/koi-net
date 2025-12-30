@@ -4,7 +4,6 @@ import importlib
 import inspect
 import os
 import shutil
-import signal
 import subprocess
 import sys
 from typing import Generator
@@ -63,6 +62,7 @@ class NodeInterface:
                 return obj
     
     def create(self):
+        print(f"Creating {self.name}...")
         try:
             os.mkdir(self.name)
         except FileExistsError:
@@ -73,6 +73,7 @@ class NodeInterface:
     
     @in_directory
     def init(self):
+        print(f"Initializing {self.name}...")
         for field in self.node_class.config_schema.model_fields.values():
             field_type = field.annotation
             if issubclass(field_type, EnvConfig):

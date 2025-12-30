@@ -1,6 +1,7 @@
 import sys
 import threading
-from koi_net.build.assembler import NodeAssembler
+
+from .assembler import NodeAssembler
 
 
 class ControlLoop:

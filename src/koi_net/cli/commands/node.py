@@ -20,14 +20,14 @@ console = Console()
 
 
 @app.command()
-def add(node_type: str, node_name: str = None, no_local: bool = False):
+def add(node_type: str, node_name: str = None, config_only: bool = False):
     node_name = node_name or node_type
     
     network = NetworkInterface()
     
     try:
         node_module = utils.qualify_module_ref(node_type)
-        network.add_node(node_name, node_module, no_local)
+        network.add_node(node_name, node_module, config_only)
     except ModuleNotFoundError:
         console.print(f"[red]Node type '{node_type}' not found[/red]")
         raise typer.Exit(code=1)
@@ -35,7 +35,7 @@ def add(node_type: str, node_name: str = None, no_local: bool = False):
         console.print(f"[red]Node '{node_name}' already exists[/red]")
         raise typer.Exit(code=1)
     
-    if not no_local:
+    if not config_only:
         init(node_name)
     
 @app.command()
@@ -62,7 +62,7 @@ def init(node_name: str):
         console.print(f"Run [cyan]koi node init {node_name}[/cyan] after setting")
     
 @app.command()
-def rm(name: str):
+def rm(name: str, config_only: bool = False):
     network = NetworkInterface()
     
     try:
