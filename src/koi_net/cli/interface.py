@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import typer
 from pydantic import ValidationError
@@ -6,17 +6,18 @@ from jsonpointer import JsonPointer
 from rich.console import Console
 from rich.panel import Panel
 
-from koi_net.build.container import NodeContainer
-from koi_net.core import BaseNode
 from koi_net.config.env_config import EnvConfig
-from .exceptions import MissingEnvVariablesError
 from .consts import CONFIG, GET, INIT, RUN, SET, UNSET, WIPE
+
+if TYPE_CHECKING:
+    from koi_net.core import BaseNode
+    from koi_net.build.container import NodeContainer
 
 
 class NodeModuleInterface:
     def __init__(
         self, 
-        node_class: type[BaseNode], 
+        node_class: type["BaseNode"], 
         suppress_output: bool = False
     ):
         self.node_class = node_class
@@ -25,7 +26,7 @@ class NodeModuleInterface:
         self.suppress_output = suppress_output
     
     @property
-    def node(self) -> BaseNode | NodeContainer:
+    def node(self) -> "BaseNode | NodeContainer":
         if not self._node:
             self._node = self.node_class(
             # use_console_handler=False
