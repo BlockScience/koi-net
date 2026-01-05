@@ -1,21 +1,11 @@
-import contextlib
-import functools
-import importlib
-import inspect
 import os
 import shutil
 import subprocess
 import sys
-from typing import Generator
-from contextlib import contextmanager
+import threading
+import time
 
-from pydantic import ValidationError
-
-from koi_net.cli import utils
-from koi_net.config.base import BaseNodeConfig
-from koi_net.config.env_config import EnvConfig
-from koi_net.core import BaseNode
-
+from ..consts import CONFIG, GET, INIT, READY_SIGNAL, RUN, SET, STOP_SIGNAL, UNSET, WIPE
 from ..exceptions import MissingEnvVariablesError, LocalNodeExistsError
 
 
@@ -29,23 +19,24 @@ node type name (module: `koi_net_coordinator_node`)
 node name -> node type name: (stored in koi net config)
 """
 
-CORE_MODULE = ".core"
-
 
 class NodeInterface:
     def __init__(self, name: str, module: str):
         self.name = name
         self.module = module
         self.process = None
+        self.process_ready = threading.Event()
         
-    def execute(self, *args, capture_output: bool = False):
-        with contextlib.chdir(self.name):
-            return subprocess.Popen(
-                (sys.executable, "-m", self.module, *args),
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE if capture_output else None,
-                text=True)
+    def execute(self, *args, pipe: bool = False):
+        return subprocess.Popen(
+            args=(sys.executable, "-m", self.module, *args),
+            cwd=self.name,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdin=subprocess.PIPE if pipe else None,
+            stdout=subprocess.PIPE if pipe else None,
+            stderr=subprocess.PIPE if pipe else None,
+            text=True,
+            bufsize=1)
     
     def create(self):
         print(f"Creating {self.name}...")
@@ -58,32 +49,79 @@ class NodeInterface:
         return os.path.isdir(self.name)
     
     def init(self):
-        self.execute("init")
+        self.execute(INIT).wait()
     
     def wipe(self):
-        self.execute("wipe")
+        self.execute(WIPE).wait()
         
     def get_config(self, jp: str):
-        process = self.execute("config", "get", jp, capture_output=True)
+        process = self.execute(CONFIG, GET, jp, pipe=True)
         return process.stdout.read().rstrip("\n")
     
     def set_config(self, jp: str, val: str):
-        subprocess.run()
+        self.execute(CONFIG, SET, jp, val).wait()
+        
+    def unset_config(self, jp: str):
+        self.execute(CONFIG, UNSET, jp).wait()
     
     def delete(self):
         shutil.rmtree(self.name)
     
-    def start(self, suppress_output: bool = True):
-        self.process = self.execute("run")
-        
+    def watch_stdout(self, mirror: bool = False):
         for line in self.process.stdout:
-            if line.strip() == "READY":
-                return
-            elif not suppress_output:
+            if mirror:
                 sys.stdout.write(line)
                 sys.stdout.flush()
+            if line.strip() == READY_SIGNAL:
+                self.process_ready.set()
+            elif READY_SIGNAL in line:
+                sys.stdout.write(f"found signal in stdout!\n{line}\n")
+                sys.stdout.flush()
     
-    def stop(self):
-        self.process.stdin.write("STOP\n")
+    def watch_stderr(self):
+        for line in self.process.stderr:
+            sys.stderr.write(line)
+            sys.stderr.flush()
+    
+    def start(self, verbose: bool = False) -> bool:
+        print(f"Starting {self.name}...", end=" ", flush=True)
+        self.process = self.execute(RUN, pipe=True)
+        threading.Thread(target=self.watch_stdout, args=(verbose,), daemon=True).start()
+        threading.Thread(target=self.watch_stderr, daemon=True).start()
+            
+        success = self.process_ready.wait(timeout=5)
+        if success:
+            print("Done")
+        else:
+            print("Timed out")
+        
+        return success
+        
+    def stop(self) -> bool:
+        print(f"Stopping {self.name}...", end=" ", flush=True)
+        if not self.process:
+            return False
+        
+        self.process.stdin.write(STOP_SIGNAL + "\n")
         self.process.stdin.flush()
-        self.process.wait()
+        self.process.stdin.close()
+        
+        try:
+            self.process.wait(timeout=5)
+            print("Done")
+            return True
+        
+        except subprocess.TimeoutExpired:
+            print("Timed out")
+            return False
+        
+    def run(self, verbose: bool = False):
+        self.start(verbose=verbose)
+        print("Press Ctrl + C to quit")
+        try:
+            while self.process.poll() is None:
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop()

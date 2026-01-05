@@ -32,25 +32,27 @@ def add(module_ref: str, name: str = None, config_only: bool = False):
     try:
         module = utils.qualify_module_ref(module_ref)
         node = NodeInterface(name, module)
-        node.create()
+        try:
+            node.create()
+        except LocalNodeExistsError:
+            console.print(f"Node '{name}' already exists")
         node.init()
         net_if.add_node(node)
     except ModuleNotFoundError:
         console.print(f"[red]Node module '{module_ref}' not found[/red]")
         raise typer.Exit(code=1)
-    except LocalNodeExistsError:
-        console.print(f"[red]Node '{name}' already exists[/red]")
-        raise typer.Exit(code=1)
     
 @node.command()
 def init(name: str):
-    network = NetworkInterface()
-    
-    if name not in network.nodes:
+    try:
+        node = net_if.load_node(name)
+        node.init()
+        
+    except Exception:
         console.print(f"[red]Node '{name}' doesn't exist[/red]")
         return
     
-    console.print(f"Run [cyan]koi node init {name}[/cyan] after setting")
+    # console.print(f"Run [cyan]koi node init {name}[/cyan] after setting")
     
 @node.command()
 def rm(name: str):
@@ -58,18 +60,17 @@ def rm(name: str):
     
     if node.exists():
         node.delete()
+    
     net_if.remove_node(node)
     
 @node.command()
 def wipe(name: str):
-    network = NetworkInterface()
-    network.nodes[name].wipe()
+    net_if.load_node(name).wipe()
     
 @node.command()
 def run(name: str, verbose: bool = False):
-    network = NetworkInterface()
-    node = network.nodes[name]
-    node.start(suppress_output=not verbose)
+    node = net_if.load_node(name)
+    node.run(verbose=verbose)
     
 @node.command()
 def list():
@@ -78,15 +79,14 @@ def list():
     table.add_column("module", style="magenta")
     table.add_column("rid", style="green")
 
-    for name, module in net_if.config.nodes.items():
-        node = NodeInterface(name, module)
-        print(f"loaded {name}")
+    for node in net_if.load_nodes():
+        print(f"loaded {node.name}")
         if not node.exists():
             continue
         
         node_rid = node.get_config("/koi_net/node_rid")
         print("got config")
-        table.add_row(name, node.module, node_rid)
+        table.add_row(node.name, node.module, node_rid)
         
     console.print(table)
 
@@ -103,59 +103,47 @@ def modules():
     
 @network.command()
 def sync():
-    NetworkInterface().sync()
+    net_if.sync()
 
 @network.command()
-def run(delay: int = 1):
-    network = NetworkInterface()
-    print("starting network...")
-    network.start(delay=delay)
-    
-    try:
-        while any(n.process.poll() is None for n in network.nodes.values()):
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        print("stopping network...")
-        network.stop()
-        
-        for node in network.nodes.values():
-            node.process.wait()
-    
-@network.command()
-def set_first_contact(name: str, force: bool = False):
-    network = NetworkInterface()
+def run():
+    net_if.run()
 
-    print(f"First contact updated from '{network.config.first_contact}' -> '{name}'")
+# @network.command()
+# def set_first_contact(name: str, force: bool = False):
+#     network = NetworkInterface()
+
+#     print(f"First contact updated from '{network.config.first_contact}' -> '{name}'")
     
-    network.config.first_contact = name
-    network.config_loader.save_to_yaml()
+#     network.config.first_contact = name
+#     network.config_loader.save_to_yaml()
     
-    fc_node = network.nodes[network.config.first_contact]
-    fc_config = fc_node.get_config()
-    fc_rid = fc_config.koi_net.node_rid
-    fc_url = fc_config.koi_net.node_profile.base_url
+#     fc_node = network.nodes[network.config.first_contact]
+#     fc_config = fc_node.get_config()
+#     fc_rid = fc_config.koi_net.node_rid
+#     fc_url = fc_config.koi_net.node_profile.base_url
     
-    """
-    (as coordinator)
-    python -m koi_net_coordinator_node config get /koi_net/node_rid
-    `orn:koi-net.node:coordinator+...`
+#     """
+#     (as coordinator)
+#     python -m koi_net_coordinator_node config get /koi_net/node_rid
+#     `orn:koi-net.node:coordinator+...`
     
-    [for node in nodes]
-    python -m koi_net_node config set /koi_net/first_contact/rid orn:koi-net.node
-    """
+#     [for node in nodes]
+#     python -m koi_net_node config set /koi_net/first_contact/rid orn:koi-net.node
+#     """
     
-    updated_nodes = 0
-    for node in network.nodes.values():
-        with node.mutate_config() as n_config:
-            if not force and n_config.koi_net.first_contact.rid:
-                continue
+#     updated_nodes = 0
+#     for node in network.nodes.values():
+#         with node.mutate_config() as n_config:
+#             if not force and n_config.koi_net.first_contact.rid:
+#                 continue
             
-            if node.name == network.config.first_contact:
-                continue
+#             if node.name == network.config.first_contact:
+#                 continue
             
-            n_config.koi_net.first_contact.rid = fc_rid
-            n_config.koi_net.first_contact.url = fc_url
-            updated_nodes += 1
+#             n_config.koi_net.first_contact.rid = fc_rid
+#             n_config.koi_net.first_contact.url = fc_url
+#             updated_nodes += 1
     
-    print(f"Updated config for {updated_nodes} node(s)")
+#     print(f"Updated config for {updated_nodes} node(s)")
         

@@ -1,18 +1,24 @@
 from typing import Any
+
+import typer
 from pydantic import ValidationError
 from jsonpointer import JsonPointer
 from rich.console import Console
 from rich.panel import Panel
 
-import typer
-
 from koi_net.build.container import NodeContainer
 from koi_net.core import BaseNode
 from koi_net.config.env_config import EnvConfig
 from .exceptions import MissingEnvVariablesError
+from .consts import CONFIG, GET, INIT, RUN, SET, UNSET, WIPE
+
 
 class NodeModuleInterface:
-    def __init__(self, node_class: type[BaseNode], suppress_output: bool = False):
+    def __init__(
+        self, 
+        node_class: type[BaseNode], 
+        suppress_output: bool = False
+    ):
         self.node_class = node_class
         self._node = None
         self.console = Console()
@@ -78,29 +84,21 @@ class NodeModuleInterface:
     def app(self) -> typer.Typer:
         app = typer.Typer()
         config = typer.Typer()
-        app.add_typer(config, name="config")
+        app.add_typer(config, name=CONFIG)
         
-        @app.command()
-        def init():
-            self.init()
-        
-        @app.command()
-        def run():
-            self.run()
-            
-        @app.command()
-        def wipe(): 
-            self.wipe()
-            
-        @config.command("get")
+        app.command(INIT)(self.init)
+        app.command(RUN)(self.run)
+        app.command(WIPE)(self.wipe)
+         
+        @config.command(GET)
         def config_get(jp: str):
             print(self.config_get(jp))
         
-        @config.command("set")
+        @config.command(SET)
         def config_set(jp: str, val: str):
             self.config_set(jp, val)
         
-        @config.command("unset")
+        @config.command(UNSET)
         def config_unset(jp: str):
             self.config_unset(jp)
             

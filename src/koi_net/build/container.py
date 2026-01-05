@@ -14,8 +14,8 @@ class NodeContainer:
     shutdown_event: threading.Event
     startup_event: threading.Event
     
-    def __init__(self, artifact, **kwargs):
-        self._artifact = artifact
+    def __init__(self, _artifact, **kwargs):
+        self._artifact = _artifact
         
         # adds all components as attributes of this instance
         for name, comp in kwargs.items():
