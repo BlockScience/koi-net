@@ -15,36 +15,49 @@ class NetworkInterface:
             config=self.config
         )
         
-        self.nodes: dict[str, NodeInterface] = {}
-        
-        
     def load_node(self, name: str) -> NodeInterface:
         if name not in self.config.nodes:
-            raise Exception()
+            raise ValueError(f"Node '{name}' not found in config")
         
         module = self.config.nodes[name]
         return NodeInterface(name, module)
     
+    def load_nodes(self) -> list[NodeInterface]:
+        return [NodeInterface(n, m) for n, m in self.config.nodes.items()]
+    
     def sync(self, verbose: bool = False):
-        for name, node in self.nodes.items():
+        for name in self.config.nodes:
+            node = self.load_node(name)
             if node.exists():
                 continue
             
             node.create()
             node.init()
+    
+    def run(self):
+        try:
+            nodes = self.load_nodes()
+        
+            running_nodes: list[NodeInterface] = []
+            for node in nodes:
+                if not node.start():
+                    break
+                
+                running_nodes.append(node)
             
-    def start(self, delay: float = 0.0):
-        for name, node in self.nodes.items():
-            print(f"starting {name}...")
-            node.start()
-            # time.sleep(delay)
-        print("done!")
+            if len(nodes) != len(running_nodes):
+                print("Aborting run")
+                return
             
-    def stop(self):
-        for name, node in self.nodes.items():
-            print(f"stopping {name}...")
-            node.stop()
-        print("done!")
+            print(f"Completed startup of {len(nodes)} nodes!")
+            print("Press Ctrl + C to quit")
+            while any(n.process.poll() is None for n in running_nodes):
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            for node in reversed(running_nodes):
+                node.stop()
         
     def add_node(self, node: NodeInterface):
         self.config.nodes[node.name] = node.module
@@ -56,9 +69,5 @@ class NetworkInterface:
             self.config_loader.save_to_yaml()
         
         if self.config.first_contact == node.name:
-            network.config.first_contact = None
+            self.config.first_contact = None
             self.config_loader.save_to_yaml()
-        
-        
-if __name__ == "__main__":
-    network = NetworkInterface()

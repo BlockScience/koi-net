@@ -1,7 +1,12 @@
 import sys
 import threading
 
+import structlog
+
+from koi_net.cli.consts import READY_SIGNAL, STOP_SIGNAL
 from .assembler import NodeAssembler
+
+log = structlog.stdlib.get_logger()
 
 
 class ControlLoop:
@@ -15,11 +20,11 @@ class ControlLoop:
         
     def run(self):
         self.startup_event.wait()
-        sys.stdout.write("READY\n")
+        sys.stdout.write("\n" + READY_SIGNAL + "\n")
         sys.stdout.flush()
         
         for line in sys.stdin:
-            if line.strip() == "STOP":
+            if line.strip() == STOP_SIGNAL:
                 self.shutdown_event.set()
                 
         self.shutdown_event.set()

@@ -1,0 +1,10 @@
+INIT = "init"
+RUN = "run"
+WIPE = "wipe"
+CONFIG = "config"
+GET = "get"
+SET = "set"
+UNSET = "unset"
+
+READY_SIGNAL = "READY"
+STOP_SIGNAL = "STOP"

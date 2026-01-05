@@ -10,4 +10,5 @@ __pycache__/
 .env
 *.pem
 *.yaml
+*.egg-info
 *.ndjson*
