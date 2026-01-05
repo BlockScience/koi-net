@@ -12,6 +12,7 @@ class NodeContainer:
     _artifact: BuildArtifact
     
     shutdown_event: threading.Event
+    startup_event: threading.Event
     
     def __init__(self, artifact, **kwargs):
         self._artifact = artifact
@@ -23,7 +24,7 @@ class NodeContainer:
     def run(self):
         try:
             self.start()
-            print("READY", flush=True)
+            self.startup_event.set()
             self.shutdown_event.wait()
         except KeyboardInterrupt:
             log.info("Received keyboard interrupt")
