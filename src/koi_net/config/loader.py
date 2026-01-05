@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Generic, TypeVar
 from ruamel.yaml import YAML
 
@@ -32,6 +33,11 @@ class ConfigLoader(Generic[T]):
     def start(self):
         self.save_to_yaml()
     
+    @contextmanager
+    def mutate(self):
+        yield self.proxy
+        self.save_to_yaml()
+    
     def load_from_yaml(self):
         """Loads config from YAML file, or generates it if missing."""
         yaml = YAML()
@@ -54,7 +60,9 @@ class ConfigLoader(Generic[T]):
         with open(self.file_path, "w") as f:
             try:
                 config = self.proxy._get_delegate()
-                config_data = config.model_dump(mode="json")
+                config_data = config.model_dump(
+                    mode="json",
+                    exclude={"env": True})
                 yaml.dump(config_data, f)
                 
             except Exception:

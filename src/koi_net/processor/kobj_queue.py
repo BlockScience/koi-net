@@ -17,7 +17,7 @@ class KobjQueue:
         self.q = Queue()
                 
     def push(
-        self,
+        self, *,
         rid: RID | None = None,
         manifest: Manifest | None = None,
         bundle: Bundle | None = None,

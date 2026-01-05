@@ -42,7 +42,7 @@ class BaseNode(BaseAssembly):
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
     config_schema = BaseNodeConfig
-    config: BaseNodeConfig = ConfigProxy
+    config: BaseNodeConfig | ConfigProxy = ConfigProxy
     config_loader: ConfigLoader = ConfigLoader
     knowledge_handlers: list[KnowledgeHandler] = [
         basic_rid_handler,

@@ -17,12 +17,14 @@ class NetworkInterface:
         
         self.nodes: dict[str, NodeInterface] = {}
         
-        self.load_nodes()
+        
+    def load_node(self, name: str) -> NodeInterface:
+        if name not in self.config.nodes:
+            raise Exception()
+        
+        module = self.config.nodes[name]
+        return NodeInterface(name, module)
     
-    def load_nodes(self):
-        for name, module in self.config.nodes.items():
-            self.nodes[name] = NodeInterface(name, module)
-            
     def sync(self, verbose: bool = False):
         for name, node in self.nodes.items():
             if node.exists():
@@ -44,27 +46,18 @@ class NetworkInterface:
             node.stop()
         print("done!")
         
-    def add_node(self, name: str, module: str, config_only: bool = False):
-        node = NodeInterface(name, module)
-        if not config_only:
-            node.create()
-        
-        self.nodes[name] = node
-        self.config.nodes[name] = module
+    def add_node(self, node: NodeInterface):
+        self.config.nodes[node.name] = node.module
         self.config_loader.save_to_yaml()
         
-    def remove_node(self, name: str, config_only: bool = False):
-        if name not in self.nodes:
-            raise LocalNodeNotFoundError(f"Node '{name}' not found")
+    def remove_node(self, node: NodeInterface):
+        if node.name in self.config.nodes:
+            del self.config.nodes[node.name]
+            self.config_loader.save_to_yaml()
         
-        if not config_only:
-            node = self.nodes[name]
-            if node.exists():
-                node.delete()
-        
-        del self.nodes[name]
-        del self.config.nodes[name]
-        self.config_loader.save_to_yaml()
+        if self.config.first_contact == node.name:
+            network.config.first_contact = None
+            self.config_loader.save_to_yaml()
         
         
 if __name__ == "__main__":

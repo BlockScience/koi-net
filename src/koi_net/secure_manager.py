@@ -48,10 +48,15 @@ class SecureManager:
         with open(self.config.koi_net.private_key_pem_path, "r") as f:
             priv_key_pem = f.read()
         
-        self.priv_key = PrivateKey.from_pem(
-            priv_key_pem=priv_key_pem,
-            password=self.config.env.priv_key_password
-        )
+        try:
+            self.priv_key = PrivateKey.from_pem(
+                priv_key_pem=priv_key_pem,
+                password=self.config.env.priv_key_password
+            )
+        except ValueError:
+            log.error("Incorrect password, could not decrypt PEM")
+            # TODO: figure out more graceful way of failing startup sequence
+            raise
         
     def handle_unknown_node(self, envelope: SignedEnvelope) -> Bundle | None:
         """Attempts to find node profile in proided envelope.

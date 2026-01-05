@@ -19,7 +19,7 @@ class NodeAssembler:
     _stop_order: list[str]
     
     # annotation hack to show the components and container methods
-    def __new__(cls) -> Self | NodeContainer:
+    def __new__(cls, *args, **kwargs) -> Self | NodeContainer:
         """Returns assembled node container."""
         
         log.debug(f"Assembling '{cls.__name__}'")
