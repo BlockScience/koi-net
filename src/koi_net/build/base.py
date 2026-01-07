@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 import threading
 
@@ -33,6 +34,11 @@ class ControlLoop:
         self.thread.start()
 
 class BaseAssembly(NodeAssembler):
+    root_dir: Path
     startup_event: threading.Event = threading.Event
     shutdown_event: threading.Event = threading.Event
     control_loop: ControlLoop = ControlLoop
+    
+    def __new__(cls, *args, root_dir: Path, **kwargs):
+        cls.root_dir = root_dir
+        return super().__new__(cls, *args, **kwargs)

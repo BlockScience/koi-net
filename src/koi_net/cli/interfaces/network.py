@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 
 from koi_net.config.proxy import ConfigProxy
@@ -12,7 +13,8 @@ class NetworkInterface:
         self.config: KoiNetworkConfig = ConfigProxy()
         self.config_loader = NetworkConfigLoader(
             config_schema=KoiNetworkConfig,
-            config=self.config
+            config=self.config,
+            root_dir=Path.cwd()
         )
         
     def load_node(self, name: str) -> NodeInterface:

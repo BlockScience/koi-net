@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generic, TypeVar
 
 from .proxy import ConfigProxy
@@ -13,16 +14,14 @@ class ConfigLoader(Generic[T]):
     file_path: str = "config.yaml"
     file_content: str
     
-    schema: type[T]
-    proxy: ConfigProxy[T]
+    schema: type[BaseNodeConfig]
+    proxy: ConfigProxy | BaseNodeConfig
+    root_dir: Path
     
-    def __init__(
-        self, 
-        config_schema: type[T],
-        config: ConfigProxy[T]
-    ):
+    def __init__(self, config_schema, config, root_dir):
         self.schema = config_schema
         self.proxy = config
+        self.root_dir = root_dir
         
         # this is a special case to allow config state dependent components
         # to initialize without a "lazy initialization" approach, in general
@@ -43,22 +42,22 @@ class ConfigLoader(Generic[T]):
         yaml = YAML()
         
         try:
-            with open(self.file_path, "r") as f:
+            with open(self.root_dir / self.file_path, "r") as f:
                 self.file_content = f.read()
             config_data = yaml.load(self.file_content)
             config = self.schema.model_validate(config_data)
-            self.proxy._set_delegate(config)
         
         except FileNotFoundError:
             config = self.schema()
-            self.proxy._set_delegate(config)
+        
+        self.proxy._set_delegate(config)
         
     def save_to_yaml(self):
         """Saves config to YAML file."""
         from ruamel.yaml import YAML
         yaml = YAML()
         
-        with open(self.file_path, "w") as f:
+        with open(self.root_dir / self.file_path, "w") as f:
             try:
                 config = self.proxy._get_delegate()
                 config_data = config.model_dump(
