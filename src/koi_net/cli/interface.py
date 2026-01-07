@@ -73,10 +73,16 @@ class NodeModuleInterface:
     
     def config_set(self, jp: str, val: Any):
         data = self.node.config.model_dump()
-        JsonPointer(jp).set(data, val)
+        pointer = JsonPointer(jp)
+        prev_val = pointer.get(data)
+        pointer.set(data, val)
         config = self.node.config_schema.model_validate(data)
         self.node.config._set_delegate(config)
         self.node.config_loader.save_to_yaml()
+        
+        val_repr = lambda v: f"'{v}'" if v is not None else "<null>"
+        
+        self.console.print(f"Set config value [cyan]{val_repr(prev_val)}[/cyan] -> [green]{val_repr(val)}[/green]")
         
     def config_unset(self, jp: str):
         self.config_set(jp, None)
@@ -93,7 +99,9 @@ class NodeModuleInterface:
          
         @config.command(GET)
         def config_get(jp: str):
-            print(self.config_get(jp))
+            val = self.config_get(jp)
+            if val is not None:
+                print(val)
         
         @config.command(SET)
         def config_set(jp: str, val: str):

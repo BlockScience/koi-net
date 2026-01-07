@@ -1,10 +1,8 @@
 import socket
 import threading
 import time
+from typing import TYPE_CHECKING
 import structlog
-import uvicorn
-from fastapi import FastAPI, APIRouter
-from fastapi.responses import JSONResponse
 
 from koi_net.config.loader import ConfigLoader
 
@@ -14,15 +12,21 @@ from ..protocol.api_models import ErrorResponse
 from ..protocol.errors import EXCEPTION_TO_ERROR_TYPE, ProtocolError
 from ..config.full_node import FullNodeConfig
 
+if TYPE_CHECKING:
+    import uvicorn
+    from fastapi import FastAPI, APIRouter
+
+
 log = structlog.stdlib.get_logger()
 
 
-class NodeServer(uvicorn.Server):
+class NodeServer:
     """Entry point for full nodes, manages FastAPI server."""
     _config: FullNodeConfig
     response_handler: ResponseHandler
-    app: FastAPI
-    router: APIRouter
+    app: "FastAPI"
+    router: "APIRouter"
+    server: "uvicorn.Server"
     
     def __init__(
         self,
@@ -36,17 +40,10 @@ class NodeServer(uvicorn.Server):
         
         self.build_app()
         
-        self.thread = threading.Thread(target=self.run)
+        self.server = None
+        self.thread = None
         
-        super().__init__(config=uvicorn.Config(
-            app=self.app,
-            host=self._config.server.host,
-            port=self._config.server.port,
-            log_config=None,
-            lifespan="off"
-        ))
-        
-    def build_endpoints(self, router: APIRouter):
+    def build_endpoints(self, router: "APIRouter"):
         """Builds endpoints for API router."""
         for path, models in API_MODEL_MAP.items():
             def create_endpoint(path: str):
@@ -70,6 +67,8 @@ class NodeServer(uvicorn.Server):
     
     def build_app(self):
         """Builds FastAPI app."""
+        from fastapi import FastAPI, APIRouter
+
         self.app = FastAPI(
             title="KOI-net Protocol API",
             version="1.1.0"
@@ -82,6 +81,8 @@ class NodeServer(uvicorn.Server):
         
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
+        from fastapi.responses import JSONResponse
+        
         log.error(exc)
         resp = ErrorResponse(error=EXCEPTION_TO_ERROR_TYPE[type(exc)])
         log.info(f"Returning error response: {resp}")
@@ -108,9 +109,24 @@ class NodeServer(uvicorn.Server):
     
     def start(self):
         self.acquire_port()
+        
+        import uvicorn
+        self.server = uvicorn.Server(
+            config=uvicorn.Config(
+            app=self.app,
+            host=self._config.server.host,
+            port=self._config.server.port,
+            log_config=None,
+            lifespan="off"
+        ))
+        
+        self.thread = threading.Thread(target=self.server.run)
         self.thread.start()
         
     def stop(self):
-        self.should_exit = True
+        if not self.server or not self.thread:
+            return
+        
+        self.server.should_exit = True
         if self.thread.is_alive():
             self.thread.join()

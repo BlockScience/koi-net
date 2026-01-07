@@ -16,9 +16,11 @@ load_dotenv()
 
 app = typer.Typer()
 node = typer.Typer()
+node_config = typer.Typer()
 network = typer.Typer()
 app.add_typer(node, name="node")
 app.add_typer(network, name="net")
+node.add_typer(node_config, name="config")
 
 console = Console()
 
@@ -80,12 +82,10 @@ def list():
     table.add_column("rid", style="green")
 
     for node in net_if.load_nodes():
-        print(f"loaded {node.name}")
         if not node.exists():
             continue
         
         node_rid = node.get_config("/koi_net/node_rid")
-        print("got config")
         table.add_row(node.name, node.module, node_rid)
         
     console.print(table)
@@ -100,6 +100,21 @@ def modules():
         table.add_row(", ".join(aliases), module)
     console.print(table)
     
+@node_config.command()
+def get(name: str, jp: str):
+    node = net_if.load_node(name)
+    val = node.get_config(jp)
+    print(val)
+    
+@node_config.command()
+def set(name: str, jp: str, val: str):
+    node = net_if.load_node(name)
+    node.set_config(jp, val)
+    
+@node_config.command()
+def unset(name: str, jp: str):
+    node = net_if.load_node(name)
+    node.unset_config(jp)
     
 @network.command()
 def sync():

@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+from subprocess import PIPE
 import sys
 import threading
 import time
@@ -27,16 +28,15 @@ class NodeInterface:
         self.process = None
         self.process_ready = threading.Event()
         
-    def execute(self, *args, pipe: bool = False):
+    def execute(self, *args, **kwargs):
         return subprocess.Popen(
             args=(sys.executable, "-m", self.module, *args),
             cwd=self.name,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            stdin=subprocess.PIPE if pipe else None,
-            stdout=subprocess.PIPE if pipe else None,
-            stderr=subprocess.PIPE if pipe else None,
             text=True,
-            bufsize=1)
+            bufsize=1,
+            **kwargs
+        )
     
     def create(self):
         print(f"Creating {self.name}...")
@@ -55,8 +55,14 @@ class NodeInterface:
         self.execute(WIPE).wait()
         
     def get_config(self, jp: str):
-        process = self.execute(CONFIG, GET, jp, pipe=True)
-        return process.stdout.read().rstrip("\n")
+        process = self.execute(CONFIG, GET, jp, stdout=PIPE)
+        stdout, _ = process.communicate()
+        
+        if process.returncode:
+            print("Error:\n")
+            print(stdout)
+            
+        return stdout.rstrip()
     
     def set_config(self, jp: str, val: str):
         self.execute(CONFIG, SET, jp, val).wait()
@@ -85,7 +91,7 @@ class NodeInterface:
     
     def start(self, verbose: bool = False) -> bool:
         print(f"Starting {self.name}...", end=" ", flush=True)
-        self.process = self.execute(RUN, pipe=True)
+        self.process = self.execute(RUN, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         threading.Thread(target=self.watch_stdout, args=(verbose,), daemon=True).start()
         threading.Thread(target=self.watch_stderr, daemon=True).start()
             
