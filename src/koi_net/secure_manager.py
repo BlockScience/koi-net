@@ -1,8 +1,11 @@
+from pathlib import Path
 import structlog
 import cryptography.exceptions
 from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode
+
+from koi_net.config.loader import ConfigLoader
 from .identity import NodeIdentity
 from .protocol.envelope import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
@@ -32,27 +35,54 @@ class SecureManager:
         self, 
         identity: NodeIdentity, 
         cache: Cache,
-        config: BaseNodeConfig
+        config: BaseNodeConfig,
+        config_loader: ConfigLoader,
+        root_dir: Path
     ):
         self.identity = identity
         self.cache = cache
         self.config = config
+        self.config_loader = config_loader
+        self.root_dir = root_dir
         
-    def start(self):
         self.load_priv_key()
         
-    def load_priv_key(self) -> PrivateKey:
+    @property
+    def pem_path(self) -> Path:
+        return self.root_dir / self.config.koi_net.private_key_pem_path
+    
+    def create_priv_key(self):
+        self.priv_key = PrivateKey.generate()
+        
+        with open(self.pem_path, "w") as f:
+            f.write(self.priv_key.to_pem(self.config.env.priv_key_password))
+        log.debug("Generated new private key, no PEM file found")
+        
+        pub_key = self.priv_key.public_key()
+        self.config.koi_net.node_rid = pub_key.to_node_rid(
+            name=self.config.koi_net.node_name)
+        
+        if self.config.koi_net.node_profile.public_key != pub_key.to_der():
+            if self.config.koi_net.node_profile.public_key:
+                log.warning("New private key overwriting old public key!")
+            
+            self.config.koi_net.node_profile.public_key = pub_key.to_der()
+        self.config_loader.save_to_yaml()
+    
+    def load_priv_key(self):
         """Loads private key from PEM file path in config."""
         
-        # TODO: handle missing private key
-        with open(self.config.koi_net.private_key_pem_path, "r") as f:
-            priv_key_pem = f.read()
-        
         try:
-            self.priv_key = PrivateKey.from_pem(
-                priv_key_pem=priv_key_pem,
-                password=self.config.env.priv_key_password
-            )
+            with open(self.pem_path, "r") as f:
+                priv_key_pem = f.read()
+                
+                self.priv_key = PrivateKey.from_pem(
+                    priv_key_pem=priv_key_pem,
+                    password=self.config.env.priv_key_password
+                )
+        except FileNotFoundError:
+            self.create_priv_key()
+        
         except ValueError:
             log.error("Incorrect password, could not decrypt PEM")
             # TODO: figure out more graceful way of failing startup sequence
