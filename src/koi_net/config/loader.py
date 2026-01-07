@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 from typing import Generic, TypeVar
-from ruamel.yaml import YAML
 
 from .proxy import ConfigProxy
 from .base import BaseNodeConfig
@@ -40,6 +39,7 @@ class ConfigLoader(Generic[T]):
     
     def load_from_yaml(self):
         """Loads config from YAML file, or generates it if missing."""
+        from ruamel.yaml import YAML
         yaml = YAML()
         
         try:
@@ -55,6 +55,7 @@ class ConfigLoader(Generic[T]):
         
     def save_to_yaml(self):
         """Saves config to YAML file."""
+        from ruamel.yaml import YAML
         yaml = YAML()
         
         with open(self.file_path, "w") as f:

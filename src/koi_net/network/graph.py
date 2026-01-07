@@ -1,11 +1,13 @@
 import structlog
-from typing import Literal
-import networkx as nx
+from typing import TYPE_CHECKING, Literal
 from rid_lib import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..identity import NodeIdentity
 from ..protocol.edge import EdgeProfile, EdgeStatus
+
+if TYPE_CHECKING:
+    import networkx as nx
 
 log = structlog.stdlib.get_logger()
 
@@ -15,12 +17,13 @@ class NetworkGraph:
     
     cache: Cache
     identity: NodeIdentity
-    dg: nx.DiGraph
+    dg: "nx.DiGraph"
     
     def __init__(self, cache: Cache, identity: NodeIdentity):
+        import networkx as nx
         self.cache = cache
-        self.dg = nx.DiGraph()
         self.identity = identity
+        self.dg = nx.DiGraph()
     
     def start(self):
         self.generate()
@@ -30,7 +33,7 @@ class NetworkGraph:
         log.debug("Generating network graph")
         self.dg.clear()
         for rid in self.cache.list_rids():
-            if type(rid) == KoiNetNode:                
+            if type(rid) == KoiNetNode:
                 self.dg.add_node(rid)
                 log.debug(f"Added node {rid!r}")
                 
