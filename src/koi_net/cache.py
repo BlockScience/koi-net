@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle
@@ -8,16 +9,17 @@ from .config.base import BaseNodeConfig
 
 
 class Cache:
-    def __init__(self, config: BaseNodeConfig):
+    def __init__(self, config: BaseNodeConfig, root_dir: Path):
         self.config = config
+        self.root_dir = root_dir
         
     @property
     def directory_path(self):
-        return self.config.koi_net.cache_directory_path
+        return self.root_dir / self.config.koi_net.cache_directory_path
         
     def file_path_to(self, rid: RID) -> str:
         encoded_rid_str = b64_encode(str(rid))
-        return f"{self.directory_path}/{encoded_rid_str}.json"
+        return self.directory_path / (encoded_rid_str + ".json")
 
     def write(self, bundle: Bundle) -> Bundle:
         """Writes bundle to cache, returns a Bundle."""

@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic import BaseModel
 from rid_lib import RIDType
 from rid_lib.types import KoiNetNode
@@ -26,8 +27,8 @@ class KoiNetConfig(BaseModel):
     
     rid_types_of_interest: list[RIDType] = [KoiNetNode]
         
-    cache_directory_path: str = ".rid_cache"
-    private_key_pem_path: str = "priv_key.pem"
+    cache_directory_path: Path = Path(".rid_cache")
+    private_key_pem_path: Path = Path("priv_key.pem")
     
     event_worker: EventWorkerConfig = EventWorkerConfig()
     kobj_worker: KobjWorkerConfig = KobjWorkerConfig()

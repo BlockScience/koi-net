@@ -1,4 +1,6 @@
-from koi_net.build.base import BaseAssembly
+from pathlib import Path
+
+from .build.base import BaseAssembly
 from .log_system import LogSystem
 from .cache import Cache
 from .config.base import BaseNodeConfig
@@ -34,6 +36,7 @@ from .processor.knowledge_handlers import (
     forget_edge_on_node_deletion, 
     secure_profile_handler
 )
+
 
 class BaseNode(BaseAssembly):
     _log_system: LogSystem = LogSystem
@@ -71,9 +74,9 @@ class BaseNode(BaseAssembly):
     event_worker: EventProcessingWorker = EventProcessingWorker
     profile_monitor: ProfileMonitor = ProfileMonitor
     
-    def __new__(cls, *args, **kwargs):
-        cls._log_system(*args, **kwargs)
-        return super().__new__(cls, *args, **kwargs)
+    def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
+        cls._log_system()
+        return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
 class FullNode(BaseNode):
     server: NodeServer = NodeServer
