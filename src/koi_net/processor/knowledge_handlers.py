@@ -1,6 +1,5 @@
 """Implementation of default knowledge handlers."""
 
-import structlog
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode, KoiNetEdge
@@ -14,8 +13,6 @@ from .handler import KnowledgeHandler, HandlerType, STOP_CHAIN
 from .knowledge_object import KnowledgeObject
 from .context import HandlerContext
 
-log = structlog.stdlib.get_logger()
-
 
 # RID handlers
 
@@ -28,7 +25,7 @@ def basic_rid_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     """
     
     if (kobj.rid == ctx.identity.rid and kobj.source is not None):
-        log.debug("Externally sourced events about this node not allowed.")
+        ctx.log.debug("Externally sourced events about this node not allowed.")
         return STOP_CHAIN
     
     if kobj.event_type == EventType.FORGET:
@@ -51,17 +48,17 @@ def basic_manifest_handler(ctx: HandlerContext, kobj: KnowledgeObject):
 
     if prev_bundle:
         if kobj.manifest.sha256_hash == prev_bundle.manifest.sha256_hash:
-            log.debug("Hash of incoming manifest is same as existing knowledge, ignoring")
+            ctx.log.debug("Hash of incoming manifest is same as existing knowledge, ignoring")
             return STOP_CHAIN
         if kobj.manifest.timestamp <= prev_bundle.manifest.timestamp:
-            log.debug("Timestamp of incoming manifest is the same or older than existing knowledge, ignoring")
+            ctx.log.debug("Timestamp of incoming manifest is the same or older than existing knowledge, ignoring")
             return STOP_CHAIN
         
-        log.debug("RID previously known to me, labeling as 'UPDATE'")
+        ctx.log.debug("RID previously known to me, labeling as 'UPDATE'")
         kobj.normalized_event_type = EventType.UPDATE
 
     else:
-        log.debug("RID previously unknown to me, labeling as 'NEW'")
+        ctx.log.debug("RID previously unknown to me, labeling as 'NEW'")
         kobj.normalized_event_type = EventType.NEW
         
     return kobj
@@ -84,7 +81,7 @@ def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     node_rid: KoiNetNode = kobj.rid
     
     if sha256_hash(node_profile.public_key) != node_rid.hash:
-        log.warning(f"Public key hash mismatch for {node_rid!r}!")
+        ctx.log.warning(f"Public key hash mismatch for {node_rid!r}!")
         return STOP_CHAIN
 
 @KnowledgeHandler.create(
@@ -111,13 +108,13 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         if edge_profile.status != EdgeStatus.PROPOSED:
             return
         
-        log.debug("Handling edge negotiation")
+        ctx.log.debug("Handling edge negotiation")
         
         peer_rid = edge_profile.target
         peer_bundle = ctx.cache.read(peer_rid)
         
         if not peer_bundle:
-            log.warning(f"Peer {peer_rid!r} unknown to me")
+            ctx.log.warning(f"Peer {peer_rid!r} unknown to me")
             return STOP_CHAIN
         
         peer_profile = peer_bundle.validate_contents(NodeProfile)
@@ -131,11 +128,11 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
         abort = False
         if (edge_profile.edge_type == EdgeType.WEBHOOK and 
             peer_profile.node_type == NodeType.PARTIAL):
-            log.debug("Partial nodes cannot use webhooks")
+            ctx.log.debug("Partial nodes cannot use webhooks")
             abort = True
         
         if not set(edge_profile.rid_types).issubset(provided_events):
-            log.debug("Requested RID types not provided by this node")
+            ctx.log.debug("Requested RID types not provided by this node")
             abort = True
         
         if abort:
@@ -144,7 +141,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             return STOP_CHAIN
         
         else:
-            log.debug("Approving proposed edge")
+            ctx.log.debug("Approving proposed edge")
             edge_profile.status = EdgeStatus.APPROVED
             updated_bundle = Bundle.generate(kobj.rid, edge_profile.model_dump())
       
@@ -153,7 +150,7 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
               
     elif edge_profile.target == ctx.identity.rid:
         if edge_profile.status == EdgeStatus.APPROVED:
-            log.debug("Edge approved by other node!")
+            ctx.log.debug("Edge approved by other node!")
 
 
 # Network handlers
@@ -195,7 +192,7 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             # no change in rid types
             return
         
-        log.info(f"Proposing updated edge with node provider {available_rid_types}")
+        ctx.log.info(f"Proposing updated edge with node provider {available_rid_types}")
         
         edge_profile.rid_types = available_rid_types
         edge_profile.status = EdgeStatus.PROPOSED
@@ -203,7 +200,7 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     
     # no existing edge
     else:
-        log.info(f"Proposing new edge with node provider {available_rid_types}")
+        ctx.log.info(f"Proposing new edge with node provider {available_rid_types}")
         edge_bundle = generate_edge_bundle(
             source=kobj.rid,
             target=ctx.identity.rid,
@@ -218,28 +215,28 @@ def node_contact_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     # queued for processing
     ctx.kobj_queue.push(bundle=edge_bundle)
     
-    log.info("Catching up on network state")
+    ctx.log.info("Catching up on network state")
     try:
         payload = ctx.request_handler.fetch_rids(
             node=kobj.rid, 
             rid_types=available_rid_types
         )
     except RequestError:
-        log.info("Failed to reach node")
+        ctx.log.info("Failed to reach node")
         return
         
     for rid in payload.rids:
         if rid == ctx.identity.rid:
-            log.info("Skipping myself")
+            ctx.log.info("Skipping myself")
             continue
         if ctx.cache.exists(rid):
-            log.info(f"Skipping known RID {rid!r}")
+            ctx.log.info(f"Skipping known RID {rid!r}")
             continue
         
         # marked as external since we are handling RIDs from another node
         # will fetch remotely instead of checking local cache
         ctx.kobj_queue.push(rid=rid, source=kobj.rid)
-    log.info("Done")
+    ctx.log.info("Done")
 
 @KnowledgeHandler.create(HandlerType.Network)
 def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
@@ -264,12 +261,12 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
             edge_profile = kobj.bundle.validate_contents(EdgeProfile)
             
             if edge_profile.source == ctx.identity.rid:
-                log.debug(f"Adding edge target '{edge_profile.target!r}' to network targets")
+                ctx.log.debug(f"Adding edge target '{edge_profile.target!r}' to network targets")
                 kobj.network_targets.add(edge_profile.target)
                 involves_this_node = True
                 
             elif edge_profile.target == ctx.identity.rid:
-                log.debug(f"Adding edge source '{edge_profile.source!r}' to network targets")
+                ctx.log.debug(f"Adding edge source '{edge_profile.source!r}' to network targets")
                 kobj.network_targets.add(edge_profile.source)
                 involves_this_node = True
     
@@ -279,7 +276,7 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
             allowed_type=type(kobj.rid)
         )
         
-        log.debug(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
+        ctx.log.debug(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
         kobj.network_targets.update(subscribers)
         
     return kobj
@@ -298,5 +295,5 @@ def forget_edge_on_node_deletion(ctx: HandlerContext, kobj: KnowledgeObject):
         edge_profile = edge_bundle.validate_contents(EdgeProfile)
         
         if kobj.rid in (edge_profile.source, edge_profile.target):
-            log.debug("Identified edge with forgotten node")
+            ctx.log.debug("Identified edge with forgotten node")
             ctx.kobj_queue.push(rid=edge_rid, event_type=EventType.FORGET)

@@ -1,5 +1,5 @@
+from logging import Logger
 from pathlib import Path
-import structlog
 import cryptography.exceptions
 from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
@@ -21,8 +21,6 @@ from .exceptions import (
 )
 from .config.base import BaseNodeConfig
 
-log = structlog.stdlib.get_logger()
-
 
 class SecureManager:
     """Subsystem handling secure protocol logic."""
@@ -33,12 +31,14 @@ class SecureManager:
     
     def __init__(
         self, 
+        log: Logger,
         identity: NodeIdentity, 
         cache: Cache,
         config: BaseNodeConfig,
         config_loader: ConfigLoader,
         root_dir: Path
     ):
+        self.log = log
         self.identity = identity
         self.cache = cache
         self.config = config
@@ -56,7 +56,7 @@ class SecureManager:
         
         with open(self.pem_path, "w") as f:
             f.write(self.priv_key.to_pem(self.config.env.priv_key_password))
-        log.debug("Generated new private key, no PEM file found")
+        self.log.debug("Generated new private key, no PEM file found")
         
         pub_key = self.priv_key.public_key()
         self.config.koi_net.node_rid = pub_key.to_node_rid(
@@ -64,7 +64,7 @@ class SecureManager:
         
         if self.config.koi_net.node_profile.public_key != pub_key.to_der():
             if self.config.koi_net.node_profile.public_key:
-                log.warning("New private key overwriting old public key!")
+                self.log.warning("New private key overwriting old public key!")
             
             self.config.koi_net.node_profile.public_key = pub_key.to_der()
         self.config_loader.save_to_yaml()
@@ -84,7 +84,7 @@ class SecureManager:
             self.create_priv_key()
         
         except ValueError:
-            log.error("Incorrect password, could not decrypt PEM")
+            self.log.error("Incorrect password, could not decrypt PEM")
             # TODO: figure out more graceful way of failing startup sequence
             raise
         

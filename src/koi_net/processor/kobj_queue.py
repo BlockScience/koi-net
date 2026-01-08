@@ -1,4 +1,4 @@
-import structlog
+from logging import Logger
 from queue import Queue
 from rid_lib.core import RID
 from rid_lib.ext import Bundle, Manifest
@@ -6,16 +6,15 @@ from rid_lib.types import KoiNetNode
 from ..protocol.event import Event, EventType
 from .knowledge_object import KnowledgeObject
 
-log = structlog.stdlib.get_logger()
-
 
 class KobjQueue:
     """Queue for knowledge objects entering the processing pipeline."""
     q: Queue[KnowledgeObject]
     
-    def __init__(self):
+    def __init__(self, log: Logger):
+        self.log = log
         self.q = Queue()
-                
+        
     def push(
         self, *,
         rid: RID | None = None,
@@ -48,4 +47,4 @@ class KobjQueue:
             raise ValueError("One of 'rid', 'manifest', 'bundle', 'event', or 'kobj' must be provided")
         
         self.q.put(_kobj)
-        log.debug(f"Queued {_kobj!r}")
+        self.log.debug(f"Queued {_kobj!r}")

@@ -1,12 +1,9 @@
-import structlog
 from queue import Queue
 
 from rid_lib.types import KoiNetNode
 from pydantic import BaseModel
 
 from ..protocol.event import Event
-
-log = structlog.stdlib.get_logger()
 
 
 class QueuedEvent(BaseModel):

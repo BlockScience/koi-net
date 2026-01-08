@@ -1,3 +1,4 @@
+from logging import Logger
 from pathlib import Path
 import sys
 import threading
@@ -6,8 +7,6 @@ import structlog
 
 from koi_net.cli.consts import READY_SIGNAL, STOP_SIGNAL
 from .assembler import NodeAssembler
-
-log = structlog.stdlib.get_logger()
 
 
 class ControlLoop:
@@ -38,6 +37,7 @@ class BaseAssembly(NodeAssembler):
     startup_event: threading.Event = threading.Event
     shutdown_event: threading.Event = threading.Event
     control_loop: ControlLoop = ControlLoop
+    log: Logger = lambda root_dir: structlog.stdlib.get_logger().bind(log_dir=root_dir)
     
     def __new__(cls, *args, root_dir: Path, **kwargs):
         cls.root_dir = root_dir

@@ -1,4 +1,4 @@
-import structlog
+from logging import Logger
 from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache, Bundle
@@ -12,8 +12,6 @@ from ..identity import NodeIdentity
 from ..config.base import BaseNodeConfig
 from ..exceptions import RequestError
 
-log = structlog.stdlib.get_logger()
-
 
 class NetworkResolver:
     """Handles resolving nodes or knowledge objects from the network."""
@@ -26,12 +24,14 @@ class NetworkResolver:
     
     def __init__(
         self, 
+        log: Logger,
         config: BaseNodeConfig,
         cache: Cache, 
         identity: NodeIdentity,
         graph: NetworkGraph,
         request_handler: RequestHandler,
     ):
+        self.log = log
         self.config = config
         self.identity = identity
         self.cache = cache
@@ -44,7 +44,7 @@ class NetworkResolver:
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for specified RID type."""
         
-        log.debug(f"Looking for state providers of {rid_type}")
+        self.log.debug(f"Looking for state providers of {rid_type}")
         provider_nodes = []
         for node_rid in self.cache.list_rids(rid_types=[KoiNetNode]):
             if node_rid == self.identity.rid:
@@ -62,16 +62,16 @@ class NetworkResolver:
             provider_nodes.append(node_rid)
         
         if provider_nodes:
-            log.debug(f"Found provider(s) {provider_nodes}")
+            self.log.debug(f"Found provider(s) {provider_nodes}")
         else:
-            log.debug("Failed to find providers")
+            self.log.debug("Failed to find providers")
             
         return provider_nodes
             
     def fetch_remote_bundle(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
         """Attempts to fetch a bundle by RID from known peer nodes."""
         
-        log.debug(f"Fetching remote bundle {rid!r}")
+        self.log.debug(f"Fetching remote bundle {rid!r}")
         remote_bundle, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
             try:
@@ -82,18 +82,18 @@ class NetworkResolver:
             
             if payload.bundles:
                 remote_bundle = payload.bundles[0]
-                log.debug(f"Got bundle from {node_rid!r}")
+                self.log.debug(f"Got bundle from {node_rid!r}")
                 break
         
         if not remote_bundle:
-            log.warning("Failed to fetch remote bundle")
+            self.log.warning("Failed to fetch remote bundle")
             
         return remote_bundle, node_rid
     
     def fetch_remote_manifest(self, rid: RID) -> tuple[Bundle | None, KoiNetNode | None]:
         """Attempts to fetch a manifest by RID from known peer nodes."""
         
-        log.debug(f"Fetching remote manifest {rid!r}")
+        self.log.debug(f"Fetching remote manifest {rid!r}")
         remote_manifest, node_rid = None, None
         for node_rid in self.get_state_providers(type(rid)):
             try:
@@ -104,11 +104,11 @@ class NetworkResolver:
             
             if payload.manifests:
                 remote_manifest = payload.manifests[0]
-                log.debug(f"Got bundle from {node_rid!r}")
+                self.log.debug(f"Got bundle from {node_rid!r}")
                 break
         
         if not remote_manifest:
-            log.warning("Failed to fetch remote bundle")
+            self.log.warning("Failed to fetch remote bundle")
             
         return remote_manifest, node_rid
     
@@ -146,7 +146,7 @@ class NetworkResolver:
             except RequestError:
                 continue
                 
-            log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
+            self.log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
             event_dict[node_rid] = payload.events
             
         return event_dict

@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import TYPE_CHECKING
 from dataclasses import dataclass, field
 
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 class HandlerContext:
     """Context object provides knowledge handlers access to other components."""
     
+    log: Logger
     identity: NodeIdentity
     config: BaseNodeConfig
     config_loader: ConfigLoader

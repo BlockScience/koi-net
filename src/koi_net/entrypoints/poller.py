@@ -1,4 +1,5 @@
 
+from logging import Logger
 import threading
 import time
 import structlog
@@ -6,8 +7,6 @@ import structlog
 from ..processor.kobj_queue import KobjQueue
 from ..network.resolver import NetworkResolver
 from ..config.partial_node import PartialNodeConfig
-
-log = structlog.stdlib.get_logger()
 
 
 class NodePoller:
@@ -20,8 +19,11 @@ class NodePoller:
         self,
         config: PartialNodeConfig,
         kobj_queue: KobjQueue,
-        resolver: NetworkResolver
+        resolver: NetworkResolver,
+        log: Logger
     ):
+        self.log = log
+        self.root_dir = root_dir
         self.kobj_queue = kobj_queue
         self.resolver = resolver
         self.config = config

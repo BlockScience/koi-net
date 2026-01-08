@@ -1,3 +1,4 @@
+from logging import Logger
 import queue
 import traceback
 import time
@@ -14,21 +15,23 @@ from ..protocol.node import NodeProfile, NodeType
 from ..exceptions import RequestError
 from .base import ThreadWorker, STOP_WORKER
 
-log = structlog.stdlib.get_logger()
-
 
 class EventProcessingWorker(ThreadWorker):
     """Thread worker that processes the `event_queue`."""
     
     def __init__(
         self,
+        log: Logger,
         config: BaseNodeConfig,
         cache: Cache,
         event_queue: EventQueue,
         request_handler: RequestHandler,
         poll_event_buf: EventBuffer,
-        broadcast_event_buf: EventBuffer
+        broadcast_event_buf: EventBuffer,
+        root_dir
     ):
+        self.log = log
+        self.root_dir = root_dir
         self.event_queue = event_queue
         self.request_handler = request_handler
         
@@ -47,7 +50,7 @@ class EventProcessingWorker(ThreadWorker):
             with self.broadcast_event_buf.safe_flush(target, force_flush) as events:
                 self.request_handler.broadcast_events(target, events=events)
         except RequestError:
-            log.warning("Failed to reach target, event buffer reset")
+            self.log.warning("Failed to reach target, event buffer reset")
             pass
         
     def stop(self):
@@ -62,12 +65,12 @@ class EventProcessingWorker(ThreadWorker):
                 
                 try:
                     if item is STOP_WORKER:
-                        log.info(f"Received 'STOP_WORKER' signal, flushing all buffers...")
+                        self.log.info(f"Received 'STOP_WORKER' signal, flushing all buffers...")
                         for target in list(self.broadcast_event_buf.buffers.keys()):
                             self.flush_and_broadcast(target, force_flush=True)
                         return
                     
-                    log.info(f"Dequeued {item.event!r} -> {item.target!r}")
+                    self.log.info(f"Dequeued {item.event!r} -> {item.target!r}")
                     
                     # determines which buffer to push event to based on target node type
                     node_bundle = self.cache.read(item.target)
@@ -85,7 +88,7 @@ class EventProcessingWorker(ThreadWorker):
                         self.broadcast_event_buf.push(item.target, item.event)
                         
                     else:
-                        log.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
+                        self.log.warning(f"Couldn't handle event {item.event!r} in queue, node {item.target!r} unknown to me")
                         continue
                     
                     buf_len = self.broadcast_event_buf.buf_len(item.target)

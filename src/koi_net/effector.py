@@ -1,8 +1,8 @@
 from dataclasses import dataclass
+from logging import Logger
 from typing import Callable
 from enum import StrEnum
 
-import structlog
 from rid_lib.ext import Cache, Bundle
 from rid_lib.core import RID, RIDType
 from rid_lib.types import KoiNetNode
@@ -11,7 +11,6 @@ from .processor.context import HandlerContext
 from .network.resolver import NetworkResolver
 from .processor.kobj_queue import KobjQueue
 
-log = structlog.stdlib.get_logger()
 
 @dataclass
 class DerefHandler:
@@ -42,13 +41,15 @@ class Effector:
     handler_context: HandlerContext
     
     def __init__(
-        self, 
+        self,
+        log: Logger,
         cache: Cache,
         resolver: NetworkResolver,
         kobj_queue: KobjQueue,
         handler_context: HandlerContext,
         deref_handlers: list[DerefHandler]
     ):
+        self.log = log
         self.cache = cache
         self.resolver = resolver
         self.kobj_queue = kobj_queue
@@ -61,10 +62,10 @@ class Effector:
         bundle = self.cache.read(rid)
         
         if bundle:
-            log.debug("Cache hit")
+            self.log.debug("Cache hit")
             return bundle, BundleSource.CACHE
         else:
-            log.debug("Cache miss")
+            self.log.debug("Cache miss")
             return None
             
     def _try_action(self, rid: RID) -> tuple[Bundle, BundleSource] | None:
@@ -76,26 +77,26 @@ class Effector:
             break
         
         if not action:
-            log.debug("No action found")
+            self.log.debug("No action found")
             return None
         
         bundle = action(ctx=self.handler_context, rid=rid)
         
         if bundle:
-            log.debug("Action hit")
+            self.log.debug("Action hit")
             return bundle, BundleSource.ACTION
         else:
-            log.debug("Action miss")
+            self.log.debug("Action miss")
             return None
         
     def _try_network(self, rid: RID) -> tuple[Bundle, KoiNetNode] | None:
         bundle, source = self.resolver.fetch_remote_bundle(rid)
         
         if bundle:
-            log.debug("Network hit")
+            self.log.debug("Network hit")
             return bundle, source
         else:
-            log.debug("Network miss")
+            self.log.debug("Network miss")
             return None
         
     def deref(
@@ -120,7 +121,7 @@ class Effector:
             write_through: waits for kobj queue to empty when `True`
         """
         
-        log.debug(f"Dereferencing {rid!r}")
+        self.log.debug(f"Dereferencing {rid!r}")
         
         bundle, source = (
             # if `refresh_cache`, skip try cache

@@ -1,3 +1,4 @@
+from logging import Logger
 import socket
 import threading
 import time
@@ -6,6 +7,7 @@ import structlog
 
 from koi_net.config.loader import ConfigLoader
 
+from ..config.loader import ConfigLoader
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
@@ -17,12 +19,9 @@ if TYPE_CHECKING:
     from fastapi import FastAPI, APIRouter
 
 
-log = structlog.stdlib.get_logger()
-
-
 class NodeServer:
     """Entry point for full nodes, manages FastAPI server."""
-    _config: FullNodeConfig
+    config: FullNodeConfig
     response_handler: ResponseHandler
     app: "FastAPI"
     router: "APIRouter"
@@ -30,11 +29,15 @@ class NodeServer:
     
     def __init__(
         self,
+        log: Logger,
+        root_dir,
         config: FullNodeConfig,
         config_loader: ConfigLoader,
         response_handler: ResponseHandler
     ):
-        self._config = config
+        self.log = log
+        self.root_dir = root_dir
+        self.config = config
         self.config_loader = config_loader
         self.response_handler = response_handler
         
@@ -83,27 +86,27 @@ class NodeServer:
         """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
         from fastapi.responses import JSONResponse
         
-        log.error(exc)
+        self.log.error(exc)
         resp = ErrorResponse(error=EXCEPTION_TO_ERROR_TYPE[type(exc)])
-        log.info(f"Returning error response: {resp}")
+        self.log.info(f"Returning error response: {resp}")
         return JSONResponse(
             status_code=400,
             content=resp.model_dump(mode="json")
         )
     
     def acquire_port(self):
-        derived_url = self._config.koi_net.node_profile.base_url == self._config.server.url
+        derived_url = self.config.koi_net.node_profile.base_url == self.config.server.url
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            address = (self._config.server.host, self._config.server.port)
+            address = (self.config.server.host, self.config.server.port)
             while s.connect_ex(address) == 0:
-                log.debug(f"port {address[1]} in use")
-                self._config.server.port += 1
-                address = (address[0], self._config.server.port)
-        log.debug(f"acquired port {address[1]}")
+                self.log.debug(f"port {address[1]} in use")
+                self.config.server.port += 1
+                address = (address[0], self.config.server.port)
+        self.log.debug(f"acquired port {address[1]}")
         
         if derived_url:
-            self._config.koi_net.node_profile.base_url = self._config.server.url
+            self.config.koi_net.node_profile.base_url = self.config.server.url
         
         self.config_loader.save_to_yaml()
     
@@ -114,8 +117,8 @@ class NodeServer:
         self.server = uvicorn.Server(
             config=uvicorn.Config(
             app=self.app,
-            host=self._config.server.host,
-            port=self._config.server.port,
+            host=self.config.server.host,
+            port=self.config.server.port,
             log_config=None,
             lifespan="off"
         ))
