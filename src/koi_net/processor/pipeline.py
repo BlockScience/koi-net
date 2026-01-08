@@ -1,4 +1,4 @@
-import structlog
+from logging import Logger
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
 
@@ -17,8 +17,6 @@ from .handler import (
 from .knowledge_object import KnowledgeObject
 from .context import HandlerContext
 
-log = structlog.stdlib.get_logger()
-
 
 class KnowledgePipeline:
     handler_context: HandlerContext
@@ -31,6 +29,7 @@ class KnowledgePipeline:
     
     def __init__(
         self, 
+        log: Logger,
         handler_context: HandlerContext,
         cache: Cache, 
         request_handler: RequestHandler,
@@ -38,6 +37,7 @@ class KnowledgePipeline:
         graph: NetworkGraph,
         knowledge_handlers: list[KnowledgeHandler]
     ):
+        self.log = log
         self.handler_context = handler_context
         self.cache = cache
         self.request_handler = request_handler
@@ -70,7 +70,7 @@ class KnowledgePipeline:
             if handler.event_types and kobj.event_type not in handler.event_types:
                 continue
             
-            log.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
+            self.log.debug(f"Calling {handler_type} handler '{handler.func.__name__}'")
             
             resp = handler(
                 ctx=self.handler_context,
@@ -79,7 +79,7 @@ class KnowledgePipeline:
             
             # stops handler chain execution
             if resp is STOP_CHAIN:
-                log.debug(f"Handler chain stopped by {handler.func.__name__}")
+                self.log.debug(f"Handler chain stopped by {handler.func.__name__}")
                 return STOP_CHAIN
             
             # kobj unmodified
@@ -89,7 +89,7 @@ class KnowledgePipeline:
             # kobj modified by handler
             elif isinstance(resp, KnowledgeObject):
                 kobj = resp
-                log.debug(f"Knowledge object modified by {handler.func.__name__}")
+                self.log.debug(f"Knowledge object modified by {handler.func.__name__}")
             
             else:
                 raise ValueError(f"Handler {handler.func.__name__} returned invalid response '{resp}'")
@@ -129,35 +129,35 @@ class KnowledgePipeline:
         handler chains will not be called.
         """
         
-        log.debug(f"Handling {kobj!r}")
+        self.log.debug(f"Handling {kobj!r}")
         kobj = self.call_handler_chain(HandlerType.RID, kobj)
         if kobj is STOP_CHAIN: return
         
         if kobj.event_type == EventType.FORGET:
             bundle = self.cache.read(kobj.rid)
             if not bundle:
-                log.debug("Local bundle not found")
+                self.log.debug("Local bundle not found")
                 return
             
             # the bundle (to be deleted) attached to kobj for downstream analysis
-            log.debug("Adding local bundle (to be deleted) to knowledge object")
+            self.log.debug("Adding local bundle (to be deleted) to knowledge object")
             kobj.manifest = bundle.manifest
             kobj.contents = bundle.contents
             
         else:
             # attempt to retrieve manifest
             if not kobj.manifest:
-                log.debug("Manifest not found")
+                self.log.debug("Manifest not found")
                 if not kobj.source:
                     return
             
-                log.debug("Attempting to fetch remote manifest from source")
+                self.log.debug("Attempting to fetch remote manifest from source")
                 try:
                     payload = self.request_handler.fetch_manifests(
                         node=kobj.source,
                         rids=[kobj.rid])
                 except RequestError:
-                    log.debug("Failed to find manifest")
+                    self.log.debug("Failed to find manifest")
                     return
                 
                 kobj.manifest = payload.manifests[0]
@@ -167,24 +167,24 @@ class KnowledgePipeline:
             
             # attempt to retrieve bundle
             if not kobj.contents:
-                log.debug("Bundle not found")
+                self.log.debug("Bundle not found")
                 if kobj.source is None:
                     return
                 
-                log.debug("Attempting to fetch remote bundle from source")
+                self.log.debug("Attempting to fetch remote bundle from source")
                 try:
                     payload = self.request_handler.fetch_bundles(
                         node=kobj.source,
                         rids=[kobj.rid]
                     )
                 except RequestError:
-                    log.debug("Failed to find bundle")
+                    self.log.debug("Failed to find bundle")
                     return
                 
                 bundle = payload.bundles[0]
                 
                 if kobj.manifest != bundle.manifest:
-                    log.warning("Retrieved bundle contains a different manifest")
+                    self.log.warning("Retrieved bundle contains a different manifest")
                 
                 kobj.manifest = bundle.manifest
                 kobj.contents = bundle.contents
@@ -193,28 +193,28 @@ class KnowledgePipeline:
         if kobj is STOP_CHAIN: return
             
         if kobj.normalized_event_type in (EventType.UPDATE, EventType.NEW):
-            log.info(f"Writing to cache: {kobj!r}")
+            self.log.info(f"Writing to cache: {kobj!r}")
             self.cache.write(kobj.bundle)
             
         elif kobj.normalized_event_type == EventType.FORGET:
-            log.info(f"Deleting from cache: {kobj!r}")
+            self.log.info(f"Deleting from cache: {kobj!r}")
             self.cache.delete(kobj.rid)
             
         else:
-            log.debug("Normalized event type was not set, no cache or network operations will occur")
+            self.log.debug("Normalized event type was not set, no cache or network operations will occur")
             return
         
         if type(kobj.rid) in (KoiNetNode, KoiNetEdge):
-            log.debug("Change to node or edge, regenerating network graph")
+            self.log.debug("Change to node or edge, regenerating network graph")
             self.graph.generate()
         
         kobj = self.call_handler_chain(HandlerType.Network, kobj)
         if kobj is STOP_CHAIN: return
         
         if kobj.network_targets:
-            log.debug(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
+            self.log.debug(f"Broadcasting event to {len(kobj.network_targets)} network target(s)")
         else:
-            log.debug("No network targets set")
+            self.log.debug("No network targets set")
         
         for node in kobj.network_targets:
             self.event_queue.push(kobj.normalized_event, node)

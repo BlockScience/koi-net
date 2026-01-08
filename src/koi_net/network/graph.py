@@ -1,15 +1,15 @@
-import structlog
+from logging import Logger
 from typing import TYPE_CHECKING, Literal
+
 from rid_lib import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
+
 from ..identity import NodeIdentity
 from ..protocol.edge import EdgeProfile, EdgeStatus
 
 if TYPE_CHECKING:
     import networkx as nx
-
-log = structlog.stdlib.get_logger()
 
 
 class NetworkGraph:
@@ -19,8 +19,9 @@ class NetworkGraph:
     identity: NodeIdentity
     dg: "nx.DiGraph"
     
-    def __init__(self, cache: Cache, identity: NodeIdentity):
+    def __init__(self, log: Logger, cache: Cache, identity: NodeIdentity):
         import networkx as nx
+        self.log = log
         self.cache = cache
         self.identity = identity
         self.dg = nx.DiGraph()
@@ -30,22 +31,22 @@ class NetworkGraph:
         
     def generate(self):
         """Generates directed graph from cached KOI nodes and edges."""
-        log.debug("Generating network graph")
+        self.log.debug("Generating network graph")
         self.dg.clear()
         for rid in self.cache.list_rids():
             if type(rid) == KoiNetNode:
                 self.dg.add_node(rid)
-                log.debug(f"Added node {rid!r}")
+                self.log.debug(f"Added node {rid!r}")
                 
             elif type(rid) == KoiNetEdge:
                 edge_bundle = self.cache.read(rid)
                 if not edge_bundle:
-                    log.warning(f"Failed to load {rid!r}")
+                    self.log.warning(f"Failed to load {rid!r}")
                     continue
                 edge_profile = edge_bundle.validate_contents(EdgeProfile)
                 self.dg.add_edge(edge_profile.source, edge_profile.target, rid=rid)
-                log.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
-        log.debug("Done")
+                self.log.debug(f"Added edge {rid!r} ({edge_profile.source} -> {edge_profile.target})")
+        self.log.debug("Done")
         
     def get_edge(
         self, 
@@ -107,7 +108,7 @@ class NetworkGraph:
             edge_bundle = self.cache.read(edge_rid)
             
             if not edge_bundle: 
-                log.warning(f"Failed to find edge {edge_rid!r} in cache")
+                self.log.warning(f"Failed to find edge {edge_rid!r} in cache")
                 continue
             
             edge_profile = edge_bundle.validate_contents(EdgeProfile)

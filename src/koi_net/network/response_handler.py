@@ -1,4 +1,4 @@
-import structlog
+from logging import Logger
 from rid_lib import RID
 from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
@@ -22,8 +22,6 @@ from ..protocol.api_models import (
     FetchBundles,
 )
 
-log = structlog.stdlib.get_logger()
-
 
 class ResponseHandler:
     """Handles generating responses to requests from other KOI nodes."""
@@ -34,11 +32,13 @@ class ResponseHandler:
     
     def __init__(
         self, 
+        log: Logger,
         cache: Cache,
         kobj_queue: KobjQueue,
         poll_event_buf: EventBuffer,
         secure_manager: SecureManager
     ):
+        self.log = log
         self.cache = cache
         self.kobj_queue = kobj_queue
         self.poll_event_buf = poll_event_buf
@@ -66,7 +66,7 @@ class ResponseHandler:
         )
         
     def broadcast_events_handler(self, req: EventsPayload, source: KoiNetNode):
-        log.info(f"Request to broadcast events, received {len(req.events)} event(s)")
+        self.log.info(f"Request to broadcast events, received {len(req.events)} event(s)")
         
         for event in req.events:
             self.kobj_queue.push(event=event, source=source)
@@ -77,7 +77,7 @@ class ResponseHandler:
         source: KoiNetNode
     ) -> EventsPayload:
         events = self.poll_event_buf.flush(source, limit=req.limit)
-        log.info(f"Request to poll events, returning {len(events)} event(s)")
+        self.log.info(f"Request to poll events, returning {len(events)} event(s)")
         return EventsPayload(events=events)
         
     def fetch_rids_handler(
@@ -87,7 +87,7 @@ class ResponseHandler:
     ) -> RidsPayload:
         """Returns response to fetch RIDs request."""
         rids = self.cache.list_rids(req.rid_types)
-        log.info(f"Request to fetch rids, allowed types {req.rid_types}, returning {len(rids)} RID(s)")
+        self.log.info(f"Request to fetch rids, allowed types {req.rid_types}, returning {len(rids)} RID(s)")
         return RidsPayload(rids=rids)
         
     def fetch_manifests_handler(
@@ -106,7 +106,7 @@ class ResponseHandler:
             else:
                 not_found.append(rid)
         
-        log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}, returning {len(manifests)} manifest(s)")
+        self.log.info(f"Request to fetch manifests, allowed types {req.rid_types}, rids {req.rids}, returning {len(manifests)} manifest(s)")
         return ManifestsPayload(manifests=manifests, not_found=not_found)
         
     def fetch_bundles_handler(
@@ -126,5 +126,5 @@ class ResponseHandler:
             else:
                 not_found.append(rid)
                 
-        log.info(f"Request to fetch bundles, requested rids {req.rids}, returning {len(bundles)} bundle(s)")
+        self.log.info(f"Request to fetch bundles, requested rids {req.rids}, returning {len(bundles)} bundle(s)")
         return BundlesPayload(bundles=bundles, not_found=not_found)

@@ -1,6 +1,6 @@
 from functools import wraps
+from logging import Logger
 
-import structlog
 import httpx
 from rid_lib import RID
 from rid_lib.ext import Cache
@@ -46,19 +46,17 @@ from ..exceptions import (
 )
 from .error_handler import ErrorHandler
 
-log = structlog.stdlib.get_logger()
-
 
 def report_exception(func):
-    """Logs request errors as warnings."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except RequestError as err:
-            log.warning(err)
-            raise
-    return wrapper
+        """Logs request errors as warnings."""
+        @wraps(func)
+        def wrapper(self: "RequestHandler", *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except RequestError as err:
+                self.log.warning(err)
+                raise
+        return wrapper
 
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
@@ -70,11 +68,13 @@ class RequestHandler:
     
     def __init__(
         self, 
+        log: Logger,
         cache: Cache,
         identity: NodeIdentity,
         secure_manager: SecureManager,
         error_handler: ErrorHandler
     ):
+        self.log = log
         self.cache = cache
         self.identity = identity
         self.secure_manager = secure_manager
@@ -96,7 +96,7 @@ class RequestHandler:
         else:
             raise NodeNotFoundError(f"URL not found for {node_rid!r}")
         
-        log.debug(f"Resolved {node_rid!r} to {node_url}")
+        self.log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
     
     @report_exception
@@ -111,7 +111,7 @@ class RequestHandler:
             raise SelfRequestError("Don't talk to yourself")
         
         url = self.get_base_url(node) + path
-        log.info(f"Making request to {url}")
+        self.log.info(f"Making request to {url}")
     
         signed_envelope = self.secure_manager.create_envelope(
             payload=request,
@@ -126,7 +126,7 @@ class RequestHandler:
             self.error_handler.reset_timeout_counter(node)
             
         except httpx.RequestError as e:
-            log.debug("Failed to connect")
+            self.log.debug("Failed to connect")
             self.error_handler.handle_connection_error(node)
             raise TransportError(e)
         
@@ -181,7 +181,7 @@ class RequestHandler:
         """
         request = req or EventsPayload.model_validate(kwargs)
         self.make_request(node, BROADCAST_EVENTS_PATH, request)
-        log.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
+        self.log.info(f"Broadcasted {len(request.events)} event(s) to {node!r}")
         
     def poll_events(
         self, 
@@ -195,7 +195,7 @@ class RequestHandler:
         """
         request = req or PollEvents.model_validate(kwargs)
         resp = self.make_request(node, POLL_EVENTS_PATH, request)
-        log.info(f"Polled {len(resp.events)} events from {node!r}")
+        self.log.info(f"Polled {len(resp.events)} events from {node!r}")
         return resp
         
     def fetch_rids(
@@ -210,7 +210,7 @@ class RequestHandler:
         """
         request = req or FetchRids.model_validate(kwargs)
         resp = self.make_request(node, FETCH_RIDS_PATH, request)
-        log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
+        self.log.info(f"Fetched {len(resp.rids)} RID(s) from {node!r}")
         return resp
                 
     def fetch_manifests(
@@ -225,7 +225,7 @@ class RequestHandler:
         """
         request = req or FetchManifests.model_validate(kwargs)
         resp = self.make_request(node, FETCH_MANIFESTS_PATH, request)
-        log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
+        self.log.info(f"Fetched {len(resp.manifests)} manifest(s) from {node!r}")
         return resp
                 
     def fetch_bundles(
@@ -240,5 +240,5 @@ class RequestHandler:
         """
         request = req or FetchBundles.model_validate(kwargs)
         resp = self.make_request(node, FETCH_BUNDLES_PATH, request)
-        log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
+        self.log.info(f"Fetched {len(resp.bundles)} bundle(s) from {node!r}")
         return resp

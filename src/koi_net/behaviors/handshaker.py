@@ -1,4 +1,4 @@
-import structlog
+from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
@@ -8,19 +8,19 @@ from ..identity import NodeIdentity
 from ..network.event_queue import EventQueue
 from ..protocol.event import Event, EventType
 
-log = structlog.stdlib.get_logger()
-
 
 class Handshaker:
     """Handles handshaking with other nodes."""
     def __init__(
         self, 
+        log: Logger,
         cache: Cache, 
         identity: NodeIdentity, 
         event_queue: EventQueue,
         config: BaseNodeConfig,
         graph: NetworkGraph
     ):
+        self.log = log
         self.config = config
         self.cache = cache
         self.identity = identity
@@ -53,7 +53,7 @@ class Handshaker:
         reset the target's cache in case it already knew this node. 
         """
         
-        log.debug(f"Initiating handshake with {target}")
+        self.log.debug(f"Initiating handshake with {target}")
         self.event_queue.push(
             Event.from_rid(
                 event_type=EventType.FORGET, 

@@ -1,11 +1,10 @@
-import structlog
+from logging import Logger
 from rid_lib.types import KoiNetNode
+
 from ..behaviors.handshaker import Handshaker
 from ..protocol.errors import ErrorType
 from ..protocol.event import EventType
 from ..processor.kobj_queue import KobjQueue
-
-log = structlog.stdlib.get_logger()
 
 
 class ErrorHandler:
@@ -15,9 +14,11 @@ class ErrorHandler:
     
     def __init__(
         self, 
+        log: Logger,
         kobj_queue: KobjQueue,
         handshaker: Handshaker
     ):
+        self.log = log
         self.kobj_queue = kobj_queue
         self.handshaker = handshaker
         self.timeout_counter = {}
@@ -36,10 +37,10 @@ class ErrorHandler:
         self.timeout_counter.setdefault(node, 0)
         self.timeout_counter[node] += 1
         
-        log.debug(f"{node} has timed out {self.timeout_counter[node]} time(s)")
+        self.log.debug(f"{node} has timed out {self.timeout_counter[node]} time(s)")
         
         if self.timeout_counter[node] > 3:
-            log.debug(f"Exceeded time out limit, forgetting node")
+            self.log.debug(f"Exceeded time out limit, forgetting node")
             self.kobj_queue.push(rid=node, event_type=EventType.FORGET)
         
     def handle_protocol_error(
@@ -52,10 +53,10 @@ class ErrorHandler:
         Attempts handshake when this node is unknown to target.
         """
         
-        log.info(f"Handling protocol error {error_type} for node {node!r}")
+        self.log.info(f"Handling protocol error {error_type} for node {node!r}")
         match error_type:
             case ErrorType.UnknownNode:
-                log.info("Peer doesn't know me, attempting handshake...")
+                self.log.info("Peer doesn't know me, attempting handshake...")
                 self.handshaker.handshake_with(node)
                 
             case ErrorType.InvalidKey: ...
