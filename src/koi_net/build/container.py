@@ -1,6 +1,7 @@
 from pathlib import Path
 import threading
 from logging import Logger
+from typing import Any
 
 from .artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
@@ -16,11 +17,11 @@ class NodeContainer:
     log: Logger
     root_dir: Path
     
-    def __init__(self, _artifact, **kwargs):
-        self._artifact = _artifact
+    def __init__(self, artifact, components: dict[str, Any]):
+        self._artifact = artifact
         
         # adds all components as attributes of this instance
-        for name, comp in kwargs.items():
+        for name, comp in components.items():
             setattr(self, name, comp)
     
     @bind_logdir
