@@ -4,8 +4,9 @@ import sys
 import threading
 
 import structlog
+from structlog.contextvars import bound_contextvars
 
-from koi_net.cli.consts import READY_SIGNAL, STOP_SIGNAL
+from ..cli.consts import READY_SIGNAL, STOP_SIGNAL
 from .assembler import NodeAssembler
 
 
@@ -16,7 +17,6 @@ class ControlLoop:
     def __init__(self, startup_event, shutdown_event):
         self.startup_event = startup_event
         self.shutdown_event = shutdown_event
-        self.thread = threading.Thread(target=self.run, daemon=True)
         
     def run(self):
         self.startup_event.wait()
@@ -30,6 +30,7 @@ class ControlLoop:
         self.shutdown_event.set()
         
     def start(self):
+        self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
 
 class BaseAssembly(NodeAssembler):
@@ -41,4 +42,5 @@ class BaseAssembly(NodeAssembler):
     
     def __new__(cls, *args, root_dir: Path, **kwargs):
         cls.root_dir = root_dir
-        return super().__new__(cls, *args, **kwargs)
+        with bound_contextvars(log_dir=root_dir):
+            return super().__new__(cls, *args, **kwargs)

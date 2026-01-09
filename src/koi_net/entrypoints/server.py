@@ -1,12 +1,9 @@
-from logging import Logger
 import socket
 import threading
-import time
+from logging import Logger
 from typing import TYPE_CHECKING
-import structlog
 
-from koi_net.config.loader import ConfigLoader
-
+from ..build.threaded_component import ThreadedComponent
 from ..config.loader import ConfigLoader
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
@@ -19,7 +16,7 @@ if TYPE_CHECKING:
     from fastapi import FastAPI, APIRouter
 
 
-class NodeServer:
+class NodeServer(ThreadedComponent):
     """Entry point for full nodes, manages FastAPI server."""
     config: FullNodeConfig
     response_handler: ResponseHandler
@@ -103,6 +100,7 @@ class NodeServer:
                 self.log.debug(f"port {address[1]} in use")
                 self.config.server.port += 1
                 address = (address[0], self.config.server.port)
+        
         self.log.debug(f"acquired port {address[1]}")
         
         if derived_url:
@@ -110,7 +108,7 @@ class NodeServer:
         
         self.config_loader.save_to_yaml()
     
-    def start(self):
+    def run(self):
         self.acquire_port()
         
         import uvicorn
@@ -123,13 +121,11 @@ class NodeServer:
             lifespan="off"
         ))
         
-        self.thread = threading.Thread(target=self.server.run)
-        self.thread.start()
-        
+        self.server.run()
+    
     def stop(self):
-        if not self.server or not self.thread:
+        if not self.server:
             return
         
         self.server.should_exit = True
-        if self.thread.is_alive():
-            self.thread.join()
+        super().stop()

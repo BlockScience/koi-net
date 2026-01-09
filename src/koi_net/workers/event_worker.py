@@ -2,21 +2,28 @@ from logging import Logger
 import queue
 import traceback
 import time
-import structlog
 
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..build import comp_order
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
 from ..network.event_buffer import EventBuffer
 from ..protocol.node import NodeProfile, NodeType
 from ..exceptions import RequestError
-from .base import ThreadWorker, STOP_WORKER
+from ..build.threaded_component import ThreadedComponent
 
 
-class EventProcessingWorker(ThreadWorker):
+class End:
+    """Class for STOP_WORKER sentinel pushed to worker queues."""
+    pass
+
+STOP_WORKER = End()
+
+@comp_order.worker
+class EventProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `event_queue`."""
     
     def __init__(
@@ -39,8 +46,6 @@ class EventProcessingWorker(ThreadWorker):
         self.cache = cache
         self.poll_event_buf = poll_event_buf
         self.broadcast_event_buf = broadcast_event_buf
-        
-        super().__init__()
         
     def flush_and_broadcast(self, target: KoiNetNode, force_flush: bool = False):
         """Broadcasts all events to target in event buffer."""

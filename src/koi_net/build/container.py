@@ -1,10 +1,10 @@
+from pathlib import Path
 import threading
-import structlog
+from logging import Logger
 
 from .artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
-
-log = structlog.stdlib.get_logger()
+from ..utils import bind_logdir
 
 
 class NodeContainer:
@@ -13,6 +13,8 @@ class NodeContainer:
     
     shutdown_event: threading.Event
     startup_event: threading.Event
+    log: Logger
+    root_dir: Path
     
     def __init__(self, _artifact, **kwargs):
         self._artifact = _artifact
@@ -21,29 +23,32 @@ class NodeContainer:
         for name, comp in kwargs.items():
             setattr(self, name, comp)
     
+    @bind_logdir
     def run(self):
         try:
             self.start()
             self.startup_event.set()
             self.shutdown_event.wait()
         except KeyboardInterrupt:
-            log.info("Received keyboard interrupt")
+            self.log.info("Received keyboard interrupt")
             self.shutdown_event.set()
         finally:
             self.stop()
     
+    @bind_logdir
     def start(self):
-        log.info("Starting node...")
+        self.log.info("Starting node...")
         for comp_name in self._artifact.start_order:
             comp = getattr(self, comp_name)
             start_func = getattr(comp, START_FUNC_NAME)
-            log.info(f"Starting {comp_name}...")
+            self.log.info(f"Starting {comp_name}...")
             start_func()
-            
+    
+    @bind_logdir
     def stop(self):
-        log.info("Stopping node...")
+        self.log.info("Stopping node...")
         for comp_name in self._artifact.stop_order:
             comp = getattr(self, comp_name)
             stop_func = getattr(comp, STOP_FUNC_NAME)
-            log.info(f"Stopping {comp_name}...")
+            self.log.info(f"Stopping {comp_name}...")
             stop_func()

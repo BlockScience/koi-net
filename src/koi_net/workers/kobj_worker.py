@@ -1,15 +1,22 @@
 from logging import Logger
 import queue
 import traceback
-import structlog
 
+from ..build import comp_order
 from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
-from .base import ThreadWorker, STOP_WORKER
+from ..build.threaded_component import ThreadedComponent
 
 
-class KnowledgeProcessingWorker(ThreadWorker):
+class End:
+    """Class for STOP_WORKER sentinel pushed to worker queues."""
+    pass
+
+STOP_WORKER = End()
+
+@comp_order.worker
+class KnowledgeProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `kobj_queue`."""
     
     def __init__(
@@ -25,8 +32,6 @@ class KnowledgeProcessingWorker(ThreadWorker):
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline
         self.root_dir = root_dir
-
-        super().__init__()
         
     def stop(self):
         self.kobj_queue.q.put(STOP_WORKER)
