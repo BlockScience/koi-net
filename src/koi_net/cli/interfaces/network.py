@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import time
 
@@ -8,6 +9,7 @@ from ..models import NetworkConfigLoader, KoiNetworkConfig
 from .node import NodeInterface
 
 
+
 class NetworkInterface:
     def __init__(self):
         self.config: KoiNetworkConfig = ConfigProxy()
@@ -16,13 +18,13 @@ class NetworkInterface:
             config=self.config,
             root_dir=Path.cwd()
         )
-        
+    
     def load_node(self, name: str) -> NodeInterface:
         if name not in self.config.nodes:
             raise ValueError(f"Node '{name}' not found in config")
         
-        module = self.config.nodes[name]
-        return NodeInterface(name, module)
+        module_name = self.config.nodes[name]
+        return NodeInterface(name, module_name)
     
     def load_nodes(self) -> list[NodeInterface]:
         return [NodeInterface(n, m) for n, m in self.config.nodes.items()]
