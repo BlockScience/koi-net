@@ -1,15 +1,15 @@
 
-from logging import Logger
 import threading
 import time
-import structlog
+from logging import Logger
 
+from ..build.threaded_component import ThreadedComponent
 from ..processor.kobj_queue import KobjQueue
 from ..network.resolver import NetworkResolver
 from ..config.partial_node import PartialNodeConfig
 
 
-class NodePoller:
+class NodePoller(ThreadedComponent):
     """Entry point for partial nodes, manages polling event loop."""
     kobj_queue: KobjQueue
     resolver: NetworkResolver
@@ -18,6 +18,7 @@ class NodePoller:
     def __init__(
         self,
         config: PartialNodeConfig,
+        root_dir,
         kobj_queue: KobjQueue,
         resolver: NetworkResolver,
         log: Logger
@@ -29,8 +30,7 @@ class NodePoller:
         self.config = config
         self.exit_event = threading.Event()
         
-        self.thread = threading.Thread(target=self.run)
-
+        
     def poll(self):
         """Polls neighbor nodes and processes returned events."""
         for node_rid, events in self.resolver.poll_neighbors().items():
@@ -45,11 +45,7 @@ class NodePoller:
             elapsed = time.monotonic() - start_time
             wait_time = max(0, self.config.poller.polling_interval - elapsed)
             self.exit_event.wait(wait_time)
-                
-    def start(self):
-        self.thread.start()
-        
+    
     def stop(self):
         self.exit_event.set()
-        if self.thread.is_alive():
-            self.thread.join()
+        super().stop()

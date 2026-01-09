@@ -1,12 +1,8 @@
-import structlog
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from ..build import comp_type
-from ..protocol.secure import PrivateKey
 from .env_config import EnvConfig
 from .koi_net_config import KoiNetConfig
-
-log = structlog.stdlib.get_logger()
 
 
 @comp_type.object
