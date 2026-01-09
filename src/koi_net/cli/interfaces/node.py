@@ -1,133 +1,132 @@
 import os
+from pathlib import Path
 import shutil
-import subprocess
-from subprocess import PIPE
-import sys
-import threading
-import time
+from typing import TYPE_CHECKING, Any
 
-from ..consts import CONFIG, GET, INIT, READY_SIGNAL, RUN, SET, STOP_SIGNAL, UNSET, WIPE
-from ..exceptions import MissingEnvVariablesError, LocalNodeExistsError
+import typer
+from pydantic import ValidationError
+from jsonpointer import JsonPointer
+from rich.console import Console
+from rich.panel import Panel
+from ..module_tracker import module_tracker
 
+from koi_net.config.env_config import EnvConfig
 
-"""
-entry point name -> module name -> node class, run node
-
-node name (directory)
-node type alias (entrypoint: `coordinator`)
-node type name (module: `koi_net_coordinator_node`)
-
-node name -> node type name: (stored in koi net config)
-"""
+if TYPE_CHECKING:
+    from koi_net.core import BaseNode
+    from koi_net.build.container import NodeContainer
 
 
 class NodeInterface:
-    def __init__(self, name: str, module: str):
+    container: "BaseNode | NodeContainer"
+    
+    def __init__(
+        self,
+        name: str,
+        module_ref: str
+    ):
         self.name = name
-        self.module = module
-        self.process = None
-        self.process_ready = threading.Event()
+        self.module_ref = module_ref
         
-    def execute(self, *args, **kwargs):
-        return subprocess.Popen(
-            args=(sys.executable, "-m", self.module, *args),
-            cwd=self.name,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            text=True,
-            bufsize=1,
-            **kwargs
-        )
+        self.module = module_tracker.resolve_ref(module_ref)
+        self.node_class = module_tracker.load_class(self.module)
+        self.container = self.node_class(root_dir=Path(self.name))
+        
+        self.console = Console()
     
     def create(self):
-        print(f"Creating {self.name}...")
         try:
             os.mkdir(self.name)
         except FileExistsError:
-            raise LocalNodeExistsError(f"Node of name '{self.name}' already exists")
+            pass
     
-    def exists(self) -> bool:
+    def exists(self):
         return os.path.isdir(self.name)
-    
-    def init(self):
-        self.execute(INIT).wait()
-    
-    def wipe(self):
-        self.execute(WIPE).wait()
-        
-    def get_config(self, jp: str):
-        process = self.execute(CONFIG, GET, jp, stdout=PIPE)
-        stdout, _ = process.communicate()
-        
-        if process.returncode:
-            print("Error:\n")
-            print(stdout)
-            
-        return stdout.rstrip()
-    
-    def set_config(self, jp: str, val: str):
-        self.execute(CONFIG, SET, jp, val).wait()
-        
-    def unset_config(self, jp: str):
-        self.execute(CONFIG, UNSET, jp).wait()
     
     def delete(self):
         shutil.rmtree(self.name)
+        
+    def init(self):
+        for field in self.node_class.config_schema.model_fields.values():
+            field_class = field.annotation
+            if issubclass(field_class, EnvConfig):
+                try:
+                    field_class()
+                except ValidationError as exc:
+                    missing_vars = [
+                        err["loc"][0].upper()
+                        for err in exc.errors()
+                        if err["type"] == "missing"
+                    ]
+                    
+                    text = "\n".join([
+                        f"[bold red]{v}[/bold red]" 
+                        for v in missing_vars
+                    ])
+                    
+                    self.console.print(
+                        Panel.fit(
+                            renderable=text, 
+                            title="Cannot initialize node, missing the following enironment variables:",
+                            border_style="red"))
+        
+        self.container.config_loader.start()
+        self.console.print(f"Initialized '{self.container.identity.rid}'")
+        
+    def run(self):
+        self.container.run()
+        
+    def start(self):
+        self.container.start()
+        
+    def stop(self):
+        self.container.stop()
+        
+    def wipe(self):
+        self.container.cache.drop()
+        
+    def get_config(self, jp: str) -> Any:
+        config_json = self.container.config.model_dump()
+        return JsonPointer(jp).get(config_json)
     
-    def watch_stdout(self, mirror: bool = False):
-        for line in self.process.stdout:
-            if mirror:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-            if line.strip() == READY_SIGNAL:
-                self.process_ready.set()
-            elif READY_SIGNAL in line:
-                sys.stdout.write(f"found signal in stdout!\n{line}\n")
-                sys.stdout.flush()
+    def set_config(self, jp: str, val: Any):
+        data = self.container.config.model_dump()
+        pointer = JsonPointer(jp)
+        prev_val = pointer.get(data)
+        pointer.set(data, val)
+        config = self.container.config_schema.model_validate(data)
+        self.container.config._set_delegate(config)
+        self.container.config_loader.save_to_yaml()
+        
+        val_repr = lambda v: f"'{v}'" if v is not None else "<null>"
+        
+        self.console.print(f"Set config value [cyan]{val_repr(prev_val)}[/cyan] -> [green]{val_repr(val)}[/green]")
+        
+    def unset_config(self, jp: str):
+        self.set_config(jp, None)
     
-    def watch_stderr(self):
-        for line in self.process.stderr:
-            sys.stderr.write(line)
-            sys.stderr.flush()
-    
-    def start(self, verbose: bool = False) -> bool:
-        print(f"Starting {self.name}...", end=" ", flush=True)
-        self.process = self.execute(RUN, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        threading.Thread(target=self.watch_stdout, args=(verbose,), daemon=True).start()
-        threading.Thread(target=self.watch_stderr, daemon=True).start()
+    # @property
+    # def app(self) -> typer.Typer:
+    #     app = typer.Typer()
+    #     config = typer.Typer()
+    #     app.add_typer(config, name=CONFIG)
+        
+    #     app.command(INIT)(self.init)
+    #     app.command(RUN)(self.run)
+    #     app.command(WIPE)(self.wipe)
+         
+    #     @config.command(GET)
+    #     def config_get(jp: str):
+    #         val = self.config_get(jp)
+    #         if val is not None:
+    #             print(val)
+        
+    #     @config.command(SET)
+    #     def config_set(jp: str, val: str):
+    #         self.config_set(jp, val)
+        
+    #     @config.command(UNSET)
+    #     def config_unset(jp: str):
+    #         self.config_unset(jp)
             
-        success = self.process_ready.wait(timeout=5)
-        if success:
-            print("Done")
-        else:
-            print("Timed out")
-        
-        return success
-        
-    def stop(self) -> bool:
-        print(f"Stopping {self.name}...", end=" ", flush=True)
-        if not self.process:
-            return False
-        
-        self.process.stdin.write(STOP_SIGNAL + "\n")
-        self.process.stdin.flush()
-        self.process.stdin.close()
-        
-        try:
-            self.process.wait(timeout=5)
-            print("Done")
-            return True
-        
-        except subprocess.TimeoutExpired:
-            print("Timed out")
-            return False
-        
-    def run(self, verbose: bool = False):
-        self.start(verbose=verbose)
-        print("Press Ctrl + C to quit")
-        try:
-            while self.process.poll() is None:
-                time.sleep(0.5)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.stop()
+    #     return app
