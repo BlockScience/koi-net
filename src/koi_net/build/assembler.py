@@ -11,7 +11,6 @@ log = structlog.stdlib.get_logger()
 
 
 class NodeAssembler:
-    _artifact: BuildArtifact = None
     _container: type[NodeContainer] = NodeContainer
     
     # optional order overrides:
@@ -24,15 +23,17 @@ class NodeAssembler:
         
         log.debug(f"Assembling '{cls.__name__}'")
         
-        # builds assembly artifact if it doesn't exist
-        if not cls._artifact:
-            cls._artifact = BuildArtifact(cls)
-            cls._artifact.build()
+        artifact = BuildArtifact(cls)
+        artifact.build()
         
-        components = cls._build_components(cls._artifact)
+        components = cls._build_components(artifact)
         
         log.debug("Returning assembled node")
-        return cls._container(cls._artifact, **components)
+        return cls._container(
+            artifact=artifact,
+            components=components,
+            **kwargs
+        )
     
     @staticmethod
     def _build_components(artifact: BuildArtifact):

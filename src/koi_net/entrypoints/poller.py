@@ -30,7 +30,6 @@ class NodePoller(ThreadedComponent):
         self.config = config
         self.exit_event = threading.Event()
         
-        
     def poll(self):
         """Polls neighbor nodes and processes returned events."""
         for node_rid, events in self.resolver.poll_neighbors().items():

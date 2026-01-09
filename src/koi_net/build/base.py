@@ -37,7 +37,7 @@ class BaseAssembly(NodeAssembler):
     root_dir: Path
     startup_event: threading.Event = threading.Event
     shutdown_event: threading.Event = threading.Event
-    control_loop: ControlLoop = ControlLoop
+    # control_loop: ControlLoop = ControlLoop
     log: Logger = lambda root_dir: structlog.stdlib.get_logger().bind(log_dir=root_dir)
     
     def __new__(cls, *args, root_dir: Path, **kwargs):
