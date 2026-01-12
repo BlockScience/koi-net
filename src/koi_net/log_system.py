@@ -22,6 +22,11 @@ shared_log_processors: list[Callable] = [
     structlog.contextvars.merge_contextvars
 ]
 
+def delete_file_handler(log_dir: str):
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, PartitionedFileHandler):
+            handler.del_handler(log_dir)
+
 class PartitionedFileHandler(logging.Handler):
     def __init__(
         self,
@@ -43,10 +48,15 @@ class PartitionedFileHandler(logging.Handler):
         
         super().__init__()
         
+    def del_handler(self, log_dir: str):
+        if log_dir in self.handlers:
+            self.handlers[log_dir].close()
+            del self.handlers[log_dir]
+        
     def get_handler(self, log_dir: str):
         if log_dir not in self.handlers:
             file_handler = RotatingFileHandler(
-                filename=log_dir,
+                filename=Path(log_dir) / Path(self.log_file_name),
                 maxBytes=self.max_log_file_size,
                 backupCount=self.max_log_file_backups,
                 encoding=self.log_file_encoding,
@@ -71,8 +81,7 @@ class PartitionedFileHandler(logging.Handler):
             print("FAILED EMIT:", record.msg)
             return
         
-        log_dir_path = Path(log_dir) / Path(self.log_file_name)
-        self.get_handler(str(log_dir_path)).emit(record)
+        self.get_handler(str(log_dir)).emit(record)
         
 
 class LogSystem:

@@ -2,13 +2,19 @@
 from pathlib import Path
 import time
 
-from koi_net.config.proxy import ConfigProxy
+from pydantic import BaseModel
 
-from ..exceptions import LocalNodeNotFoundError
-from ..models import NetworkConfigLoader, KoiNetworkConfig
+from ..config.proxy import ConfigProxy
+from ..config.loader import ConfigLoader
 from .node import NodeInterface
 
 
+class KoiNetworkConfig(BaseModel):
+    first_contact: str | None = None
+    nodes: dict[str, str] = {}
+
+class NetworkConfigLoader(ConfigLoader):
+    file_path: str = "koi-network-config.yaml"
 
 class NetworkInterface:
     def __init__(self):
@@ -18,22 +24,39 @@ class NetworkInterface:
             config=self.config,
             root_dir=Path.cwd()
         )
-    
-    def load_node(self, name: str) -> NodeInterface:
-        if name not in self.config.nodes:
-            raise ValueError(f"Node '{name}' not found in config")
         
-        module_name = self.config.nodes[name]
-        return NodeInterface(name, module_name)
+        self.nodes: dict[str, NodeInterface] = self.load_nodes()
+    
+    # def load_node(self, name: str) -> NodeInterface:
+    #     if name not in self.config.nodes:
+    #         raise ValueError(f"Node '{name}' not found in config")
+        
+    #     module_name = self.config.nodes[name]
+    #     return NodeInterface(name, module_name)
     
     def load_nodes(self) -> list[NodeInterface]:
-        return [NodeInterface(n, m) for n, m in self.config.nodes.items()]
+        nodes = {
+            name: NodeInterface(name, module)
+            for name, module in self.config.nodes.items()
+        }
+        print(f"Loaded {len(nodes)} nodes")
+        return nodes
+        
+    def resolve_node(self, name: str) -> NodeInterface:
+        if name not in self.nodes:
+            raise Exception("Node not found")
+        return self.nodes[name]
+        
     
     def add_node(self, node: NodeInterface):
+        self.nodes[node.name] = node
+        
         self.config.nodes[node.name] = node.module
         self.config_loader.save_to_yaml()
         
     def remove_node(self, node: NodeInterface):
+        del self.nodes[node.name]
+        
         if node.name in self.config.nodes:
             del self.config.nodes[node.name]
             self.config_loader.save_to_yaml()

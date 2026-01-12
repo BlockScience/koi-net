@@ -1,6 +1,7 @@
 from pathlib import Path
 import threading
 from logging import Logger
+import time
 from typing import Any
 
 from .artifact import BuildArtifact
@@ -12,8 +13,11 @@ class NodeContainer:
     """Dummy 'shape' for node containers built by assembler."""
     _artifact: BuildArtifact
     
-    shutdown_event: threading.Event
-    startup_event: threading.Event
+    can_start: threading.Event
+    ready: threading.Event
+    shutdown_requested: threading.Event
+    
+    
     log: Logger
     root_dir: Path
     
@@ -26,33 +30,52 @@ class NodeContainer:
         # adds all components as attributes of this instance
         for name, comp in components.items():
             setattr(self, name, comp)
+            
+        self.can_start.set()
     
     @bind_logdir
     def run(self):
         try:
             self.start()
-            self.startup_event.set()
-            self.shutdown_event.wait()
+            while not self.shutdown_requested.wait(0.5):
+                pass
+            
         except KeyboardInterrupt:
             self.log.info("Received keyboard interrupt")
-            self.shutdown_event.set()
+            self.shutdown_requested.set()
+            
         finally:
             self.stop()
     
     @bind_logdir
     def start(self):
+        if not self.can_start.is_set():
+            self.log.warning("Node cannot be started")
+            return
+        
         self.log.info("Starting node...")
+        self.can_start.clear()
         for comp_name in self._artifact.start_order:
             comp = getattr(self, comp_name)
             start_func = getattr(comp, START_FUNC_NAME)
             self.log.info(f"Starting {comp_name}...")
             start_func()
-    
+        
+        self.ready.set()
+        
     @bind_logdir
     def stop(self):
+        if not self.ready.is_set() and not self.shutdown_requested.is_set():
+            self.log.warning("Node cannot be stopped")
+            return
+        
+        self.ready.clear()
         self.log.info("Stopping node...")
         for comp_name in self._artifact.stop_order:
             comp = getattr(self, comp_name)
             stop_func = getattr(comp, STOP_FUNC_NAME)
             self.log.info(f"Stopping {comp_name}...")
             stop_func()
+            
+        self.shutdown_requested.clear()
+        self.can_start.set()

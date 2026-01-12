@@ -16,12 +16,11 @@ class ModuleTracker:
     def __init__(self):
         self.module_names: set[str] = set()
         self.module_alias_map: dict[str, str] = {}
-        self.module_class_map: dict[str, type[BaseNode]] = {}
 
         self.load_module_names()
         
     def resolve_ref(self, module_ref) -> str:
-        if module_ref in self.module_class_map:
+        if module_ref in self.module_names:
             module_name = module_ref
         elif module_ref in self.module_alias_map:
             module_name = self.module_alias_map[module_ref]
