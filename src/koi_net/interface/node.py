@@ -3,12 +3,14 @@ from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any
 
-import typer
+import logging
 from pydantic import ValidationError
 from jsonpointer import JsonPointer
 from rich.console import Console
 from rich.panel import Panel
-from ..module_tracker import module_tracker
+
+from koi_net.log_system import delete_file_handler
+from .module_tracker import module_tracker
 
 from koi_net.config.env_config import EnvConfig
 
@@ -30,9 +32,15 @@ class NodeInterface:
         
         self.module = module_tracker.resolve_ref(module_ref)
         self.node_class = module_tracker.load_class(self.module)
-        self.container = self.node_class(root_dir=Path(self.name))
+        self._container = None
         
         self.console = Console()
+    
+    @property
+    def container(self):
+        if not self._container:
+            self._container = self.node_class(root_dir=Path(self.name))
+        return self._container
     
     def create(self):
         try:
@@ -44,6 +52,7 @@ class NodeInterface:
         return os.path.isdir(self.name)
     
     def delete(self):
+        delete_file_handler(self.name)
         shutil.rmtree(self.name)
         
     def init(self):

@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Generator, Generic, TypeVar
 
 from .proxy import ConfigProxy
 from .base import BaseNodeConfig

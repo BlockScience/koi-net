@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 from koi_net.cli.exceptions import LocalNodeNotFoundError
 
 from . import utils
-from .interfaces.network import NetworkInterface
-from .interfaces.node import MissingEnvVariablesError, LocalNodeExistsError, NodeInterface
+from ..interface.network import NetworkInterface
+from ..interface.node import NodeInterface
 
 load_dotenv()
 
