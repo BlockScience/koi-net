@@ -22,7 +22,7 @@ class ThreadedComponent:
         if self.thread and self.thread.is_alive():
             self.thread.join()
         else:
-            print("component has already stopped")
+            print(f"component {self.__class__.__name__} has already stopped")
     
     @bind_logdir
     def run_with_log_ctx(self):

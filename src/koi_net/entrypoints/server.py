@@ -1,6 +1,7 @@
 import socket
 import threading
 from logging import Logger
+import time
 from typing import TYPE_CHECKING
 
 from ..build.threaded_component import ThreadedComponent
@@ -109,6 +110,9 @@ class NodeServer(ThreadedComponent):
         self.config_loader.save_to_yaml()
     
     def run(self):
+        self.server.run()
+        
+    def start(self):
         self.acquire_port()
         
         import uvicorn
@@ -121,7 +125,13 @@ class NodeServer(ThreadedComponent):
             lifespan="off"
         ))
         
-        self.server.run()
+        super().start()
+        
+        deadline = time.monotonic() + 10
+        while not self.server.started:
+            if time.monotonic() > deadline:
+                raise RuntimeError("Server failed to start")
+            time.sleep(0.1)
     
     def stop(self):
         if not self.server:

@@ -17,7 +17,6 @@ dependencies = [
     "cryptography>=45.0.3",
     "fastapi>=0.115.12",
     "uvicorn>=0.34.2",
-    "typer>=0.17.4",
     "rich>=14.1.0",
     "structlog>=25.4.0",
     "pydantic-settings>=2.12.0",
@@ -33,7 +32,7 @@ docs = [
 ]
 
 [project.scripts]
-koi = "koi_net.cli:app"
+koi-sh = "koi_net.interface.shell:run"
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
