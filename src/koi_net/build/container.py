@@ -1,13 +1,19 @@
-from pathlib import Path
 import threading
+from enum import StrEnum
+from pathlib import Path
 from logging import Logger
-import time
 from typing import Any
 
 from .artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
 from ..utils import bind_logdir
 
+
+class NodeState(StrEnum):
+    IDLE = "IDLE"
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    STOPPING = "STOPPING"
 
 class NodeContainer:
     """Dummy 'shape' for node containers built by assembler."""
@@ -32,6 +38,18 @@ class NodeContainer:
             setattr(self, name, comp)
             
         self.can_start.set()
+    
+    def get_state(self) -> NodeState:
+        if self.can_start.is_set():
+            return NodeState.IDLE
+        else:
+            if self.ready.is_set():
+                if self.shutdown_requested.is_set():
+                    return NodeState.STOPPING
+                else:
+                    return NodeState.RUNNING
+            else:
+                return NodeState.STOPPING
     
     @bind_logdir
     def run(self):

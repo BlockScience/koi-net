@@ -4,6 +4,9 @@ import time
 
 from pydantic import BaseModel
 
+from koi_net.build.container import NodeState
+from koi_net.interface.exceptions import LocalNodeNotFoundError
+
 from ..config.proxy import ConfigProxy
 from ..config.loader import ConfigLoader
 from .node import NodeInterface
@@ -25,7 +28,7 @@ class NetworkInterface:
             root_dir=Path.cwd()
         )
         
-        self.nodes: dict[str, NodeInterface] = self.load_nodes()
+        self.nodes: list[NodeInterface] = self.load_nodes()
     
     # def load_node(self, name: str) -> NodeInterface:
     #     if name not in self.config.nodes:
@@ -35,27 +38,26 @@ class NetworkInterface:
     #     return NodeInterface(name, module_name)
     
     def load_nodes(self) -> list[NodeInterface]:
-        nodes = {
-            name: NodeInterface(name, module)
-            for name, module in self.config.nodes.items()
-        }
+        nodes = [
+            NodeInterface(name, module) for name, module in self.config.nodes.items()
+        ]
         print(f"Loaded {len(nodes)} nodes")
         return nodes
         
     def resolve_node(self, name: str) -> NodeInterface:
-        if name not in self.nodes:
-            raise Exception("Node not found")
-        return self.nodes[name]
+        for node in self.nodes:
+            if node.name == name:
+                return node
         
+        raise LocalNodeNotFoundError(f"Node '{name}' not found")
     
     def add_node(self, node: NodeInterface):
-        self.nodes[node.name] = node
-        
+        self.nodes.append(node)
         self.config.nodes[node.name] = node.module
         self.config_loader.save_to_yaml()
         
     def remove_node(self, node: NodeInterface):
-        del self.nodes[node.name]
+        self.nodes.remove(node)
         
         if node.name in self.config.nodes:
             del self.config.nodes[node.name]
@@ -67,7 +69,7 @@ class NetworkInterface:
         #     self.config_loader.save_to_yaml()
     
     def sync(self):
-        for node in self.load_nodes():
+        for node in self.nodes:
             if not node.exists():
                 node.create()
                 node.init()
@@ -76,37 +78,50 @@ class NetworkInterface:
         if first_contact:
             if first_contact in self.config.nodes:
                 # configure first contact for unconfigured nodes
-                for node in self.load_nodes():
-                    if not node.get_config("/koi_net/first_contact/rid"):
-                        pass
+                
+                fc_node = self.resolve_node(first_contact)
+                fc_rid = fc_node.container.config.koi_net.node_rid
+                fc_url = fc_node.container.config.koi_net.node_profile.base_url
+                
+                for node in self.nodes:
+                    if node is fc_node:
+                        continue
+                    
+                    with node.mutate_config() as config:
+                        config.koi_net.first_contact.rid = fc_rid
+                        config.koi_net.first_contact.url = fc_url
+                    
             else:
                 # unset firstcontact for configured nodes -- wait how would i know?
                 # dependent on prev state ie which node removed
                 ...
+                
+    def state(self):
+        for node in self.nodes:
+            print(node.name, node.state())
     
     def run(self):
         try:
-            nodes = self.load_nodes()
-            running_nodes: list[NodeInterface] = []
-            for node in nodes:
-                if not node.start():
-                    break
-                
-                running_nodes.append(node)
+            self.start()
             
-            if len(nodes) != len(running_nodes):
-                print("Aborting run")
-                return
-            
-            print(f"Completed startup of {len(nodes)} nodes!")
+            print(f"Completed startup of {len(self.nodes)} nodes!")
             print("Press Ctrl + C to quit")
-            while any(n.process.poll() is None for n in running_nodes):
+            while any(n.state() is NodeState.RUNNING for n in self.nodes):
                 time.sleep(0.5)
                 
         except KeyboardInterrupt:
             pass
         
         finally:
-            for node in reversed(running_nodes):
+            self.stop()
+    
+    def start(self):
+        for node in self.nodes:
+            if node.state() == NodeState.IDLE:
+                node.start()
+            
+    def stop(self):
+        for node in reversed(self.nodes):
+            if node.state() == NodeState.RUNNING:
                 node.stop()
         

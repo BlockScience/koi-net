@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import shutil
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generator
 
 import logging
 from pydantic import ValidationError
@@ -9,6 +9,7 @@ from jsonpointer import JsonPointer
 from rich.console import Console
 from rich.panel import Panel
 
+from koi_net.build.container import NodeState
 from koi_net.log_system import delete_file_handler
 from .module_tracker import module_tracker
 
@@ -81,18 +82,34 @@ class NodeInterface:
         
         self.container.config_loader.start()
         self.console.print(f"Initialized '{self.container.identity.rid}'")
-        
+    
+    def state(self):
+        return self.container.get_state()
+    
     def run(self):
         self.container.run()
         
     def start(self):
-        self.container.start()
+        if self.state() == NodeState.IDLE:
+            print(f"Starting {self.name}...", end=" ", flush=True)
+            self.container.start()
+            print("Done")
+        else:
+            print("Node already started")
         
     def stop(self):
-        self.container.stop()
+        if self.state() == NodeState.RUNNING:
+            print(f"Stopping {self.name}...", end=" ", flush=True)
+            self.container.stop()
+            print("Done")
+        else:
+            print("Node already stopped")
         
     def wipe(self):
         self.container.cache.drop()
+        
+    def mutate_config(self):
+        return self.container.config_loader.mutate()
         
     def get_config(self, jp: str) -> Any:
         config_json = self.container.config.model_dump()
@@ -114,28 +131,3 @@ class NodeInterface:
     def unset_config(self, jp: str):
         self.set_config(jp, None)
     
-    # @property
-    # def app(self) -> typer.Typer:
-    #     app = typer.Typer()
-    #     config = typer.Typer()
-    #     app.add_typer(config, name=CONFIG)
-        
-    #     app.command(INIT)(self.init)
-    #     app.command(RUN)(self.run)
-    #     app.command(WIPE)(self.wipe)
-         
-    #     @config.command(GET)
-    #     def config_get(jp: str):
-    #         val = self.config_get(jp)
-    #         if val is not None:
-    #             print(val)
-        
-    #     @config.command(SET)
-    #     def config_set(jp: str, val: str):
-    #         self.config_set(jp, val)
-        
-    #     @config.command(UNSET)
-    #     def config_unset(jp: str):
-    #         self.config_unset(jp)
-            
-    #     return app
