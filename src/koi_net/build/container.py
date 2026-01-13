@@ -73,17 +73,20 @@ class NodeContainer:
         
         self.log.info("Starting node...")
         self.can_start.clear()
-        for comp_name in self._artifact.start_order:
-            comp = getattr(self, comp_name)
-            start_func = getattr(comp, START_FUNC_NAME)
-            self.log.info(f"Starting {comp_name}...")
-            start_func()
         
-        self.ready.set()
+        try:
+            for comp_name in self._artifact.start_order:
+                comp = getattr(self, comp_name)
+                start_func = getattr(comp, START_FUNC_NAME)
+                self.log.info(f"Starting {comp_name}...")
+                start_func()
+        
+        finally:
+            self.ready.set()
         
     @bind_logdir
-    def stop(self):
-        if not self.ready.is_set() and not self.shutdown_requested.is_set():
+    def stop(self, force: bool = False):
+        if not force and not self.ready.is_set() and not self.shutdown_requested.is_set():
             self.log.warning("Node cannot be stopped")
             return
         

@@ -1,8 +1,10 @@
 import socket
-import threading
-from logging import Logger
 import time
+from logging import Logger
 from typing import TYPE_CHECKING
+
+from fastapi import Request
+from structlog.contextvars import bound_contextvars
 
 from ..build.threaded_component import ThreadedComponent
 from ..config.loader import ConfigLoader
@@ -69,16 +71,26 @@ class NodeServer(ThreadedComponent):
     def build_app(self):
         """Builds FastAPI app."""
         from fastapi import FastAPI, APIRouter
+        from starlette.middleware.base import BaseHTTPMiddleware
 
         self.app = FastAPI(
             title="KOI-net Protocol API",
             version="1.1.0"
         )
         
-        self.app.add_exception_handler(ProtocolError, self.protocol_error_handler)
+        self.app.add_middleware(BaseHTTPMiddleware, dispatch=self.logging_middleware)
+        self.app.add_exception_handler(ProtocolError, handler=self.protocol_error_handler)
         self.router = APIRouter(prefix="/koi-net")
         self.build_endpoints(self.router)
         self.app.include_router(self.router)
+    
+    async def logging_middleware(self, request: Request, call_next):
+        """Binds contextvars per HTTP request, and emits access logs."""
+        with bound_contextvars(log_dir=self.root_dir):
+            self.log.info(f"Request from {request.client.host}:{request.client.port} - {request.method} {request.url.path}")
+            response = await call_next(request)
+            self.log.info(f"Response code {response.status_code}")
+            return response
         
     def protocol_error_handler(self, request, exc: ProtocolError):
         """Catches `ProtocolError` and returns an `ErrorResponse` payload."""
@@ -122,6 +134,7 @@ class NodeServer(ThreadedComponent):
             host=self.config.server.host,
             port=self.config.server.port,
             log_config=None,
+            access_log=False,
             lifespan="off"
         ))
         
