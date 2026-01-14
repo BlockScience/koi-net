@@ -1,6 +1,10 @@
 import cmd
 from functools import wraps
 
+from rich.console import Console
+from rich.table import Table
+from rich import box
+
 from ..build.container import NodeState
 from ..log_system import LogSystem
 from .exceptions import LocalNodeNotFoundError
@@ -16,7 +20,10 @@ class KoiShell(cmd.Cmd):
     def __init__(self):
         super().__init__()
         LogSystem(use_console_handler=False)
+        self.console = Console()
         self.network = NetworkInterface()
+        
+        self.console.print(f"[green]Loaded {len(module_tracker.module_names)} modules[/green]")
         
     @staticmethod
     def load_node(func):
@@ -45,6 +52,20 @@ class KoiShell(cmd.Cmd):
     def do_QUIT(self, arg: str):
         self.network.stop()
         return True
+    
+    def do_help(self, arg: str):
+        cmds = {
+            "node": ["add", "rm", "list", "modules", "init", "wipe", "start", "stop", "run"],
+            "network": ["sync", "state", "start", "stop", "run"],
+            "quit": [],
+            "QUIT": []
+        }
+        
+        for cmd, subcmds in cmds.items():
+            print(cmd)
+            if subcmds:
+                for subcmd in subcmds:
+                    print("\t"+subcmd)
     
     @parse_args
     def do_node(self, sub_cmd: str, *args):
@@ -113,12 +134,24 @@ class KoiShell(cmd.Cmd):
         self.network.remove_node(node)
         
     def node_list(self):
+        table = Table(
+            box=box.SIMPLE,
+            show_edge=False, 
+            pad_edge=False
+        )
+        table.add_column("name")
+        table.add_column("module")
+        table.add_column("rid")
         for node in self.network.nodes:
             if not node.exists():
                 continue
             
             node_rid = node.container.config.koi_net.node_rid
-            print(f"{node.name} ({node.module}): {node_rid}")
+            
+            table.add_row(node.name, node.module, str(node_rid))
+        
+        print()
+        self.console.print(table)
             
     def node_modules(self):
         module_alias_map: dict[str, set[str]] = {}
