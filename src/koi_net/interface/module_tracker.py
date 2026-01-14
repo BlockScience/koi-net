@@ -17,10 +17,8 @@ class ModuleTracker:
         self.module_names: set[str] = set()
         # alias -> module name
         self.alias_module_map: dict[str, str] = {}
-
+        
         self.load_module_names()
-        for name in self.module_names:
-            print(f"Found module '{name}'")
         
     def resolve_ref(self, module_ref) -> str:
         if module_ref in self.module_names:
