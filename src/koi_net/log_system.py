@@ -1,7 +1,7 @@
-from pathlib import Path
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from datetime import datetime
 from typing import Callable
 
@@ -22,10 +22,6 @@ shared_log_processors: list[Callable] = [
     structlog.contextvars.merge_contextvars
 ]
 
-def delete_file_handler(log_dir: str):
-    for handler in logging.getLogger().handlers:
-        if isinstance(handler, PartitionedFileHandler):
-            handler.del_handler(log_dir)
 
 class PartitionedFileHandler(logging.Handler):
     def __init__(
@@ -78,8 +74,8 @@ class PartitionedFileHandler(logging.Handler):
             log_dir = record.msg["log_dir"]
         
         else:
-            print("FAILED EMIT:", record.msg)
-            return
+            # print("FAILED EMIT")
+            log_dir = Path("missing")
         
         self.get_handler(str(log_dir)).emit(record)
         
@@ -92,19 +88,33 @@ class LogSystem:
     file_handler_log_level: int
     console_handler_log_level: int
     
-    def __init__(
-        self,
+    _instance = None
+    
+    def __new__(
+        cls,
         use_file_handler: bool = True,
         use_console_handler: bool = True,
         file_handler_log_level: int = logging.DEBUG,
-        console_handler_log_level: int = logging.DEBUG,
+        console_handler_log_level: int = logging.INFO
     ):
-        self.use_file_handler = use_file_handler
-        self.use_console_handler = use_console_handler
-        self.file_handler_log_level = file_handler_log_level
-        self.console_handler_log_level = console_handler_log_level
-        
-        self.configure()
+        """Only instantiable once, other calls will return the first object."""
+        if not cls._instance:
+            obj = super().__new__(cls)
+            obj.use_file_handler = use_file_handler
+            obj.use_console_handler = use_console_handler
+            obj.file_handler_log_level = file_handler_log_level
+            obj.console_handler_log_level = console_handler_log_level
+            
+            obj.configure()
+            cls._instance = obj
+            
+        return cls._instance
+    
+    @staticmethod
+    def delete_file_handler(log_dir: str):
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, PartitionedFileHandler):
+                handler.del_handler(log_dir)
         
     def configure(self):
         handlers = []

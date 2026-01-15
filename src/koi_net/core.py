@@ -75,7 +75,7 @@ class BaseNode(BaseAssembly):
     profile_monitor: ProfileMonitor = ProfileMonitor
     
     def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
-        # cls._log_system()
+        cls._log_system()
         return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
 class FullNode(BaseNode):

@@ -2,6 +2,7 @@ import importlib
 import inspect
 import pkgutil
 from importlib.metadata import entry_points
+from types import ModuleType
 
 from ..core import BaseNode
 
@@ -12,11 +13,12 @@ MODULE_POSTFIX = "_node"
 MODULE_CORE = ".core"
 
 
-class ModuleTracker:
+class ModuleInterface:
     def __init__(self):
         self.module_names: set[str] = set()
         # alias -> module name
         self.alias_module_map: dict[str, str] = {}
+        self.module_map: dict[str, ModuleType] = {}
         
         self.load_module_names()
         
@@ -26,14 +28,24 @@ class ModuleTracker:
         elif module_ref in self.alias_module_map:
             module_name = self.alias_module_map[module_ref]
         else:
-            raise ModuleNotFoundError(f"Couldn't resolve '{module_ref}'")
+            raise ModuleNotFoundError(f"Couldn't resolve module reference '{module_ref}'")
         
         return module_name
     
-    def load_class(self, module_name):
-        core = importlib.import_module(module_name + MODULE_CORE)
-        for _, obj in inspect.getmembers(core):
-            if (getattr(obj, "__module__", None) == core.__name__ 
+    def load_class(self, module_name: str, reload_module: bool = False):
+        if module_name not in self.module_map:
+            print(f"loading module {module_name}")
+            module = importlib.import_module(module_name + MODULE_CORE)
+            self.module_map[module_name] = module
+        elif reload_module:
+            print(f"reloading module {module_name}")
+            module = importlib.reload(self.module_map[module_name])
+            self.module_map[module_name] = module
+        else:
+            module = self.module_map[module_name]
+        
+        for _, obj in inspect.getmembers(module):
+            if (getattr(obj, "__module__", None) == module.__name__ 
                 and issubclass(obj, BaseNode)):
                 return obj
         
@@ -48,4 +60,4 @@ class ModuleTracker:
                 module_alias = module.name[len(MODULE_PREFIX):-len(MODULE_POSTFIX)]
                 self.alias_module_map.setdefault(module_alias, module.name)
 
-module_tracker = ModuleTracker()
+module_interface = ModuleInterface()

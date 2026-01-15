@@ -28,8 +28,6 @@ class ControlLoop:
             if line.strip() == STOP_SIGNAL:
                 self.shutdown_request.set()
         
-        print("CLOSED STDIN")
-        
         self.shutdown_request.set()
         
     def start(self):
