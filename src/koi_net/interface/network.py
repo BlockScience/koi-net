@@ -1,12 +1,10 @@
 
-from pathlib import Path
 import time
+from pathlib import Path
 
 from pydantic import BaseModel
 
-from koi_net.build.container import NodeState
-from koi_net.interface.exceptions import LocalNodeNotFoundError
-
+from ..build.container import NodeState
 from ..config.proxy import ConfigProxy
 from ..config.loader import ConfigLoader
 from .node import NodeInterface
@@ -28,29 +26,22 @@ class NetworkInterface:
             root_dir=Path.cwd()
         )
         
-        self.nodes: list[NodeInterface] = self.load_nodes()
-    
-    # def load_node(self, name: str) -> NodeInterface:
-    #     if name not in self.config.nodes:
-    #         raise ValueError(f"Node '{name}' not found in config")
-        
-    #     module_name = self.config.nodes[name]
-    #     return NodeInterface(name, module_name)
+        self.nodes: list[NodeInterface] = []
+        self.load_nodes()
     
     def load_nodes(self) -> list[NodeInterface]:
-        nodes = [
-            NodeInterface(name, module) for name, module in self.config.nodes.items()
-        ]
-        print(f"Loaded {len(nodes)} nodes")
-        return nodes
-        
-    def resolve_node(self, name: str) -> NodeInterface:
+        for name, module in self.config.nodes.items():
+            node = NodeInterface.from_ref(name, module)
+            self.nodes.append(node)
+            
+            if node.exists():
+                node.init()
+            
+    def resolve_node(self, name: str) -> NodeInterface | None:
         for node in self.nodes:
             if node.name == name:
                 return node
-        
-        raise LocalNodeNotFoundError(f"Node '{name}' not found")
-    
+            
     def add_node(self, node: NodeInterface):
         self.nodes.append(node)
         self.config.nodes[node.name] = node.module
@@ -72,7 +63,6 @@ class NetworkInterface:
         for node in self.nodes:
             if not node.exists():
                 node.create()
-                node.init()
         
         first_contact = self.config.first_contact
         if first_contact:
@@ -80,8 +70,8 @@ class NetworkInterface:
                 # configure first contact for unconfigured nodes
                 
                 fc_node = self.resolve_node(first_contact)
-                fc_rid = fc_node.container.config.koi_net.node_rid
-                fc_url = fc_node.container.config.koi_net.node_profile.base_url
+                fc_rid = fc_node.node.config.koi_net.node_rid
+                fc_url = fc_node.node.config.koi_net.node_profile.base_url
                 
                 for node in self.nodes:
                     if node is fc_node:
@@ -116,12 +106,14 @@ class NetworkInterface:
             self.stop()
     
     def start(self):
-        for node in self.nodes:
+        for name in self.config.nodes:
+            node = self.resolve_node(name)
             if node.state() == NodeState.IDLE:
                 node.start()
             
     def stop(self):
-        for node in reversed(self.nodes):
+        for name in reversed(self.config.nodes):
+            node = self.resolve_node(name)
             if node.state() == NodeState.RUNNING:
                 node.stop()
         

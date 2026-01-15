@@ -23,12 +23,8 @@ class NodeContainer:
     ready: threading.Event
     shutdown_requested: threading.Event
     
-    
     log: Logger
     root_dir: Path
-    
-    # TODO: prevent starting twice or stopping when not alive
-    # TODO: figure out whether control loop is necessary, new set of primitives for coordinating node lifecycle internally
     
     def __init__(self, artifact, components: dict[str, Any]):
         self._artifact = artifact

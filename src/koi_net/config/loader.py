@@ -1,6 +1,11 @@
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Generic, TypeVar
+from typing import Generic, TypeVar
+
+from pydantic import ValidationError
+
+from koi_net.config.env_config import EnvConfig
+from koi_net.exceptions import MissingEnvVarsError
 
 from .proxy import ConfigProxy
 from .base import BaseNodeConfig
@@ -26,6 +31,8 @@ class ConfigLoader(Generic[T]):
         # this is a special case to allow config state dependent components
         # to initialize without a "lazy initialization" approach, in general
         # components SHOULD NOT execute code in their init phase
+        
+        self.validate_env_vars()
         self.load_from_yaml()
         
     def start(self):
@@ -35,6 +42,22 @@ class ConfigLoader(Generic[T]):
     def mutate(self):
         yield self.proxy
         self.save_to_yaml()
+        
+    def validate_env_vars(self):
+        for field in self.schema.model_fields.values():
+            field_class = field.annotation
+            if issubclass(field_class, EnvConfig):
+                try:
+                    field_class()
+                except ValidationError as exc:
+                    missing_vars = [
+                        err["loc"][0].upper()
+                        for err in exc.errors()
+                        if err["type"] == "missing"
+                    ]
+                    raise MissingEnvVarsError(
+                        f"Missing required vars: {','.join(v for v in missing_vars)}",
+                        vars=missing_vars)
     
     def load_from_yaml(self):
         """Loads config from YAML file, or generates it if missing."""
