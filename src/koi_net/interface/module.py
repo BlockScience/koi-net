@@ -34,11 +34,11 @@ class ModuleInterface:
     
     def load_class(self, module_name: str, reload_module: bool = False):
         if module_name not in self.module_map:
-            print(f"loading module {module_name}")
+            print(f"Loading module '{module_name}'...")
             module = importlib.import_module(module_name + MODULE_CORE)
             self.module_map[module_name] = module
         elif reload_module:
-            print(f"reloading module {module_name}")
+            print(f"Reloading module '{module_name}'...")
             module = importlib.reload(self.module_map[module_name])
             self.module_map[module_name] = module
         else:

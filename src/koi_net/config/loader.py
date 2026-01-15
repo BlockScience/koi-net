@@ -1,3 +1,4 @@
+import inspect
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generic, TypeVar
@@ -45,10 +46,10 @@ class ConfigLoader(Generic[T]):
         
     def validate_env_vars(self):
         for field in self.schema.model_fields.values():
-            field_class = field.annotation
-            if issubclass(field_class, EnvConfig):
+            field_type = field.annotation
+            if inspect.isclass(field_type) and issubclass(field_type, EnvConfig):
                 try:
-                    field_class()
+                    field_type()
                 except ValidationError as exc:
                     missing_vars = [
                         err["loc"][0].upper()

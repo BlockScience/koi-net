@@ -35,6 +35,7 @@ class NetworkInterface:
             self.nodes.append(node)
             
             if node.exists():
+                print(f"Loading node '{node.name}'...")
                 node.init()
             
     def resolve_node(self, name: str) -> NodeInterface | None:

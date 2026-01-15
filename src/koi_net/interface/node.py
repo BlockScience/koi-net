@@ -81,6 +81,8 @@ class NodeInterface:
                         renderable=text, 
                         title="Cannot initialize node, missing the following enironment variables:",
                         border_style="red"))
+            except Exception as err:
+                print(err)
     
     def state(self):
         return self.node.get_state()

@@ -158,8 +158,9 @@ class KoiShell(cmd.Cmd):
         
         if not node.exists():
             node.create()
-            
-        self.network.add_node(node)
+        
+        if node.initialized:
+            self.network.add_node(node)
     
     @load_node
     def node_rm(self, node: NodeInterface):
