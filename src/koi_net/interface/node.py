@@ -3,7 +3,8 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from jsonpointer import JsonPointer
+from jsonpointer import JsonPointer, JsonPointerException
+from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
 
@@ -113,15 +114,26 @@ class NodeInterface:
         return self.node.config_loader.mutate()
         
     def get_config(self, jp: str) -> Any:
-        config_json = self.node.config.model_dump()
-        return JsonPointer(jp).get(config_json)
+        config_json = self.node.config.model_dump(mode="json")
+        try:
+            val = JsonPointer(jp).get(config_json)
+            return val
+        except JsonPointerException:
+            self.console.print(f"[bold red]Location '{jp}' does not exist[/bold red]")
+            raise KeyError("Invalid JSON pointer")
     
     def set_config(self, jp: str, val: Any):
         data = self.node.config.model_dump()
         pointer = JsonPointer(jp)
         prev_val = pointer.get(data)
         pointer.set(data, val)
-        config = self.node.config_schema.model_validate(data)
+        
+        try:
+            config = self.node.config_schema.model_validate(data)
+        except ValidationError as err:
+            self.console.print(f"[bold red]Invalid value '{val}': {err.errors()[0]['msg']}[/bold red]")
+            return
+            
         self.node.config._set_delegate(config)
         self.node.config_loader.save_to_yaml()
         

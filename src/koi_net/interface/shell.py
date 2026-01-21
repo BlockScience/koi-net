@@ -1,4 +1,6 @@
 import cmd
+import inspect
+import shlex
 from functools import wraps
 
 from rich.console import Console
@@ -7,7 +9,6 @@ from rich import box
 
 from ..build.container import NodeState
 from ..log_system import LogSystem
-from .exceptions import LocalNodeNotFoundError
 from .module import module_interface
 from .network import NetworkInterface
 from .node import NodeInterface
@@ -25,17 +26,16 @@ class KoiShell(cmd.Cmd):
         self.console.print("KOI shell: [cyan]type `help` for a list of commands[/cyan]")
         
         self.network = NetworkInterface()
-        self.console.print(f"Loaded [green]{len(module_interface.module_names)} module(s)[/green] and [green]{len(self.network.nodes)} node(s)[/green]")
+        self.console.print(f"Found [green]{len(module_interface.module_names)} module(s)[/green] and [green]{len(self.network.nodes)} node(s)[/green]")
         print()
         
     @staticmethod
     def load_node(func):
         @wraps(func)
-        def wrapper(self: "KoiShell", name: str, *args, **kwargs):
-        
+        def wrapper(self: "KoiShell", name: str, *args):
             node = self.network.resolve_node(name)
             if node:
-                return func(self, node, *args, **kwargs)
+                return func(self, node, *args)
             else:
                 print(f"Could not find node '{name}'")
         return wrapper
@@ -43,9 +43,23 @@ class KoiShell(cmd.Cmd):
     @staticmethod
     def parse_args(func):
         @wraps(func)
-        def wrapper(self: "KoiShell", arg: str, *args, **kwargs):
-            parsed_args = arg.split()
+        def wrapper(self: "KoiShell", arg: str, *args):
+            parsed_args = shlex.split(arg)
             return func(self, *parsed_args)
+        return wrapper
+    
+    @staticmethod
+    def validate_args(func):
+        @wraps(func)
+        def wrapper(self: "KoiShell", *args):
+            sig = inspect.signature(func)
+            try:
+                sig.bind(self, *args)
+            except TypeError as err:
+                self.console.print(f"[bold red]{str(err).capitalize()}[/bold red]")
+                return
+            
+            return func(self, *args)
         return wrapper
         
     def do_quit(self, arg: str):
@@ -67,12 +81,16 @@ class KoiShell(cmd.Cmd):
                     # ("init", "<name>", "initializes a node"),
                     ("wipe", "<name>", "wipes a node's RID cache"),
                     
+                    ("config-get", "<name> <loc>", "prints the config value at the specified JSON pointer location"),
+                    ("config-set", "<name> <loc> <val>", "sets the config at JSON pointer location to value"),
+                    ("config-unset", "<name> <loc>", ""),
+                    
                     ("run", "<name>", "runs a node in the foreground"),
                     ("start", "<name>", "starts a node in the background"),
                     ("stop", "<name>", "stops a running background node"),
                     
                     ("list", "", "lists all nodes in the network"),
-                    ("modules", "", "lists all available node modules and their aliases")
+                    ("modules", "", "lists all available node modules and their aliases"),
                 ]
             case "network":
                 cmd_help = [
@@ -82,13 +100,18 @@ class KoiShell(cmd.Cmd):
                     ("state", "", "lists the current state of all network nodes"),
                     ("sync", "", "synchronizes the local environment with the network configuration")
                 ]
+            case "module":
+                cmd_help = [
+                    ("list", "", "lists all detected node modules"),
+                ]
             case _:
                 cmd_help = [
                     ("node", "<sub cmd>", "group of node commands"),
                     ("network", "<sub cmd>", "group of network commands"),
+                    ("module", "<sub cmd>", "group of module commands"),
                     ("help", r"\[cmd]", "list available commands or subcommands"),
                     ("quit", "", "exits the shell"),
-                    ("QUIT", "", "exits the shell, even if nodes are running")
+                    ("QUIT", "", "exits the shell, even if nodes are running"),
                 ]
         
         for cmd_info in cmd_help:
@@ -106,9 +129,15 @@ class KoiShell(cmd.Cmd):
             case "list":
                 self.node_list(*args)
             case "modules":
-                self.module_list()
+                self.module_list(*args)
             # case "init":
             #     self.node_init(*args)
+            case "config-get":
+                self.node_config_get(*args)
+            case "config-set":
+                self.node_config_set(*args)
+            case "config-unset":
+                self.node_config_unset(*args)
             case "wipe":
                 self.node_wipe(*args)
             case "start":
@@ -124,15 +153,17 @@ class KoiShell(cmd.Cmd):
     def do_network(self, sub_cmd: str, *args):
         match sub_cmd:
             case "sync":
-                self.network_sync()
+                self.network_sync(*args)
             case "state":
-                self.network_state()
+                self.network_state(*args)
             case "start":
-                self.network_start()
+                self.network_start(*args)
             case "stop":
-                self.network_stop()
+                self.network_stop(*args)
             case "run":
-                self.network_run()
+                self.network_run(*args)
+            case "set-first-contact":
+                self.network_set_first_contact(*args)
             case _:
                 print(f"Unknown subcommand '{sub_cmd}'")
                 
@@ -140,11 +171,11 @@ class KoiShell(cmd.Cmd):
     def do_module(self, sub_cmd: str, *args):
         match sub_cmd:
             case "list":
-                self.module_list()
+                self.module_list(*args)
             case _:
                 print(f"Unknown subcommand '{sub_cmd}'")
             
-    
+    @validate_args
     def node_add(self, module_ref: str, name: str | None = None):
         name = name or module_ref
         if self.network.resolve_node(name):
@@ -162,6 +193,7 @@ class KoiShell(cmd.Cmd):
         if node.initialized:
             self.network.add_node(node)
     
+    @validate_args
     @load_node
     def node_rm(self, node: NodeInterface):
         if node.exists():
@@ -173,7 +205,8 @@ class KoiShell(cmd.Cmd):
                 return
         
         self.network.remove_node(node)
-        
+    
+    @validate_args
     def node_list(self):
         table = Table("name", "module", "rid", box=box.SIMPLE)
         for node in self.network.nodes:
@@ -183,7 +216,92 @@ class KoiShell(cmd.Cmd):
             node_rid = node.node.config.koi_net.node_rid
             table.add_row(node.name, node.module, str(node_rid))
         self.console.print(table)
+    
+    @validate_args
+    @load_node
+    def node_config_get(self, node: NodeInterface, loc: str):
+        try:
+            val = node.get_config(loc)
+            self.console.print(val)
+        except KeyError:
+            pass
+        
+    @validate_args
+    @load_node
+    def node_config_set(self, node: NodeInterface, loc: str, val: str):
+        node.set_config(loc, val)
+    
+    @validate_args
+    @load_node
+    def node_config_unset(self, node: NodeInterface, loc: str):
+        node.unset_config(loc)
+        
+    # @load_node
+    # def node_init(self, node: NodeInterface):
+    #     node.init()
+    
+    @validate_args
+    @load_node
+    def node_run(self, node: NodeInterface):
+        node.run()
+    
+    @validate_args
+    @load_node
+    def node_start(self, node: NodeInterface):
+        node.start()
+    
+    @validate_args
+    @load_node
+    def node_stop(self, node: NodeInterface):
+        node.stop()
+    
+    @validate_args
+    @load_node
+    def node_wipe(self, node: NodeInterface):
+        node.wipe()
+        print(f"Wiped RID cache of '{node.name}'")
+        
+    @validate_args
+    def network_run(self):
+        self.network.run()
+    
+    @validate_args
+    def network_start(self):
+        self.network.start()
+    
+    @validate_args
+    def network_stop(self):
+        self.network.stop()
+    
+    @validate_args
+    def network_state(self):
+        table = Table("node", "state", box=box.SIMPLE)
+        for node in self.network.nodes:
+            node_state = node.state()
+            match node_state:
+                case NodeState.IDLE:
+                    c = "white"
+                case NodeState.STARTING:
+                    c = "blue"
+                case NodeState.RUNNING:
+                    c = "green"
+                case NodeState.STOPPING:
+                    c = "red"
             
+            table.add_row(node.name, f"[{c}]{node.state()}[/{c}]")
+            
+        self.console.print(table)
+    
+    @validate_args
+    def network_sync(self):
+        self.network.sync()
+    
+    @validate_args
+    @load_node
+    def network_set_first_contact(self, node: NodeInterface):
+        self.network.set_first_contact(node)
+    
+    @validate_args
     def module_list(self):
         table = Table("module", "alias(es)", box=box.SIMPLE)
         module_alias_map: dict[str, set[str]] = {}
@@ -194,7 +312,8 @@ class KoiShell(cmd.Cmd):
             table.add_row(module, ','.join(alias_set))
             
         self.console.print(table)
-        
+    
+    @validate_args
     def module_reload(self, module_ref: str):
         try:
             module = module_interface.resolve_ref(module_ref)
@@ -210,42 +329,5 @@ class KoiShell(cmd.Cmd):
             
             # node.load_module
         
-    
-    # @load_node
-    # def node_init(self, node: NodeInterface):
-    #     node.init()
-    
-    @load_node
-    def node_run(self, node: NodeInterface):
-        node.run()
-    
-    @load_node
-    def node_start(self, node: NodeInterface):
-        node.start()
-    
-    @load_node
-    def node_stop(self, node: NodeInterface):
-        node.stop()
-    
-    @load_node
-    def node_wipe(self, node: NodeInterface):
-        node.wipe()
-        print(f"Wiped RID cache of '{node.name}'")
-        
-    def network_run(self):
-        self.network.run()
-        
-    def network_start(self):
-        self.network.start()
-        
-    def network_stop(self):
-        self.network.stop()
-    
-    def network_state(self):
-        self.network.state()
-        
-    def network_sync(self):
-        self.network.sync()
-
 def run():
     KoiShell().cmdloop()
