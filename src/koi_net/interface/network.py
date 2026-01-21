@@ -3,6 +3,10 @@ import time
 from pathlib import Path
 
 from pydantic import BaseModel
+from rich.console import Console
+
+from koi_net.config.base import BaseNodeConfig
+from koi_net.protocol.node import NodeType
 
 from ..build.container import NodeState
 from ..config.proxy import ConfigProxy
@@ -19,12 +23,15 @@ class NetworkConfigLoader(ConfigLoader):
 
 class NetworkInterface:
     def __init__(self):
-        self.config: KoiNetworkConfig = ConfigProxy()
+        self.config: ConfigProxy | KoiNetworkConfig = ConfigProxy()
+        self.config_schema = KoiNetworkConfig
         self.config_loader = NetworkConfigLoader(
-            config_schema=KoiNetworkConfig,
+            config_schema=self.config_schema,
             config=self.config,
             root_dir=Path.cwd()
         )
+        
+        self.console = Console()
         
         self.nodes: list[NodeInterface] = []
         self.load_nodes()
@@ -35,7 +42,7 @@ class NetworkInterface:
             self.nodes.append(node)
             
             if node.exists():
-                print(f"Loading node '{node.name}'...")
+                # print(f"Loading node '{node.name}'...")
                 node.init()
             
     def resolve_node(self, name: str) -> NodeInterface | None:
@@ -48,45 +55,88 @@ class NetworkInterface:
         self.config.nodes[node.name] = node.module
         self.config_loader.save_to_yaml()
         
+        fc_node = self.get_first_contact()
+        if fc_node:
+            with node.mutate_config() as config:
+                self.apply_first_contact(
+                    source=fc_node.node.config,
+                    target=config
+                )
+    
     def remove_node(self, node: NodeInterface):
         self.nodes.remove(node)
         
         if node.name in self.config.nodes:
             del self.config.nodes[node.name]
             self.config_loader.save_to_yaml()
-        
-        # do this with sync!
-        # if self.config.first_contact == node.name:
-        #     self.config.first_contact = None
-        #     self.config_loader.save_to_yaml()
+            
+        if self.config.first_contact == node.name:
+            self.unset_first_contact(node)
     
+    def get_first_contact(self):
+        if not self.config.first_contact:
+            return
+        
+        return self.resolve_node(self.config.first_contact)
+    
+    def apply_first_contact(self, source: BaseNodeConfig, target: BaseNodeConfig):
+        target.koi_net.first_contact.rid = source.koi_net.node_rid
+        target.koi_net.first_contact.url = source.koi_net.node_profile.base_url
+    
+    def set_first_contact(self, fc_node: NodeInterface):
+        print("Setting first contact...")
+        if fc_node.node.config.koi_net.node_profile.node_type == NodeType.PARTIAL:
+            print("Partial nodes cannot be first contacts")
+            return
+        
+        prev_fc_node = self.get_first_contact()
+        if prev_fc_node:
+            if prev_fc_node == fc_node:
+                print(f"First contact is already {fc_node.name}")
+                return
+            self.unset_first_contact(prev_fc_node)
+        
+        self.config.first_contact = fc_node.name
+        self.config_loader.save_to_yaml()
+        
+        mutated_nodes: int = 0
+        for node in self.nodes:
+            if node is fc_node:
+                continue
+            
+            with node.mutate_config() as config:
+                self.apply_first_contact(
+                    source=fc_node.node.config,
+                    target=config
+                )
+                mutated_nodes += 1
+        
+        print(f"Updated configuration of {mutated_nodes} node(s)")
+    
+    def unset_first_contact(self, fc_node: NodeInterface):
+        print("Unsetting first contact...")
+        if not self.config.first_contact:
+            return
+        
+        self.config.first_contact = None
+        self.config_loader.save_to_yaml()
+        
+        mutated_nodes: int = 0
+        for node in self.nodes:
+            with node.mutate_config() as config:
+                if config.koi_net.first_contact.rid == fc_node.node.config.koi_net.node_rid:
+                    config.koi_net.first_contact.rid = None
+                    config.koi_net.first_contact.url = None
+                    mutated_nodes += 1
+        
+        print(f"Updated configuration of {mutated_nodes} node(s)")
+
     def sync(self):
         for node in self.nodes:
             if not node.exists():
                 node.create()
-        
-        first_contact = self.config.first_contact
-        if first_contact:
-            if first_contact in self.config.nodes:
-                # configure first contact for unconfigured nodes
-                
-                fc_node = self.resolve_node(first_contact)
-                fc_rid = fc_node.node.config.koi_net.node_rid
-                fc_url = fc_node.node.config.koi_net.node_profile.base_url
-                
-                for node in self.nodes:
-                    if node is fc_node:
-                        continue
-                    
-                    with node.mutate_config() as config:
-                        config.koi_net.first_contact.rid = fc_rid
-                        config.koi_net.first_contact.url = fc_url
-                    
-            else:
-                # unset firstcontact for configured nodes -- wait how would i know?
-                # dependent on prev state ie which node removed
-                ...
-                
+    
+
     def state(self):
         for node in self.nodes:
             print(node.name, node.state())
@@ -95,7 +145,7 @@ class NetworkInterface:
         try:
             self.start()
             
-            print(f"Completed startup of {len(self.nodes)} nodes!")
+            print(f"Completed startup of {len(self.nodes)} node(s)!")
             print("Press Ctrl + C to quit")
             while any(n.state() is NodeState.RUNNING for n in self.nodes):
                 time.sleep(0.5)
