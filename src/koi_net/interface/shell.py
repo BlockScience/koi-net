@@ -94,11 +94,16 @@ class KoiShell(cmd.Cmd):
                 ]
             case "network":
                 cmd_help = [
+                    ("sync", "", "synchronizes the local environment with the network configuration"),
+                    ("state", "", "lists the current state of all network nodes"),
+                    
+                    ("set-first-contact", "<name>", "Sets first contact of all nodes in the network"),
+                    ("unset-first-contact", "", "Unsets first contact from all nodes in the network"),
+                    
                     ("run", "", "runs all network nodes in the foreground"),
                     ("start", "", "starts all network nodes in the backround"),
                     ("stop", "", "stops all running background nodes"),
-                    ("state", "", "lists the current state of all network nodes"),
-                    ("sync", "", "synchronizes the local environment with the network configuration")
+                    
                 ]
             case "module":
                 cmd_help = [
@@ -130,8 +135,6 @@ class KoiShell(cmd.Cmd):
                 self.node_list(*args)
             case "modules":
                 self.module_list(*args)
-            # case "init":
-            #     self.node_init(*args)
             case "config-get":
                 self.node_config_get(*args)
             case "config-set":
@@ -156,6 +159,10 @@ class KoiShell(cmd.Cmd):
                 self.network_sync(*args)
             case "state":
                 self.network_state(*args)
+            case "set-first-contact":
+                self.network_set_first_contact(*args)
+            case "unset-first-contact":
+                self.network_unset_first_contact(*args)
             case "start":
                 self.network_start(*args)
             case "stop":
@@ -260,18 +267,10 @@ class KoiShell(cmd.Cmd):
     def node_wipe(self, node: NodeInterface):
         node.wipe()
         print(f"Wiped RID cache of '{node.name}'")
-        
-    @validate_args
-    def network_run(self):
-        self.network.run()
     
     @validate_args
-    def network_start(self):
-        self.network.start()
-    
-    @validate_args
-    def network_stop(self):
-        self.network.stop()
+    def network_sync(self):
+        self.network.sync()
     
     @validate_args
     def network_state(self):
@@ -293,13 +292,27 @@ class KoiShell(cmd.Cmd):
         self.console.print(table)
     
     @validate_args
-    def network_sync(self):
-        self.network.sync()
-    
-    @validate_args
     @load_node
     def network_set_first_contact(self, node: NodeInterface):
         self.network.set_first_contact(node)
+    
+    @validate_args
+    def network_unset_first_contact(self):
+        fc_node = self.network.get_first_contact()
+        if fc_node:
+            self.network.unset_first_contact(fc_node)
+    
+    @validate_args
+    def network_run(self):
+        self.network.run()
+    
+    @validate_args
+    def network_start(self):
+        self.network.start()
+    
+    @validate_args
+    def network_stop(self):
+        self.network.stop()
     
     @validate_args
     def module_list(self):
