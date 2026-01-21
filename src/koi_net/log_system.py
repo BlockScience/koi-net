@@ -74,8 +74,8 @@ class PartitionedFileHandler(logging.Handler):
             log_dir = record.msg["log_dir"]
         
         else:
-            # print("FAILED EMIT")
-            log_dir = Path("missing")
+            print(f"DROPPED LOG: {record.msg}")
+            return
         
         self.get_handler(str(log_dir)).emit(record)
         
