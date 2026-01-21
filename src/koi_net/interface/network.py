@@ -132,9 +132,20 @@ class NetworkInterface:
         print(f"Updated configuration of {mutated_nodes} node(s)")
 
     def sync(self):
+        fc_node = self.get_first_contact()
+        if fc_node and not fc_node.exists():
+            fc_node.create()
+            
         for node in self.nodes:
             if not node.exists():
                 node.create()
+            
+            if fc_node and node is not fc_node:
+                with node.mutate_config() as config:
+                    self.apply_first_contact(
+                        source=fc_node.node.config,
+                        target=config
+                    )
     
 
     def state(self):
