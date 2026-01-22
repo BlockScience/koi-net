@@ -38,14 +38,12 @@ class NodePoller(ThreadedComponent):
 
     def run(self):
         """Runs polling event loop."""
-        self.log.info("ENTER poller thread")
         while not self.exit_event.is_set():
             start_time = time.monotonic()
             self.poll()
             elapsed = time.monotonic() - start_time
             wait_time = max(0, self.config.poller.polling_interval - elapsed)
             self.exit_event.wait(wait_time)
-        self.log.info("EXIT poller thread")
     
     def start(self):
         self.exit_event.clear()
