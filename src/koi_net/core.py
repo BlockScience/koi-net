@@ -12,6 +12,7 @@ from .processor.context import HandlerContext
 from .effector import DerefHandler, Effector
 from .behaviors.handshaker import Handshaker
 from .behaviors.sync_manager import SyncManager
+from .behaviors.port_manager import PortManager
 from .identity import NodeIdentity
 from .workers import KnowledgeProcessingWorker, EventProcessingWorker
 from .network.error_handler import ErrorHandler
@@ -73,6 +74,7 @@ class BaseNode(BaseAssembly):
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
     profile_monitor: ProfileMonitor = ProfileMonitor
+    port_manager: PortManager = PortManager
     
     def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
         cls._log_system()

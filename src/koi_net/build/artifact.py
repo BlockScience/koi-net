@@ -190,11 +190,15 @@ class BuildArtifact:
         
         s = "digraph G {\n"
         for node, neighbors in self.dep_graph.items():
-            sub_s = node
-            if neighbors:
-                sub_s += f"-> {', '.join(neighbors)}"
-            sub_s = sub_s.replace("graph", "graph_") + ";"
-            s += " " * 4 + sub_s + "\n"
+            if node == "graph":
+                node = "graph_"
+            
+            s += f"    {node};\n"
+            for n in neighbors:
+                if n == "graph":
+                    n = "graph_"
+                
+                s += f"    {node} -> {n};\n"
         s += "}"
         self.graphviz = s
     

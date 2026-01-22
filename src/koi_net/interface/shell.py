@@ -95,7 +95,8 @@ class KoiShell(cmd.Cmd):
             case "network":
                 cmd_help = [
                     ("sync", "", "synchronizes the local environment with the network configuration"),
-                    ("state", "", "lists the current state of all network nodes"),
+                    ("wipe", "", "wipes RID cache of all network nodes"),
+                    ("status", "", "lists the current state of all network nodes"),
                     
                     ("set-first-contact", "<name>", "Sets first contact of all nodes in the network"),
                     ("unset-first-contact", "", "Unsets first contact from all nodes in the network"),
@@ -157,8 +158,10 @@ class KoiShell(cmd.Cmd):
         match sub_cmd:
             case "sync":
                 self.network_sync(*args)
-            case "state":
-                self.network_state(*args)
+            case "wipe":
+                self.network_wipe(*args)
+            case "status":
+                self.network_status(*args)
             case "set-first-contact":
                 self.network_set_first_contact(*args)
             case "unset-first-contact":
@@ -271,9 +274,13 @@ class KoiShell(cmd.Cmd):
     @validate_args
     def network_sync(self):
         self.network.sync()
+        
+    @validate_args
+    def network_wipe(self):
+        self.network.wipe()
     
     @validate_args
-    def network_state(self):
+    def network_status(self):
         table = Table("node", "state", box=box.SIMPLE)
         for node in self.network.nodes:
             node_state = node.state()
