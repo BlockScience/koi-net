@@ -147,11 +147,11 @@ class NetworkInterface:
                         target=config
                     )
     
-
-    def state(self):
+    def wipe(self):
         for node in self.nodes:
-            print(node.name, node.state())
-    
+            if node.exists():
+                node.wipe()
+
     def run(self):
         try:
             self.start()

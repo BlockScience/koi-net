@@ -18,7 +18,9 @@ class Handshaker:
         identity: NodeIdentity, 
         event_queue: EventQueue,
         config: BaseNodeConfig,
-        graph: NetworkGraph
+        graph: NetworkGraph,
+        # NOTE: this is a workaround to force start ordering
+        port_manager
     ):
         self.log = log
         self.config = config

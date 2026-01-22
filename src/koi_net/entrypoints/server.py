@@ -1,4 +1,3 @@
-import socket
 import time
 from logging import Logger
 from typing import TYPE_CHECKING
@@ -33,7 +32,9 @@ class NodeServer(ThreadedComponent):
         root_dir,
         config: FullNodeConfig,
         config_loader: ConfigLoader,
-        response_handler: ResponseHandler
+        response_handler: ResponseHandler,
+        # NOTE: this is a workaround to force start ordering
+        profile_monitor
     ):
         self.log = log
         self.root_dir = root_dir
@@ -104,29 +105,10 @@ class NodeServer(ThreadedComponent):
             content=resp.model_dump(mode="json")
         )
     
-    def acquire_port(self):
-        derived_url = self.config.koi_net.node_profile.base_url == self.config.server.url
-        
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            address = (self.config.server.host, self.config.server.port)
-            while s.connect_ex(address) == 0:
-                self.log.debug(f"port {address[1]} in use")
-                self.config.server.port += 1
-                address = (address[0], self.config.server.port)
-        
-        self.log.debug(f"acquired port {address[1]}")
-        
-        if derived_url:
-            self.config.koi_net.node_profile.base_url = self.config.server.url
-        
-        self.config_loader.save_to_yaml()
-    
     def run(self):
         self.server.run()
         
     def start(self):
-        self.acquire_port()
-        
         import uvicorn
         self.server = uvicorn.Server(
             config=uvicorn.Config(

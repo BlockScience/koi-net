@@ -17,7 +17,11 @@ class ProfileMonitor:
         self.identity = identity
         
     def start(self):
+        self.process_profile()
+        
+    def process_profile(self):
         """Processes identity bundle generated from config."""
+        
         self_bundle = Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
@@ -30,3 +34,4 @@ class ProfileMonitor:
         # components (like the handshaker) assume this exists at runtime.
         self.kobj_queue.q.join()
         self.log.debug("Done!")
+        

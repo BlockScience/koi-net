@@ -132,12 +132,13 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             abort = True
         
         if not set(edge_profile.rid_types).issubset(provided_events):
-            ctx.log.debug("Requested RID types not provided by this node")
+            not_provided = set(edge_profile.rid_types) - set(provided_events)
+            ctx.log.debug(f"Requested RID types {not_provided} not provided by this node")
             abort = True
         
         if abort:
             event = Event.from_rid(EventType.FORGET, kobj.rid)
-            ctx.event_queue.push(event, peer_rid, flush=True)
+            ctx.event_queue.push(event, peer_rid)
             return STOP_CHAIN
         
         else:
