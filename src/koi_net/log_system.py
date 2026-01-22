@@ -42,6 +42,14 @@ class PartitionedFileHandler(logging.Handler):
             foreign_pre_chain=shared_log_processors
         )
         
+        self.dropped_log_handler = RotatingFileHandler(
+            filename="dropped_logs.ndjson",
+            maxBytes=self.max_log_file_size,
+            backupCount=self.max_log_file_backups,
+            encoding=self.log_file_encoding,
+            delay=True
+        )
+        
         super().__init__()
         
     def del_handler(self, log_dir: str):
@@ -74,7 +82,8 @@ class PartitionedFileHandler(logging.Handler):
             log_dir = record.msg["log_dir"]
         
         else:
-            print(f"DROPPED LOG: {record.msg}")
+            # print(f"DROPPED LOG: {record.msg}")
+            self.dropped_log_handler.emit(record)
             return
         
         self.get_handler(str(log_dir)).emit(record)
