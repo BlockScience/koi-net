@@ -1,3 +1,4 @@
+import time
 import os
 import shutil
 from pathlib import Path
@@ -89,7 +90,17 @@ class NodeInterface:
         return self.node.get_state()
     
     def run(self):
-        self.node.run()
+        try:
+            self.start()
+            print("Press Ctrl + C to quit")
+            while(self.state() is NodeState.RUNNING):
+                time.sleep(0.5)
+        
+        except KeyboardInterrupt:
+            pass
+        
+        finally:
+            self.stop()
         
     def start(self):
         if self.state() == NodeState.IDLE:
