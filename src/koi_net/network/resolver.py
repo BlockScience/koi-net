@@ -10,7 +10,7 @@ from ..protocol.node import NodeProfile, NodeType
 from ..protocol.event import Event
 from ..identity import NodeIdentity
 from ..config.base import BaseNodeConfig
-from ..exceptions import RequestError
+from ..exceptions import ProtocolError, RequestError
 
 
 class NetworkResolver:
@@ -144,6 +144,10 @@ class NetworkResolver:
                     rid=self.identity.rid
                 )
             except RequestError:
+                continue
+            
+            except ProtocolError:
+                self.log.debug("Ignoring protocol error")
                 continue
                 
             self.log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
