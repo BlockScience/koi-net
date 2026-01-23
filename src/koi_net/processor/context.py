@@ -6,7 +6,7 @@ from rid_lib.ext import Cache
 
 from ..network.resolver import NetworkResolver
 from ..config.base import BaseNodeConfig
-from ..config.loader import ConfigLoader
+from ..config.provider import ConfigProvider
 from ..network.graph import NetworkGraph
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -23,8 +23,7 @@ class HandlerContext:
     
     log: Logger
     identity: NodeIdentity
-    config: BaseNodeConfig
-    config_loader: ConfigLoader
+    config: ConfigProvider | BaseNodeConfig
     cache: Cache
     event_queue: EventQueue
     kobj_queue: KobjQueue

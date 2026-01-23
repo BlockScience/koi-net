@@ -122,7 +122,7 @@ class NodeInterface:
         self.node.cache.drop()
         
     def mutate_config(self):
-        return self.node.config_loader.mutate()
+        return self.node.config.mutate()
         
     def get_config(self, jp: str) -> Any:
         config_json = self.node.config.model_dump(mode="json")
@@ -146,7 +146,7 @@ class NodeInterface:
             return
             
         self.node.config._set_delegate(config)
-        self.node.config_loader.save_to_yaml()
+        self.node.config.save_to_yaml()
         
         val_repr = lambda v: f"'{v}'" if v is not None else "<null>"
         

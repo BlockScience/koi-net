@@ -1,7 +1,7 @@
 import socket
 from logging import Logger
 
-from ..config.loader import ConfigLoader
+from ..config.provider import ConfigProvider
 from ..config.full_node import FullNodeConfig
 from .profile_monitor import ProfileMonitor
 
@@ -12,13 +12,11 @@ class PortManager:
     def __init__(
         self,
         log: Logger,
-        config: FullNodeConfig,
-        config_loader: ConfigLoader,
+        config: ConfigProvider | FullNodeConfig,
         profile_monitor: ProfileMonitor
     ):
         self.log = log
         self.config = config
-        self.config_loader = config_loader
         self.profile_monitor = profile_monitor
         
     def start(self):
@@ -43,4 +41,4 @@ class PortManager:
             self.config.koi_net.node_profile.base_url = self.config.server.url
             self.profile_monitor.process_profile()
         
-        self.config_loader.save_to_yaml()
+        self.config.save_to_yaml()
