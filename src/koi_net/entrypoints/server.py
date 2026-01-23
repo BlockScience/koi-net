@@ -6,7 +6,6 @@ from fastapi import Request
 from structlog.contextvars import bound_contextvars
 
 from ..build.threaded_component import ThreadedComponent
-from ..config.loader import ConfigLoader
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
@@ -31,7 +30,6 @@ class NodeServer(ThreadedComponent):
         log: Logger,
         root_dir,
         config: FullNodeConfig,
-        config_loader: ConfigLoader,
         response_handler: ResponseHandler,
         # NOTE: this is a workaround to force start ordering
         profile_monitor
@@ -39,7 +37,6 @@ class NodeServer(ThreadedComponent):
         self.log = log
         self.root_dir = root_dir
         self.config = config
-        self.config_loader = config_loader
         self.response_handler = response_handler
         
         self.build_app()

@@ -5,12 +5,10 @@ from pathlib import Path
 from pydantic import BaseModel
 from rich.console import Console
 
-from koi_net.config.base import BaseNodeConfig
-from koi_net.protocol.node import NodeType
-
+from ..config.base import BaseNodeConfig
+from ..protocol.node import NodeType
 from ..build.container import NodeState
-from ..config.proxy import ConfigProxy
-from ..config.loader import ConfigLoader
+from ..config.provider import ConfigProvider
 from .node import NodeInterface
 
 
@@ -18,16 +16,16 @@ class KoiNetworkConfig(BaseModel):
     first_contact: str | None = None
     nodes: dict[str, str] = {}
 
-class NetworkConfigLoader(ConfigLoader):
+class NetworkConfigLoader(ConfigProvider):
     file_path: str = "koi-network-config.yaml"
 
 class NetworkInterface:
+    config: KoiNetworkConfig | NetworkConfigLoader
+    
     def __init__(self):
-        self.config: ConfigProxy | KoiNetworkConfig = ConfigProxy()
         self.config_schema = KoiNetworkConfig
-        self.config_loader = NetworkConfigLoader(
+        self.config = NetworkConfigLoader(
             config_schema=self.config_schema,
-            config=self.config,
             root_dir=Path.cwd()
         )
         
@@ -53,7 +51,7 @@ class NetworkInterface:
     def add_node(self, node: NodeInterface):
         self.nodes.append(node)
         self.config.nodes[node.name] = node.module
-        self.config_loader.save_to_yaml()
+        self.config.save_to_yaml()
         
         fc_node = self.get_first_contact()
         if fc_node:
@@ -68,7 +66,7 @@ class NetworkInterface:
         
         if node.name in self.config.nodes:
             del self.config.nodes[node.name]
-            self.config_loader.save_to_yaml()
+            self.config.save_to_yaml()
             
         if self.config.first_contact == node.name:
             self.unset_first_contact(node)
@@ -97,7 +95,7 @@ class NetworkInterface:
             self.unset_first_contact(prev_fc_node)
         
         self.config.first_contact = fc_node.name
-        self.config_loader.save_to_yaml()
+        self.config.save_to_yaml()
         
         mutated_nodes: int = 0
         for node in self.nodes:
@@ -119,7 +117,7 @@ class NetworkInterface:
             return
         
         self.config.first_contact = None
-        self.config_loader.save_to_yaml()
+        self.config.save_to_yaml()
         
         mutated_nodes: int = 0
         for node in self.nodes:
