@@ -1,5 +1,7 @@
 from logging import Logger
 from rid_lib.ext import Bundle
+
+from ..build import comp_order
 from ..identity import NodeIdentity
 from ..processor.kobj_queue import KobjQueue
 
@@ -15,7 +17,8 @@ class ProfileMonitor:
         self.log = log
         self.kobj_queue = kobj_queue
         self.identity = identity
-        
+    
+    @comp_order.start_after("kobj_worker", "port_manager")
     def start(self):
         self.process_profile()
         

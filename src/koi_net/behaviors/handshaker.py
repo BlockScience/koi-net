@@ -2,6 +2,7 @@ from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..build import comp_order
 from ..network.graph import NetworkGraph
 from ..config.base import BaseNodeConfig
 from ..identity import NodeIdentity
@@ -19,8 +20,6 @@ class Handshaker:
         event_queue: EventQueue,
         config: BaseNodeConfig,
         graph: NetworkGraph,
-        # NOTE: this is a workaround to force start ordering
-        port_manager
     ):
         self.log = log
         self.config = config
@@ -28,7 +27,8 @@ class Handshaker:
         self.identity = identity
         self.event_queue = event_queue
         self.graph = graph
-        
+    
+    @comp_order.start_after("graph", "profile_monitor", "server", "event_worker")
     def start(self):
         """Attempts handshake with first contact on startup.
         

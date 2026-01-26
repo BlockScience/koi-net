@@ -72,16 +72,16 @@ class BaseNode(BaseAssembly):
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
     profile_monitor: ProfileMonitor = ProfileMonitor
-    port_manager: PortManager = PortManager
     
     def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
         cls._log_system()
         return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
 class FullNode(BaseNode):
-    server: NodeServer = NodeServer
     config: FullNodeConfig
+    port_manager: PortManager = PortManager
+    server: NodeServer = NodeServer
 
 class PartialNode(BaseNode):
-    poller: NodePoller = NodePoller
     config: PartialNodeConfig
+    poller: NodePoller = NodePoller
