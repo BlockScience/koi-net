@@ -6,7 +6,6 @@ import time
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..build import comp_order
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -22,7 +21,7 @@ class End:
 
 STOP_WORKER = End()
 
-@comp_order.worker
+
 class EventProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `event_queue`."""
     

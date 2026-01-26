@@ -3,6 +3,7 @@ import threading
 import time
 from logging import Logger
 
+from ..build import comp_order
 from ..build.threaded_component import ThreadedComponent
 from ..processor.kobj_queue import KobjQueue
 from ..network.resolver import NetworkResolver
@@ -45,6 +46,7 @@ class NodePoller(ThreadedComponent):
             wait_time = max(0, self.config.poller.polling_interval - elapsed)
             self.exit_event.wait(wait_time)
     
+    @comp_order.start_after("graph")
     def start(self):
         self.exit_event.clear()
         super().start()

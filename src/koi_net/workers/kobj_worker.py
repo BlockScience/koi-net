@@ -1,8 +1,7 @@
-from logging import Logger
 import queue
 import traceback
+from logging import Logger
 
-from ..build import comp_order
 from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
@@ -15,7 +14,7 @@ class End:
 
 STOP_WORKER = End()
 
-@comp_order.worker
+
 class KnowledgeProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `kobj_queue`."""
     

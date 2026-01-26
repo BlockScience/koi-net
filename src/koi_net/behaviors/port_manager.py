@@ -1,9 +1,9 @@
 import socket
 from logging import Logger
 
+from ..build import comp_order
 from ..config.provider import ConfigProvider
 from ..config.full_node import FullNodeConfig
-from .profile_monitor import ProfileMonitor
 
 
 class PortManager:
@@ -12,18 +12,17 @@ class PortManager:
     def __init__(
         self,
         log: Logger,
-        config: ConfigProvider | FullNodeConfig,
-        profile_monitor: ProfileMonitor
+        config: ConfigProvider | FullNodeConfig
     ):
         self.log = log
         self.config = config
-        self.profile_monitor = profile_monitor
-        
+    
+    @comp_order.start_after("config")
     def start(self):
         self.acquire_port()
         
     def acquire_port(self):
-        base_url_is_derived = self.config.koi_net.node_profile.base_url == self.config.server.url
+        base_url_is_derived = (self.config.koi_net.node_profile.base_url == self.config.server.url)
         
         changed_port: bool = False
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -39,6 +38,5 @@ class PortManager:
         if base_url_is_derived and changed_port:
             self.log.debug("Updating node profile")
             self.config.koi_net.node_profile.base_url = self.config.server.url
-            self.profile_monitor.process_profile()
         
         self.config.save_to_yaml()
