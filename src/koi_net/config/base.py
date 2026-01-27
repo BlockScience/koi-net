@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
-from ..build import comp_type
+from ..build.component import provides, CompType
 from .env_config import EnvConfig
 from .koi_net_config import KoiNetConfig
 
 
-@comp_type.object
+@provides(CompType.OBJECT)
 class BaseNodeConfig(BaseModel):
     """Base node config class, intended to be extended.
     

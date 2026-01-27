@@ -1,7 +1,7 @@
 import socket
 from logging import Logger
 
-from ..build import comp_order
+from ..build.component import depends_on
 from ..config.provider import ConfigProvider
 from ..config.full_node import FullNodeConfig
 
@@ -17,7 +17,7 @@ class PortManager:
         self.log = log
         self.config = config
     
-    @comp_order.start_after("config")
+    @depends_on("config")
     def start(self):
         self.acquire_port()
         
