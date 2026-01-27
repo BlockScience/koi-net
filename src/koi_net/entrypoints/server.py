@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from fastapi import Request
 from structlog.contextvars import bound_contextvars
 
-from ..build import comp_order
+from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
@@ -104,7 +104,7 @@ class NodeServer(ThreadedComponent):
     def run(self):
         self.server.run()
         
-    @comp_order.start_after("port_manager")
+    @depends_on("port_manager")
     def start(self):
         import uvicorn
         self.server = uvicorn.Server(

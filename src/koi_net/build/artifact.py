@@ -5,14 +5,11 @@ from typing import TYPE_CHECKING, Any
 import structlog
 
 from ..exceptions import BuildError
-from .consts import (
-    COMP_ORDER_OVERRIDE,
-    COMP_TYPE_OVERRIDE, 
+from .component import (
+    COMPONENT_TYPE_FIELD,
+    DEPENDS_ON_FIELD, 
     START_FUNC_NAME, 
-    START_ORDER_OVERRIDE, 
-    STOP_FUNC_NAME, 
-    STOP_ORDER_OVERRIDE,
-    CompOrder,
+    STOP_FUNC_NAME,
     CompType
 )
 
@@ -66,18 +63,20 @@ class BuildArtifact:
             
             dep_names = []
             
-            explicit_type = getattr(comp, COMP_TYPE_OVERRIDE, None)
-            if explicit_type:
-                self.comp_types[comp_name] = explicit_type
             
-            # non callable components are objects treated "as is"
+            explict_type = getattr(comp, COMPONENT_TYPE_FIELD, None)
+            if explict_type:
+                self.comp_types[comp_name] = explict_type
+                
             elif not callable(comp):
+                # non callable components are objects treated "as is"
                 self.comp_types[comp_name] = CompType.OBJECT
-            
-            # callable components default to singletons
             else:
-                sig = inspect.signature(comp)
+                # callable components default to singletons
                 self.comp_types[comp_name] = CompType.SINGLETON
+            
+            if self.comp_types[comp_name] == CompType.SINGLETON:
+                sig = inspect.signature(comp)
                 dep_names = list(sig.parameters)
                 
                 # difference of sets: dependencies and component names
@@ -88,10 +87,10 @@ class BuildArtifact:
                 
                 start_func = getattr(comp, START_FUNC_NAME, None)
                 if start_func:
-                    start_deps = getattr(start_func, "start_after", [])
+                    start_deps = getattr(start_func, DEPENDS_ON_FIELD, [])
                     self.start_graph[comp_name] = start_deps
                     print(comp_name, "->", start_deps)
-                
+            
             self.dep_graph[comp_name] = dep_names
         
         log.debug("Built dependency graph")

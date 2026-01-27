@@ -2,7 +2,7 @@ from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..build import comp_order
+from ..build.component import depends_on
 from ..network.graph import NetworkGraph
 from ..config.base import BaseNodeConfig
 from ..identity import NodeIdentity
@@ -28,7 +28,7 @@ class Handshaker:
         self.event_queue = event_queue
         self.graph = graph
     
-    @comp_order.start_after("graph", "profile_monitor", "server", "event_worker")
+    @depends_on("graph", "profile_monitor", "server", "event_worker")
     def start(self):
         """Attempts handshake with first contact on startup.
         

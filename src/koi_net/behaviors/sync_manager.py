@@ -2,7 +2,7 @@ from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..build import comp_order
+from ..build.component import depends_on
 from ..exceptions import RequestError
 from ..network.graph import NetworkGraph
 from ..network.request_handler import RequestHandler
@@ -31,7 +31,7 @@ class SyncManager:
         self.request_handler = request_handler
         self.kobj_queue = kobj_queue
     
-    @comp_order.start_after("graph", "kobj_worker")
+    @depends_on("graph", "kobj_worker")
     def start(self):
         """Catches up with node providers on startup."""
         

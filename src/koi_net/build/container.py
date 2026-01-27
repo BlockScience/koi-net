@@ -5,7 +5,7 @@ from logging import Logger
 from typing import Any
 
 from .artifact import BuildArtifact
-from .consts import START_FUNC_NAME, STOP_FUNC_NAME
+from .component import START_FUNC_NAME, STOP_FUNC_NAME
 from ..utils import bind_logdir
 
 
@@ -17,7 +17,7 @@ class NodeState(StrEnum):
 
 class NodeContainer:
     """Dummy 'shape' for node containers built by assembler."""
-    _artifact: BuildArtifact
+    __artifact__: BuildArtifact
     
     can_start: threading.Event
     ready: threading.Event
@@ -27,7 +27,7 @@ class NodeContainer:
     root_dir: Path
     
     def __init__(self, artifact, components: dict[str, Any]):
-        self._artifact = artifact
+        self.__artifact__ = artifact
         
         # adds all components as attributes of this instance
         for name, comp in components.items():
@@ -71,7 +71,7 @@ class NodeContainer:
         self.can_start.clear()
         
         try:
-            for comp_name in self._artifact.start_order:
+            for comp_name in self.__artifact__.start_order:
                 comp = getattr(self, comp_name)
                 start_func = getattr(comp, START_FUNC_NAME)
                 self.log.info(f"Starting {comp_name}...")
@@ -88,7 +88,7 @@ class NodeContainer:
         
         self.ready.clear()
         self.log.info("Stopping node...")
-        for comp_name in self._artifact.stop_order:
+        for comp_name in self.__artifact__.stop_order:
             comp = getattr(self, comp_name)
             stop_func = getattr(comp, STOP_FUNC_NAME)
             self.log.info(f"Stopping {comp_name}...")
