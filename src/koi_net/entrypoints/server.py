@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from fastapi import Request
 from structlog.contextvars import bound_contextvars
 
+from ..logging_context import LoggingContext
 from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
 from ..network.response_handler import ResponseHandler
@@ -29,12 +30,11 @@ class NodeServer(ThreadedComponent):
     def __init__(
         self,
         log: Logger,
-        root_dir,
+        logging_context: LoggingContext,
         config: FullNodeConfig,
         response_handler: ResponseHandler
     ):
-        self.log = log
-        self.root_dir = root_dir
+        super().__init__(log=log, logging_context=logging_context)
         self.config = config
         self.response_handler = response_handler
         

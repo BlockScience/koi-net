@@ -6,6 +6,7 @@ import time
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..logging_context import LoggingContext
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -28,16 +29,15 @@ class EventProcessingWorker(ThreadedComponent):
     def __init__(
         self,
         log: Logger,
+        logging_context: LoggingContext,
         config: BaseNodeConfig,
         cache: Cache,
         event_queue: EventQueue,
         request_handler: RequestHandler,
         poll_event_buf: EventBuffer,
-        broadcast_event_buf: EventBuffer,
-        root_dir
+        broadcast_event_buf: EventBuffer
     ):
-        self.log = log
-        self.root_dir = root_dir
+        super().__init__(log=log, logging_context=logging_context)
         self.event_queue = event_queue
         self.request_handler = request_handler
         
