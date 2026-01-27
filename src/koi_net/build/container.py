@@ -4,9 +4,9 @@ from pathlib import Path
 from logging import Logger
 from typing import Any
 
+from ..logging_context import LoggingContext
 from .artifact import BuildArtifact
 from .component import START_FUNC_NAME, STOP_FUNC_NAME
-from ..utils import bind_logdir
 
 
 class NodeState(StrEnum):
@@ -24,6 +24,7 @@ class NodeContainer:
     shutdown_requested: threading.Event
     
     log: Logger
+    logging_context: LoggingContext
     root_dir: Path
     
     def __init__(self, artifact, components: dict[str, Any]):
@@ -47,7 +48,6 @@ class NodeContainer:
             else:
                 return NodeState.STOPPING
     
-    @bind_logdir
     def run(self):
         try:
             self.start()
@@ -61,38 +61,38 @@ class NodeContainer:
         finally:
             self.stop()
     
-    @bind_logdir
     def start(self):
-        if not self.can_start.is_set():
-            self.log.warning("Node cannot be started")
-            return
-        
-        self.log.info("Starting node...")
-        self.can_start.clear()
-        
-        try:
-            for comp_name in self.__artifact__.start_order:
-                comp = getattr(self, comp_name)
-                start_func = getattr(comp, START_FUNC_NAME)
-                self.log.info(f"Starting {comp_name}...")
-                start_func()
-        
-        finally:
-            self.ready.set()
-        
-    @bind_logdir
-    def stop(self, force: bool = False):
-        if not force and not self.ready.is_set() and not self.shutdown_requested.is_set():
-            self.log.warning("Node cannot be stopped")
-            return
-        
-        self.ready.clear()
-        self.log.info("Stopping node...")
-        for comp_name in self.__artifact__.stop_order:
-            comp = getattr(self, comp_name)
-            stop_func = getattr(comp, STOP_FUNC_NAME)
-            self.log.info(f"Stopping {comp_name}...")
-            stop_func()
+        with self.logging_context.bound_vars():
+            if not self.can_start.is_set():
+                self.log.warning("Node cannot be started")
+                return
             
-        self.shutdown_requested.clear()
-        self.can_start.set()
+            self.log.info("Starting node...")
+            self.can_start.clear()
+            
+            try:
+                for comp_name in self.__artifact__.start_order:
+                    comp = getattr(self, comp_name)
+                    start_func = getattr(comp, START_FUNC_NAME)
+                    self.log.info(f"Starting {comp_name}...")
+                    start_func()
+            
+            finally:
+                self.ready.set()
+        
+    def stop(self, force: bool = False):
+        with self.logging_context.bound_vars():
+            if not force and not self.ready.is_set() and not self.shutdown_requested.is_set():
+                self.log.warning("Node cannot be stopped")
+                return
+            
+            self.ready.clear()
+            self.log.info("Stopping node...")
+            for comp_name in self.__artifact__.stop_order:
+                comp = getattr(self, comp_name)
+                stop_func = getattr(comp, STOP_FUNC_NAME)
+                self.log.info(f"Stopping {comp_name}...")
+                stop_func()
+                
+            self.shutdown_requested.clear()
+            self.can_start.set()

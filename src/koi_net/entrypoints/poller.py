@@ -3,6 +3,7 @@ import threading
 import time
 from logging import Logger
 
+from ..logging_context import LoggingContext
 from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
 from ..processor.kobj_queue import KobjQueue
@@ -18,14 +19,13 @@ class NodePoller(ThreadedComponent):
     
     def __init__(
         self,
+        log: Logger,
+        logging_context: LoggingContext,
         config: PartialNodeConfig,
-        root_dir,
         kobj_queue: KobjQueue,
-        resolver: NetworkResolver,
-        log: Logger
+        resolver: NetworkResolver
     ):
-        self.log = log
-        self.root_dir = root_dir
+        super().__init__(log=log, logging_context=logging_context)
         self.kobj_queue = kobj_queue
         self.resolver = resolver
         self.config = config

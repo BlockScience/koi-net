@@ -2,6 +2,7 @@ import queue
 import traceback
 from logging import Logger
 
+from ..logging_context import LoggingContext
 from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
@@ -21,16 +22,15 @@ class KnowledgeProcessingWorker(ThreadedComponent):
     def __init__(
         self,
         log: Logger,
+        logging_context: LoggingContext,
         config: BaseNodeConfig,
         kobj_queue: KobjQueue,
-        pipeline: KnowledgePipeline,
-        root_dir
+        pipeline: KnowledgePipeline
     ):
-        self.log = log
+        super().__init__(log=log, logging_context=logging_context)
         self.config = config
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline
-        self.root_dir = root_dir
         
     def stop(self):
         self.kobj_queue.q.put(STOP_WORKER)
