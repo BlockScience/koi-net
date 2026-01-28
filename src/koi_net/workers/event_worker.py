@@ -37,7 +37,7 @@ class EventProcessingWorker(ThreadedComponent):
         poll_event_buf: EventBuffer,
         broadcast_event_buf: EventBuffer
     ):
-        super().__init__(log=log, logging_context=logging_context)
+        super().__init__(log=log, logging_context=logging_context, name="event_worker")
         self.event_queue = event_queue
         self.request_handler = request_handler
         

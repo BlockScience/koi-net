@@ -27,7 +27,7 @@ class KnowledgeProcessingWorker(ThreadedComponent):
         kobj_queue: KobjQueue,
         pipeline: KnowledgePipeline
     ):
-        super().__init__(log=log, logging_context=logging_context)
+        super().__init__(log=log, logging_context=logging_context, name="kobj_worker")
         self.config = config
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline

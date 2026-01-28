@@ -62,7 +62,7 @@ class NodeContainer:
             self.stop()
     
     def start(self):
-        with self.logging_context.bound_vars():
+        with self.logging_context.bound_vars(thread="main"):
             if not self.can_start.is_set():
                 self.log.warning("Node cannot be started")
                 return
@@ -81,7 +81,7 @@ class NodeContainer:
                 self.ready.set()
         
     def stop(self, force: bool = False):
-        with self.logging_context.bound_vars():
+        with self.logging_context.bound_vars(thread="main"):
             if not force and not self.ready.is_set() and not self.shutdown_requested.is_set():
                 self.log.warning("Node cannot be stopped")
                 return

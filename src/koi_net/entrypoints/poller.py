@@ -25,7 +25,7 @@ class NodePoller(ThreadedComponent):
         kobj_queue: KobjQueue,
         resolver: NetworkResolver
     ):
-        super().__init__(log=log, logging_context=logging_context)
+        super().__init__(log=log, logging_context=logging_context, name="poller")
         self.kobj_queue = kobj_queue
         self.resolver = resolver
         self.config = config
