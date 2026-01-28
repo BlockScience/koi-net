@@ -79,7 +79,8 @@ class KoiShell(cmd.Cmd):
                     ("add", r"<module ref> \[name]", "adds a new node of type <module ref> to the network, if unset, name defaults to <module ref>"),
                     ("rm", "<name>", "removes a node from the network"),
                     # ("init", "<name>", "initializes a node"),
-                    ("wipe", "<name>", "wipes a node's RID cache"),
+                    ("wipe-cache", "<name>", "wipes a node's RID cache"),
+                    ("wipe-logs", "<name>", "wipes a node's logs"),
                     
                     ("config-get", "<name> <loc>", "prints the config value at the specified JSON pointer location"),
                     ("config-set", "<name> <loc> <val>", "sets the config at JSON pointer location to value"),
@@ -95,7 +96,8 @@ class KoiShell(cmd.Cmd):
             case "network":
                 cmd_help = [
                     ("sync", "", "synchronizes the local environment with the network configuration"),
-                    ("wipe", "", "wipes RID cache of all network nodes"),
+                    ("wipe-cache", "", "wipes RID cache of all network nodes"),
+                    ("wipe-logs", "", "wipes logs of all network nodes"),
                     ("status", "", "lists the current state of all network nodes"),
                     
                     ("set-first-contact", "<name>", "Sets first contact of all nodes in the network"),
@@ -142,8 +144,10 @@ class KoiShell(cmd.Cmd):
                 self.node_config_set(*args)
             case "config-unset":
                 self.node_config_unset(*args)
-            case "wipe":
-                self.node_wipe(*args)
+            case "wipe-cache":
+                self.node_wipe_cache(*args)
+            case "wipe-logs":
+                self.node_wipe_logs(*args)
             case "start":
                 self.node_start(*args)
             case "stop":
@@ -158,8 +162,10 @@ class KoiShell(cmd.Cmd):
         match sub_cmd:
             case "sync":
                 self.network_sync(*args)
-            case "wipe":
-                self.network_wipe(*args)
+            case "wipe-cache":
+                self.network_wipe_cache(*args)
+            case "wipe-logs":
+                self.network_wipe_logs(*args)
             case "status":
                 self.network_status(*args)
             case "set-first-contact":
@@ -267,17 +273,27 @@ class KoiShell(cmd.Cmd):
     
     @validate_args
     @load_node
-    def node_wipe(self, node: NodeInterface):
-        node.wipe()
+    def node_wipe_cache(self, node: NodeInterface):
+        node.wipe_cache()
         print(f"Wiped RID cache of '{node.name}'")
+    
+    @validate_args
+    @load_node
+    def node_wipe_logs(self, node: NodeInterface):
+        node.wipe_logs()
+        print(f"Wiped logs of '{node.name}'")
     
     @validate_args
     def network_sync(self):
         self.network.sync()
         
     @validate_args
-    def network_wipe(self):
-        self.network.wipe()
+    def network_wipe_cache(self):
+        self.network.wipe_cache()
+        
+    @validate_args
+    def network_wipe_logs(self):
+        self.network.wipe_logs()
     
     @validate_args
     def network_status(self):

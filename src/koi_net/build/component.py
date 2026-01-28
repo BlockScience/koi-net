@@ -19,6 +19,6 @@ def provides(component_type: CompType):
 
 def depends_on(*components):
     def decorator(obj):
-        setattr(obj, DEPENDS_ON_FIELD, list(components))
+        setattr(obj, DEPENDS_ON_FIELD, set(components))
         return obj
     return decorator

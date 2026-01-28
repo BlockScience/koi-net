@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
@@ -52,9 +53,14 @@ class PartitionedFileHandler(logging.Handler):
         
         super().__init__()
         
-    def del_handler(self, log_dir: str):
+    def del_handler(self, log_dir: str, wipe_logs: bool = False):
         if log_dir in self.handlers:
             self.handlers[log_dir].close()
+            if wipe_logs:
+                try:
+                    os.remove(self.handlers[log_dir].baseFilename)
+                except OSError:
+                    pass
             del self.handlers[log_dir]
         
     def get_handler(self, log_dir: str):
@@ -82,7 +88,6 @@ class PartitionedFileHandler(logging.Handler):
             log_dir = record.msg["log_dir"]
         
         else:
-            # print(f"DROPPED LOG: {record.msg}")
             self.dropped_log_handler.emit(record)
             return
         
@@ -120,10 +125,10 @@ class LogSystem:
         return cls._instance
     
     @staticmethod
-    def delete_file_handler(log_dir: str):
+    def delete_file_handler(log_dir: str, wipe_logs: bool = False):
         for handler in logging.getLogger().handlers:
             if isinstance(handler, PartitionedFileHandler):
-                handler.del_handler(log_dir)
+                handler.del_handler(log_dir, wipe_logs=wipe_logs)
         
     def configure(self):
         handlers = []

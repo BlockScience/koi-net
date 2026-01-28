@@ -118,8 +118,11 @@ class NodeInterface:
         else:
             print("Node already stopped")
         
-    def wipe(self):
+    def wipe_cache(self):
         self.node.cache.drop()
+        
+    def wipe_logs(self):
+        LogSystem.delete_file_handler(self.name, wipe_logs=True)
         
     def mutate_config(self):
         return self.node.config.mutate()

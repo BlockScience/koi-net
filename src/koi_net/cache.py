@@ -1,6 +1,7 @@
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import b64_encode, b64_decode
