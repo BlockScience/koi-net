@@ -16,15 +16,15 @@ class KoiNetworkConfig(BaseModel):
     first_contact: str | None = None
     nodes: dict[str, str] = {}
 
-class NetworkConfigLoader(ConfigProvider):
-    file_path: str = "koi-network-config.yaml"
+class NetworkConfigProvider(ConfigProvider):
+    _file_path: str = "koi-network-config.yaml"
 
 class NetworkInterface:
-    config: KoiNetworkConfig | NetworkConfigLoader
+    config: KoiNetworkConfig | NetworkConfigProvider
     
     def __init__(self):
         self.config_schema = KoiNetworkConfig
-        self.config = NetworkConfigLoader(
+        self.config = NetworkConfigProvider(
             config_schema=self.config_schema,
             root_dir=Path.cwd()
         )
@@ -145,10 +145,15 @@ class NetworkInterface:
                         target=config
                     )
     
-    def wipe(self):
+    def wipe_cache(self):
         for node in self.nodes:
             if node.exists():
-                node.wipe()
+                node.wipe_cache()
+                
+    def wipe_logs(self):
+        for node in self.nodes:
+            if node.exists():
+                node.wipe_logs()
 
     def run(self):
         try:

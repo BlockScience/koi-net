@@ -24,8 +24,8 @@ class BuildArtifact:
     
     comp_dict: dict[str, Any]
     comp_types: dict[str, CompType]
-    dep_graph: dict[str, list[str]]
-    start_graph: dict[str, list[str]]
+    init_graph: dict[str, set[str]]
+    start_graph: dict[str, set[str]]
     
     init_order: list[str]
     start_order: list[str]
@@ -56,13 +56,13 @@ class BuildArtifact:
         """
         
         self.comp_types = {}
-        self.dep_graph = {}
+        self.init_graph = {}
         self.start_graph = {}
         
+        available_comps = set(self.comp_dict)
+        
         for comp_name, comp in self.comp_dict.items():
-            
-            dep_names = []
-            
+            init_dependencies = []
             
             explict_type = getattr(comp, COMPONENT_TYPE_FIELD, None)
             if explict_type:
@@ -77,28 +77,31 @@ class BuildArtifact:
             
             if self.comp_types[comp_name] == CompType.SINGLETON:
                 sig = inspect.signature(comp)
-                dep_names = list(sig.parameters)
+                init_dependencies = set(sig.parameters)
                 
                 # difference of sets: dependencies and component names
                 # non empty set indicates invalid dependency
-                invalid_deps = set(dep_names) - set(self.comp_dict)
-                if invalid_deps:
-                    raise BuildError(f"Dependencies {invalid_deps} of component '{comp_name}' are undefined")
+                invalid_init_deps = init_dependencies - available_comps
+                if invalid_init_deps:
+                    log.warning(f"Ignoring undefined init dependencies {invalid_init_deps} on component '{comp_name}'")
+                    init_dependencies -= invalid_init_deps
                 
                 start_func = getattr(comp, START_FUNC_NAME, None)
                 if start_func:
-                    start_deps = getattr(start_func, DEPENDS_ON_FIELD, [])
-                    self.start_graph[comp_name] = start_deps
-                    print(comp_name, "->", start_deps)
-            
-            self.dep_graph[comp_name] = dep_names
+                    start_dependencies = getattr(start_func, DEPENDS_ON_FIELD, set())
+                    invalid_start_deps = start_dependencies - available_comps
+                    if invalid_start_deps:
+                        log.warning(f"Ignoring undefined start dependencies {invalid_start_deps} on component '{comp_name}'")
+                        start_dependencies -= invalid_start_deps
+                        
+                    self.start_graph[comp_name] = start_dependencies
+            self.init_graph[comp_name] = init_dependencies
         
         log.debug("Built dependency graph")
     
     @staticmethod
     def topo_sort(adj: dict[str, list[str]]):
         """Topological sort of direct graph using Kahn's algorithm."""
-        
         # reverse adj list: n -> incoming neighbors
         r_adj: dict[str, list[str]] = {}
         
@@ -177,8 +180,10 @@ class BuildArtifact:
         log.debug("Creating build artifact...")
         self.collect_components()
         self.build_dependencies()
-        self.init_order = self.topo_sort(self.dep_graph)
-        log.debug("Init order: " + " -> ".join(self.init_order))
+        log.debug("Starting init graph topo sort...")
+        self.init_order = self.topo_sort(self.init_graph)
+        log.debug("Init order: " + " -> ".join(self.init_order))        
+        log.debug("Starting start graph topo sort...")
         self.start_order = self.topo_sort(self.start_graph)
         log.debug("Start order: " + " -> ".join(self.start_order))
         self.stop_order = self.build_stop_order(self.start_order)
