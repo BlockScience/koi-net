@@ -34,7 +34,7 @@ class NodeServer(ThreadedComponent):
         config: FullNodeConfig,
         response_handler: ResponseHandler
     ):
-        super().__init__(log=log, logging_context=logging_context)
+        super().__init__(log=log, logging_context=logging_context, name="server")
         self.config = config
         self.response_handler = response_handler
         
@@ -83,7 +83,7 @@ class NodeServer(ThreadedComponent):
     
     async def logging_middleware(self, request: Request, call_next):
         """Binds contextvars per HTTP request, and emits access logs."""
-        with bound_contextvars(log_dir=self.root_dir):
+        with self.logging_context.bound_vars(thread="server"):
             self.log.info(f"Request from {request.client.host}:{request.client.port} - {request.method} {request.url.path}")
             response = await call_next(request)
             self.log.info(f"Response code {response.status_code}")

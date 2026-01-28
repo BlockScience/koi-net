@@ -9,9 +9,10 @@ class ThreadedComponent:
     
     thread: threading.Thread | None = None
     
-    def __init__(self, log: Logger, logging_context: LoggingContext):
+    def __init__(self, log: Logger, logging_context: LoggingContext, name: str):
         self.log = log
         self.logging_context = logging_context
+        self.name = name
     
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -28,7 +29,7 @@ class ThreadedComponent:
             self.log.debug(f"Component {self.__class__.__name__} has already stopped")
     
     def run_with_log_ctx(self):
-        with self.logging_context.bound_vars():
+        with self.logging_context.bound_vars(thread=self.name):
             self.run()
     
     def run(self):
