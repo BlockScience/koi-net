@@ -1,11 +1,13 @@
 from logging import Logger
 import queue
+import threading
 import traceback
 import time
 
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..build.component import depends_on
 from ..logging_context import LoggingContext
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
@@ -56,7 +58,8 @@ class EventProcessingWorker(ThreadedComponent):
         except RequestError:
             self.log.warning("Failed to reach target, event buffer reset")
             pass
-        
+    
+    @depends_on("kobj_worker")
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
         super().stop()

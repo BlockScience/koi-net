@@ -1,4 +1,5 @@
 import queue
+import threading
 import traceback
 from logging import Logger
 
@@ -7,6 +8,7 @@ from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
 from ..build.threaded_component import ThreadedComponent
+from ..build.component import depends_on
 
 
 class End:
@@ -31,7 +33,8 @@ class KnowledgeProcessingWorker(ThreadedComponent):
         self.config = config
         self.kobj_queue = kobj_queue
         self.pipeline = pipeline
-        
+    
+    @depends_on("server", "poller")
     def stop(self):
         self.kobj_queue.q.put(STOP_WORKER)
         super().stop()

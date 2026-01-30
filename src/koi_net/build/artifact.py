@@ -26,6 +26,7 @@ class BuildArtifact:
     comp_types: dict[str, CompType]
     init_graph: dict[str, set[str]]
     start_graph: dict[str, set[str]]
+    stop_graph: dict[str, set[str]]
     
     init_order: list[str]
     start_order: list[str]
@@ -48,7 +49,7 @@ class BuildArtifact:
                 self.comp_dict[k] = v
         log.debug(f"Collected {len(self.comp_dict)} components")
     
-    def build_dependencies(self):
+    def build_init_graph(self):
         """Builds dependency graph and component type map.
         
         Graph representation is an adjacency list: the key is a component 
@@ -57,9 +58,6 @@ class BuildArtifact:
         
         self.comp_types = {}
         self.init_graph = {}
-        self.start_graph = {}
-        
-        available_comps = set(self.comp_dict)
         
         for comp_name, comp in self.comp_dict.items():
             init_dependencies = []
@@ -81,36 +79,84 @@ class BuildArtifact:
                 
                 # difference of sets: dependencies and component names
                 # non empty set indicates invalid dependency
-                invalid_init_deps = init_dependencies - available_comps
+                invalid_init_deps = init_dependencies - set(self.comp_dict)
                 if invalid_init_deps:
                     log.warning(f"Ignoring undefined init dependencies {invalid_init_deps} on component '{comp_name}'")
                     init_dependencies -= invalid_init_deps
-                
-                start_func = getattr(comp, START_FUNC_NAME, None)
-                if start_func:
-                    start_dependencies = getattr(start_func, DEPENDS_ON_FIELD, set())
-                    invalid_start_deps = start_dependencies - available_comps
-                    if invalid_start_deps:
-                        log.warning(f"Ignoring undefined start dependencies {invalid_start_deps} on component '{comp_name}'")
-                        start_dependencies -= invalid_start_deps
-                        
-                    self.start_graph[comp_name] = start_dependencies
+                    
             self.init_graph[comp_name] = init_dependencies
         
-        log.debug("Built dependency graph")
+        log.debug("Built init dependency graph")
+                
+    def build_start_graph(self):
+        self.start_graph = {}
+        for comp_name, comp in self.comp_dict.items():
+            if self.comp_types[comp_name] != CompType.SINGLETON:
+                continue
+            
+            start_func = getattr(comp, START_FUNC_NAME, None)
+            if not start_func:
+                continue
+            
+            start_dependencies = getattr(start_func, DEPENDS_ON_FIELD, set())
+            invalid_start_deps = start_dependencies - set(self.comp_dict)
+            if invalid_start_deps:
+                log.warning(f"Ignoring undefined start dependencies {invalid_start_deps} on component '{comp_name}'")
+                start_dependencies -= invalid_start_deps
+                
+            self.start_graph[comp_name] = start_dependencies
+        
+        log.debug("Built start dependency graph")
+        
+    def build_stop_graph(self):
+        self.stop_graph = {}
+        reverse_start_graph = self.reverse_adj_list(self.start_graph)
+        for comp_name, comp in self.comp_dict.items():
+            if self.comp_types[comp_name] != CompType.SINGLETON:
+                continue
+            
+            stop_func = getattr(comp, STOP_FUNC_NAME, None)
+            if not stop_func:
+                continue
+            
+            # looks for dependencies in this order:
+            # @depends_on decorator -> reverse start graph -> empty set
+            stop_dependencies = getattr(
+                stop_func, 
+                DEPENDS_ON_FIELD, 
+                # default:
+                reverse_start_graph.get(
+                    comp_name, 
+                    # default:
+                    set()
+                )
+            )
+            
+            invalid_stop_deps = stop_dependencies - set(self.comp_dict)
+            if invalid_stop_deps:
+                log.warning(f"Ignoring undefined start dependencies {invalid_stop_deps} on component '{comp_name}'")
+                stop_dependencies -= invalid_stop_deps
+                
+            self.stop_graph[comp_name] = stop_dependencies
+        
+        log.debug("Built stop dependency graph")
+        
+    @staticmethod
+    def reverse_adj_list(adj: dict[str, set[str]]):
+        r_adj: dict[str, set[str]] = {}
+        for node in adj:
+            r_adj.setdefault(node, set())
+            for n in adj[node]:
+                r_adj.setdefault(n, set())
+                r_adj[n].add(node)
+        return r_adj
     
     @staticmethod
-    def topo_sort(adj: dict[str, list[str]]):
+    def topo_sort(adj: dict[str, set[str]]):
         """Topological sort of direct graph using Kahn's algorithm."""
-        # reverse adj list: n -> incoming neighbors
-        r_adj: dict[str, list[str]] = {}
         
-        # computes reverse adjacency list
-        for node in adj:
-            r_adj.setdefault(node, [])
-            for n in adj[node]:
-                r_adj.setdefault(n, [])
-                r_adj[n].append(node)
+        # reverse adj list: n -> incoming neighbors
+        r_adj = BuildArtifact.reverse_adj_list(adj)
         
         # how many outgoing edges each node has
         out_degree = {
@@ -179,13 +225,19 @@ class BuildArtifact:
     def build(self):
         log.debug("Creating build artifact...")
         self.collect_components()
-        self.build_dependencies()
+        
+        self.build_init_graph()
         log.debug("Starting init graph topo sort...")
         self.init_order = self.topo_sort(self.init_graph)
-        log.debug("Init order: " + " -> ".join(self.init_order))        
+        log.debug("Init order: " + " -> ".join(self.init_order))
+        
+        self.build_start_graph()
         log.debug("Starting start graph topo sort...")
         self.start_order = self.topo_sort(self.start_graph)
         log.debug("Start order: " + " -> ".join(self.start_order))
+        
+        self.build_stop_graph()
+        log.debug("Starting stop graph topo sort...")
         self.stop_order = self.build_stop_order(self.start_order)
         log.debug("Stop order: " + " -> ".join(self.stop_order))
         log.debug("Done")
