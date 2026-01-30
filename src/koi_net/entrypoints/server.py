@@ -1,11 +1,9 @@
 import time
-from logging import Logger
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from fastapi import Request
-from structlog.contextvars import bound_contextvars
 
-from ..logging_context import LoggingContext
 from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
 from ..network.response_handler import ResponseHandler
@@ -19,29 +17,19 @@ if TYPE_CHECKING:
     from fastapi import FastAPI, APIRouter
 
 
+@dataclass
 class NodeServer(ThreadedComponent):
     """Entry point for full nodes, manages FastAPI server."""
+    
     config: FullNodeConfig
     response_handler: ResponseHandler
-    app: "FastAPI"
-    router: "APIRouter"
-    server: "uvicorn.Server"
     
-    def __init__(
-        self,
-        log: Logger,
-        logging_context: LoggingContext,
-        config: FullNodeConfig,
-        response_handler: ResponseHandler
-    ):
-        super().__init__(log=log, logging_context=logging_context, name="server")
-        self.config = config
-        self.response_handler = response_handler
-        
+    app: "FastAPI" = field(init=False)
+    router: "APIRouter" = field(init=False)
+    server: "uvicorn.Server" = field(init=False)
+    
+    def __post_init__(self):
         self.build_app()
-        
-        self.server = None
-        self.thread = None
         
     def build_endpoints(self, router: "APIRouter"):
         """Builds endpoints for API router."""

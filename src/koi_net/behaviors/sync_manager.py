@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
@@ -10,26 +11,15 @@ from ..processor.kobj_queue import KobjQueue
 from ..protocol.node import NodeProfile, NodeType
 
 
+@dataclass
 class SyncManager:
     """Handles state synchronization actions with other nodes."""
+    
+    log: Logger
     graph: NetworkGraph
     cache: Cache
     request_handler: RequestHandler
     kobj_queue: KobjQueue
-    
-    def __init__(
-        self,
-        log: Logger,
-        graph: NetworkGraph,
-        cache: Cache,
-        request_handler: RequestHandler,
-        kobj_queue: KobjQueue
-    ):
-        self.log = log
-        self.graph = graph
-        self.cache = cache
-        self.request_handler = request_handler
-        self.kobj_queue = kobj_queue
     
     @depends_on("graph", "kobj_worker")
     def start(self):

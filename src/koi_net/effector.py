@@ -27,35 +27,22 @@ class DerefHandler:
             return handler
         return decorator
 
-
 class BundleSource(StrEnum):
     CACHE = "CACHE"
     ACTION = "ACTION"
 
+@dataclass
 class Effector:
     """Subsystem for dereferencing RIDs."""
     
+    log: Logger
     cache: Cache
     resolver: NetworkResolver
     kobj_queue: KobjQueue
     handler_context: HandlerContext
+    deref_handlers: list[DerefHandler]
     
-    def __init__(
-        self,
-        log: Logger,
-        cache: Cache,
-        resolver: NetworkResolver,
-        kobj_queue: KobjQueue,
-        handler_context: HandlerContext,
-        deref_handlers: list[DerefHandler]
-    ):
-        self.log = log
-        self.cache = cache
-        self.resolver = resolver
-        self.kobj_queue = kobj_queue
-        self.handler_context = handler_context
-        self.deref_handlers = deref_handlers
-        
+    def __post_init__(self):
         self.handler_context.set_effector(self)
     
     def _try_cache(self, rid: RID) -> tuple[Bundle, BundleSource] | None:

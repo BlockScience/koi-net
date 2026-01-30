@@ -1,9 +1,8 @@
 
-import threading
 import time
-from logging import Logger
+import threading
+from dataclasses import dataclass, field
 
-from ..logging_context import LoggingContext
 from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
 from ..processor.kobj_queue import KobjQueue
@@ -11,26 +10,16 @@ from ..network.resolver import NetworkResolver
 from ..config.partial_node import PartialNodeConfig
 
 
+@dataclass
 class NodePoller(ThreadedComponent):
     """Entry point for partial nodes, manages polling event loop."""
+    
+    config: PartialNodeConfig
     kobj_queue: KobjQueue
     resolver: NetworkResolver
-    config: PartialNodeConfig
+
+    exit_event: threading.Event = field(init=False, default_factory=threading.Event)
     
-    def __init__(
-        self,
-        log: Logger,
-        logging_context: LoggingContext,
-        config: PartialNodeConfig,
-        kobj_queue: KobjQueue,
-        resolver: NetworkResolver
-    ):
-        super().__init__(log=log, logging_context=logging_context, name="poller")
-        self.kobj_queue = kobj_queue
-        self.resolver = resolver
-        self.config = config
-        self.exit_event = threading.Event()
-        
     def poll(self):
         """Polls neighbor nodes and processes returned events."""
         for node_rid, events in self.resolver.poll_neighbors().items():

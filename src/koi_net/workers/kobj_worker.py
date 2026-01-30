@@ -1,9 +1,7 @@
 import queue
-import threading
 import traceback
-from logging import Logger
+from dataclasses import dataclass
 
-from ..logging_context import LoggingContext
 from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
@@ -18,21 +16,13 @@ class End:
 STOP_WORKER = End()
 
 
+@dataclass
 class KnowledgeProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `kobj_queue`."""
     
-    def __init__(
-        self,
-        log: Logger,
-        logging_context: LoggingContext,
-        config: BaseNodeConfig,
-        kobj_queue: KobjQueue,
-        pipeline: KnowledgePipeline
-    ):
-        super().__init__(log=log, logging_context=logging_context, name="kobj_worker")
-        self.config = config
-        self.kobj_queue = kobj_queue
-        self.pipeline = pipeline
+    config: BaseNodeConfig
+    kobj_queue: KobjQueue
+    pipeline: KnowledgePipeline
     
     @depends_on("server", "poller")
     def stop(self):

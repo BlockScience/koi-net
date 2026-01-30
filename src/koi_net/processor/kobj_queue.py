@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from logging import Logger
 from queue import Queue
 from rid_lib.core import RID
@@ -7,14 +8,13 @@ from ..protocol.event import Event, EventType
 from .knowledge_object import KnowledgeObject
 
 
+@dataclass
 class KobjQueue:
     """Queue for knowledge objects entering the processing pipeline."""
-    q: Queue[KnowledgeObject]
+    log: Logger
     
-    def __init__(self, log: Logger):
-        self.log = log
-        self.q = Queue()
-        
+    q: Queue[KnowledgeObject] = field(init=False, default_factory=Queue)
+    
     def push(
         self, *,
         rid: RID | None = None,

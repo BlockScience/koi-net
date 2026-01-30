@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import socket
 from logging import Logger
 
@@ -6,16 +7,12 @@ from ..config.provider import ConfigProvider
 from ..config.full_node import FullNodeConfig
 
 
+@dataclass
 class PortManager:
     """Changes port if already in use by another process."""
     
-    def __init__(
-        self,
-        log: Logger,
-        config: ConfigProvider | FullNodeConfig
-    ):
-        self.log = log
-        self.config = config
+    log: Logger
+    config: ConfigProvider | FullNodeConfig
     
     @depends_on("config")
     def start(self):

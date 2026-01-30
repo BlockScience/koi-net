@@ -1,6 +1,8 @@
+from dataclasses import dataclass, field
 from logging import Logger
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
+import networkx as nx
 from rid_lib import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetEdge, KoiNetNode
@@ -8,23 +10,16 @@ from rid_lib.types import KoiNetEdge, KoiNetNode
 from ..identity import NodeIdentity
 from ..protocol.edge import EdgeProfile, EdgeStatus
 
-if TYPE_CHECKING:
-    import networkx as nx
 
-
+@dataclass
 class NetworkGraph:
     """Graph functions for this node's view of its network."""
     
+    log: Logger
     cache: Cache
     identity: NodeIdentity
-    dg: "nx.DiGraph"
     
-    def __init__(self, log: Logger, cache: Cache, identity: NodeIdentity):
-        import networkx as nx
-        self.log = log
-        self.cache = cache
-        self.identity = identity
-        self.dg = nx.DiGraph()
+    dg: nx.DiGraph = field(init=False, default_factory=nx.DiGraph)
     
     def start(self):
         self.generate()
