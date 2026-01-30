@@ -1,11 +1,12 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 from structlog.contextvars import bound_contextvars
 
 
+@dataclass
 class LoggingContext:
-    def __init__(self, root_dir: Path):
-        self.root_dir = root_dir
-        
+    root_dir: Path
+    
     def bound_vars(self, thread: str):
         return bound_contextvars(log_dir=self.root_dir, thread=thread)

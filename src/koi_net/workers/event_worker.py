@@ -1,14 +1,12 @@
-from logging import Logger
 import queue
-import threading
 import traceback
 import time
+from dataclasses import dataclass
 
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
 from ..build.component import depends_on
-from ..logging_context import LoggingContext
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -25,28 +23,16 @@ class End:
 STOP_WORKER = End()
 
 
+@dataclass
 class EventProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `event_queue`."""
     
-    def __init__(
-        self,
-        log: Logger,
-        logging_context: LoggingContext,
-        config: BaseNodeConfig,
-        cache: Cache,
-        event_queue: EventQueue,
-        request_handler: RequestHandler,
-        poll_event_buf: EventBuffer,
-        broadcast_event_buf: EventBuffer
-    ):
-        super().__init__(log=log, logging_context=logging_context, name="event_worker")
-        self.event_queue = event_queue
-        self.request_handler = request_handler
-        
-        self.config = config
-        self.cache = cache
-        self.poll_event_buf = poll_event_buf
-        self.broadcast_event_buf = broadcast_event_buf
+    config: BaseNodeConfig
+    cache: Cache
+    event_queue: EventQueue
+    request_handler: RequestHandler
+    poll_event_buf: EventBuffer
+    broadcast_event_buf: EventBuffer
         
     def flush_and_broadcast(self, target: KoiNetNode, force_flush: bool = False):
         """Broadcasts all events to target in event buffer."""

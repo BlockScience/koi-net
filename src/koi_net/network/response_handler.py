@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from logging import Logger
+
 from rid_lib import RID
 from rid_lib.types import KoiNetNode
 from rid_lib.ext import Manifest, Cache
@@ -8,9 +10,6 @@ from ..processor.kobj_queue import KobjQueue
 from ..protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from ..protocol.envelope import SignedEnvelope
 from ..secure_manager import SecureManager
-from .event_buffer import EventBuffer
-
-
 from ..protocol.api_models import (
     EventsPayload,
     PollEvents,
@@ -21,28 +20,18 @@ from ..protocol.api_models import (
     FetchManifests,
     FetchBundles,
 )
+from .event_buffer import EventBuffer
 
 
+@dataclass
 class ResponseHandler:
     """Handles generating responses to requests from other KOI nodes."""
     
+    log: Logger
     cache: Cache
     kobj_queue: KobjQueue
     poll_event_buf: EventBuffer
-    
-    def __init__(
-        self, 
-        log: Logger,
-        cache: Cache,
-        kobj_queue: KobjQueue,
-        poll_event_buf: EventBuffer,
-        secure_manager: SecureManager
-    ):
-        self.log = log
-        self.cache = cache
-        self.kobj_queue = kobj_queue
-        self.poll_event_buf = poll_event_buf
-        self.secure_manager = secure_manager
+    secure_manager: SecureManager
     
     def handle_response(self, path: str, req: SignedEnvelope):
         self.secure_manager.validate_envelope(req)

@@ -1,5 +1,7 @@
+from dataclasses import dataclass, field
 from logging import Logger
 from pathlib import Path
+
 import cryptography.exceptions
 from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
@@ -22,25 +24,19 @@ from .exceptions import (
 from .config.base import BaseNodeConfig
 
 
+@dataclass
 class SecureManager:
     """Subsystem handling secure protocol logic."""
-
-    priv_key: PrivateKey
     
-    def __init__(
-        self, 
-        log: Logger,
-        identity: NodeIdentity, 
-        cache: Cache,
-        config: ConfigProvider | BaseNodeConfig,
-        root_dir: Path
-    ):
-        self.log = log
-        self.identity = identity
-        self.cache = cache
-        self.config = config
-        self.root_dir = root_dir
-        
+    log: Logger
+    identity: NodeIdentity
+    cache: Cache
+    config: ConfigProvider | BaseNodeConfig
+    root_dir: Path
+    
+    priv_key: PrivateKey = field(init=False)
+    
+    def __post_init__(self):
         self.load_priv_key()
         
     @property

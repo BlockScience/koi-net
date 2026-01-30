@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from functools import wraps
 from logging import Logger
 
@@ -47,38 +48,15 @@ from ..exceptions import (
 from .error_handler import ErrorHandler
 
 
-def report_exception(func):
-        """Logs request errors as warnings."""
-        @wraps(func)
-        def wrapper(self: "RequestHandler", *args, **kwargs):
-            try:
-                return func(self, *args, **kwargs)
-            except RequestError as err:
-                self.log.warning(err)
-                raise
-        return wrapper
-
+@dataclass
 class RequestHandler:
     """Handles making requests to other KOI nodes."""
     
+    log: Logger
     cache: Cache
     identity: NodeIdentity
     secure_manager: SecureManager
     error_handler: ErrorHandler
-    
-    def __init__(
-        self, 
-        log: Logger,
-        cache: Cache,
-        identity: NodeIdentity,
-        secure_manager: SecureManager,
-        error_handler: ErrorHandler
-    ):
-        self.log = log
-        self.cache = cache
-        self.identity = identity
-        self.secure_manager = secure_manager
-        self.error_handler = error_handler
     
     def get_base_url(self, node_rid: KoiNetNode) -> str:
         """Retrieves URL of a node from its RID."""
@@ -98,6 +76,18 @@ class RequestHandler:
         
         self.log.debug(f"Resolved {node_rid!r} to {node_url}")
         return node_url
+    
+    @staticmethod
+    def report_exception(func):
+        """Logs request errors as warnings."""
+        @wraps(func)
+        def wrapper(self: "RequestHandler", *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except RequestError as err:
+                self.log.warning(err)
+                raise
+        return wrapper
     
     @report_exception
     def make_request(

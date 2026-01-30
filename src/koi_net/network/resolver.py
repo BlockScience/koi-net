@@ -1,4 +1,6 @@
+from dataclasses import dataclass, field
 from logging import Logger
+
 from rid_lib import RID
 from rid_lib.core import RIDType
 from rid_lib.ext import Cache, Bundle
@@ -13,33 +15,19 @@ from ..config.base import BaseNodeConfig
 from ..exceptions import ProtocolError, RequestError
 
 
+@dataclass
 class NetworkResolver:
     """Handles resolving nodes or knowledge objects from the network."""
     
-    config: BaseNodeConfig    
-    identity: NodeIdentity
+    log: Logger
+    config: BaseNodeConfig
     cache: Cache
+    identity: NodeIdentity
     graph: NetworkGraph
     request_handler: RequestHandler
-    
-    def __init__(
-        self, 
-        log: Logger,
-        config: BaseNodeConfig,
-        cache: Cache, 
-        identity: NodeIdentity,
-        graph: NetworkGraph,
-        request_handler: RequestHandler,
-    ):
-        self.log = log
-        self.config = config
-        self.identity = identity
-        self.cache = cache
-        self.graph = graph
-        self.request_handler = request_handler
-        
-        self.poll_event_queue = dict()
-        self.webhook_event_queue = dict()
+
+    poll_event_queue: dict = field(init=False, default_factory=dict)
+    webhook_event_queue: dict = field(init=False, default_factory=dict)
     
     def get_state_providers(self, rid_type: RIDType) -> list[KoiNetNode]:
         """Returns list of node RIDs which provide state for specified RID type."""
