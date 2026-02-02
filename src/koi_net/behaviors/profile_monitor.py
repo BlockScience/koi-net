@@ -32,6 +32,6 @@ class ProfileMonitor:
         self.log.debug("Waiting for profile to be processed...")
         # IMPORTANT: this waits for the identity bundle to be processed, later 
         # components (like the handshaker) assume this exists at runtime.
-        self.kobj_queue.q.join()
+        self.kobj_queue.wait()
         self.log.debug("Done!")
         

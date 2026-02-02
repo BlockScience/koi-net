@@ -1,5 +1,4 @@
 import queue
-import traceback
 import time
 from dataclasses import dataclass
 
@@ -102,7 +101,3 @@ class EventProcessingWorker(ThreadedComponent):
                     now = time.time()
                     if (now - start_time) >= self.config.koi_net.event_worker.max_wait_time: 
                         self.flush_and_broadcast(target)
-                        
-            except Exception:
-                traceback.print_exc()
-                continue

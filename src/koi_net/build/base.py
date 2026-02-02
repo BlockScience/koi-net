@@ -12,9 +12,7 @@ from .assembler import NodeAssembler
 class BaseAssembly(NodeAssembler):
     root_dir: Path
     
-    can_start: threading.Event = threading.Event
-    ready: threading.Event = threading.Event
-    shutdown_requested: threading.Event = threading.Event
+    shutdown_signal: threading.Event = threading.Event
 
     log: Logger = lambda root_dir: structlog.stdlib.get_logger().bind(log_dir=root_dir)
     logging_context: LoggingContext = LoggingContext
