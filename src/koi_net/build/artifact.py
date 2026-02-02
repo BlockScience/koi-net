@@ -90,16 +90,20 @@ class BuildArtifact:
                 
     def build_start_graph(self):
         self.start_graph = {}
+        start_components = {
+            name for name, comp in self.comp_dict.items()
+            if getattr(comp, START_FUNC_NAME, None)
+        }
         for comp_name, comp in self.comp_dict.items():
             if self.comp_types[comp_name] != CompType.SINGLETON:
                 continue
             
-            start_func = getattr(comp, START_FUNC_NAME, None)
-            if not start_func:
+            if comp_name not in start_components:
                 continue
             
+            start_func = getattr(comp, START_FUNC_NAME)
             start_dependencies = getattr(start_func, DEPENDS_ON_FIELD, set())
-            invalid_start_deps = start_dependencies - set(self.comp_dict)
+            invalid_start_deps = start_dependencies - start_components
             if invalid_start_deps:
                 log.warning(f"Ignoring undefined start dependencies {invalid_start_deps} on component '{comp_name}'")
                 start_dependencies -= invalid_start_deps
@@ -110,19 +114,25 @@ class BuildArtifact:
         
     def build_stop_graph(self):
         self.stop_graph = {}
+        
+        stop_components = {
+            name for name, comp in self.comp_dict.items()
+            if getattr(comp, STOP_FUNC_NAME, None)
+        }
+        
         reverse_start_graph = self.reverse_adj_list(self.start_graph)
         for comp_name, comp in self.comp_dict.items():
             if self.comp_types[comp_name] != CompType.SINGLETON:
                 continue
             
-            stop_func = getattr(comp, STOP_FUNC_NAME, None)
-            if not stop_func:
+            if comp_name not in stop_components:
                 continue
             
             # looks for dependencies in this order:
             # @depends_on decorator -> reverse start graph -> empty set
+            stop_func = getattr(comp, STOP_FUNC_NAME)
             stop_dependencies = getattr(
-                stop_func, 
+                stop_func,
                 DEPENDS_ON_FIELD, 
                 # default:
                 reverse_start_graph.get(
@@ -132,9 +142,9 @@ class BuildArtifact:
                 )
             )
             
-            invalid_stop_deps = stop_dependencies - set(self.comp_dict)
+            invalid_stop_deps = stop_dependencies - stop_components
             if invalid_stop_deps:
-                log.warning(f"Ignoring undefined start dependencies {invalid_stop_deps} on component '{comp_name}'")
+                log.warning(f"Ignoring undefined stop dependencies {invalid_stop_deps} on component '{comp_name}'")
                 stop_dependencies -= invalid_stop_deps
                 
             self.stop_graph[comp_name] = stop_dependencies
@@ -238,6 +248,6 @@ class BuildArtifact:
         
         self.build_stop_graph()
         log.debug("Starting stop graph topo sort...")
-        self.stop_order = self.build_stop_order(self.start_order)
+        self.stop_order = self.topo_sort(self.stop_graph)
         log.debug("Stop order: " + " -> ".join(self.stop_order))
         log.debug("Done")
