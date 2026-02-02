@@ -11,6 +11,8 @@ class ThreadedComponent:
     
     log: Logger
     logging_context: LoggingContext
+    shutdown_signal: threading.Event
+    
     thread: threading.Thread | None = field(init=False, default=None)
     
     def start(self):
@@ -29,7 +31,12 @@ class ThreadedComponent:
     
     def run_with_log_ctx(self):
         with self.logging_context.bound_vars(thread=self.__class__.__name__):
-            self.run()
+            try:
+                self.run()
+            except Exception as exc:
+                self.log.error(str(exc))
+                self.log.error("Raising shutdown signal")
+                self.shutdown_signal.set()
     
     def run(self):
         """Processing loop for thread."""

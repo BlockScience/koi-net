@@ -1,5 +1,4 @@
 import queue
-import traceback
 from dataclasses import dataclass
 
 from ..config.base import BaseNodeConfig
@@ -39,14 +38,11 @@ class KnowledgeProcessingWorker(ThreadedComponent):
                         return
                     
                     self.log.info(f"Dequeued {item!r}")
-                    
                     self.pipeline.process(item)
+                    
                 finally:
                     self.kobj_queue.q.task_done()
                     
             except queue.Empty:
                 pass
-            
-            except Exception:
-                traceback.print_exc()
-                continue
+

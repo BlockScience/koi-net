@@ -130,6 +130,6 @@ class Effector:
             )
             
             if write_through:
-                self.kobj_queue.q.join()
+                self.kobj_queue.wait()
                 
         return bundle

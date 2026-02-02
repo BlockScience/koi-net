@@ -26,7 +26,7 @@ class NodeServer(ThreadedComponent):
     
     app: "FastAPI" = field(init=False)
     router: "APIRouter" = field(init=False)
-    server: "uvicorn.Server" = field(init=False)
+    server: "uvicorn.Server | None" = field(init=False, default=None)
     
     def __post_init__(self):
         self.build_app()
