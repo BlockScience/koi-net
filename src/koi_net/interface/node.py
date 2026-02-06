@@ -8,8 +8,13 @@ from jsonpointer import JsonPointer, JsonPointerException
 from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
+from rich import box
+
+from rid_lib.types import KoiNetEdge, KoiNetNode
 
 from koi_net.exceptions import MissingEnvVarsError
+from ..protocol.edge import EdgeProfile
 
 from ..core import BaseNode
 from ..build.container import NodeState, NodeContainer
@@ -89,6 +94,31 @@ class NodeInterface:
     def state(self):
         return self.node.get_state()
     
+    def info(self):
+        table = Table("rid types", "", "node", box=box.SIMPLE)
+        for edge_rid in self.node.cache.list_rids(rid_types=[KoiNetEdge]):
+            bundle = self.node.cache.read(edge_rid)
+            edge_profile = bundle.validate_contents(EdgeProfile)
+            
+            if edge_profile.source == self.node.identity.rid:
+                direction = "->"
+                other = edge_profile.target
+                
+            elif edge_profile.target == self.node.identity.rid:
+                direction = "<-"
+                other = edge_profile.source
+            
+            else:
+                continue
+            
+            table.add_row(str(edge_profile.rid_types[0]), direction, str(other))
+            for rid_type in edge_profile.rid_types[1:]:
+                table.add_row(str(rid_type))
+            table.add_row()
+        
+        self.console.print(table)
+            
+        
     def run(self):
         try:
             self.start()
@@ -117,7 +147,10 @@ class NodeInterface:
             print("Done")
         else:
             print("Node already stopped")
-        
+    
+    def wipe_config(self):
+        self.node.config.wipe()
+    
     def wipe_cache(self):
         self.node.cache.drop()
         

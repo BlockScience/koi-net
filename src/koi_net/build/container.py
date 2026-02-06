@@ -1,13 +1,12 @@
+import time
+from typing import Any
 import threading
 from pathlib import Path
 from logging import Logger
-from typing import Any
 
-from koi_net.lifecycle import NodeLifecycle, NodeState
-
+from ..lifecycle import NodeLifecycle, NodeState
 from ..logging_context import LoggingContext
 from .artifact import BuildArtifact
-
 
 
 class NodeContainer:
@@ -36,7 +35,20 @@ class NodeContainer:
             artifact=self._artifact,
             container=self
         )
+    
+    def run(self):
+        try:
+            self.start()
+            print("Press Ctrl + C to quit")
+            while (self.get_state() is NodeState.RUNNING):
+                time.sleep(0.5)
         
+        except KeyboardInterrupt:
+            print("Quitting...")
+        
+        finally:
+            self.stop()
+    
     def start(self, block: bool = True):
         self._lifecycle.start(block=block)
         

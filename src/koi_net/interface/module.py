@@ -45,8 +45,11 @@ class ModuleInterface:
             module = self.module_map[module_name]
         
         for _, obj in inspect.getmembers(module):
-            if (getattr(obj, "__module__", None) == module.__name__ 
-                and issubclass(obj, BaseNode)):
+            if (
+                getattr(obj, "__module__", None) == module.__name__ and 
+                inspect.isclass(obj) and
+                issubclass(obj, BaseNode)
+            ):
                 return obj
         
     def load_module_names(self):

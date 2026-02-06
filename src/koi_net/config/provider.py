@@ -1,4 +1,5 @@
 import inspect
+import os
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -112,6 +113,17 @@ class ConfigProvider:
                     f.truncate()
                     f.write(self._file_content)
                 raise
+            
+    def wipe(self):
+        try:
+            os.remove(self._root_dir / self._file_path)
+        except FileNotFoundError:
+            pass
+        
+        try:
+            os.remove(self._root_dir / self.private_key_pem_path)
+        except FileNotFoundError:
+            pass
     
     @contextmanager
     def mutate(self):

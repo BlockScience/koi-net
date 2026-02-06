@@ -27,6 +27,7 @@ class NodeLifecycle:
     container: Any
     
     # internal vars:
+    err: Exception = field(init=False, default=None)
     state: NodeState = field(init=False, default=NodeState.IDLE)
     thread: threading.Thread | None = field(init=False, default=None)
     startup_signal: threading.Event = field(init=False, default_factory=threading.Event)
@@ -62,6 +63,8 @@ class NodeLifecycle:
                 
             finally:
                 self.shutdown()
+                if self.err:
+                    raise self.err
         
     def startup(self):
         self.state = NodeState.STARTING
@@ -73,8 +76,10 @@ class NodeLifecycle:
             
             try:
                 start_func()
-            except Exception:
+            except Exception as err:
                 self.shutdown_signal.set()
+                self.log.error(str(err))
+                self.err = err
             
             if self.shutdown_signal.is_set():
                 self.log.error(f"Startup failed, aborting")
