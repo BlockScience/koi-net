@@ -85,6 +85,7 @@ class KoiShell(cmd.Cmd):
                     ("config-get", "<name> <loc>", "prints the config value at the specified JSON pointer location"),
                     ("config-set", "<name> <loc> <val>", "sets the config at JSON pointer location to value"),
                     ("config-unset", "<name> <loc>", ""),
+                    ("info", "<name>", "shows info about nodes edges"),
                     
                     ("run", "<name>", "runs a node in the foreground"),
                     ("start", "<name>", "starts a node in the background"),
@@ -144,6 +145,10 @@ class KoiShell(cmd.Cmd):
                 self.node_config_set(*args)
             case "config-unset":
                 self.node_config_unset(*args)
+            case "info":
+                self.node_info(*args)
+            case "wipe-config":
+                self.node_wipe_config(*args)
             case "wipe-cache":
                 self.node_wipe_cache(*args)
             case "wipe-logs":
@@ -162,6 +167,8 @@ class KoiShell(cmd.Cmd):
         match sub_cmd:
             case "sync":
                 self.network_sync(*args)
+            case "wipe-config":
+                self.network_wipe_config(*args)
             case "wipe-cache":
                 self.network_wipe_cache(*args)
             case "wipe-logs":
@@ -188,6 +195,8 @@ class KoiShell(cmd.Cmd):
         match sub_cmd:
             case "list":
                 self.module_list(*args)
+            case "reload":
+                self.module_reload(*args)
             case _:
                 print(f"Unknown subcommand '{sub_cmd}'")
             
@@ -252,9 +261,9 @@ class KoiShell(cmd.Cmd):
     def node_config_unset(self, node: NodeInterface, loc: str):
         node.unset_config(loc)
         
-    # @load_node
-    # def node_init(self, node: NodeInterface):
-    #     node.init()
+    @load_node
+    def node_info(self, node: NodeInterface):
+        node.info()
     
     @validate_args
     @load_node
@@ -270,6 +279,12 @@ class KoiShell(cmd.Cmd):
     @load_node
     def node_stop(self, node: NodeInterface):
         node.stop()
+    
+    @validate_args
+    @load_node
+    def node_wipe_config(self, node: NodeInterface):
+        node.wipe_config()
+        print(f"Wiped config of '{node.name}'")
     
     @validate_args
     @load_node
@@ -358,12 +373,27 @@ class KoiShell(cmd.Cmd):
         
         # can only reload modules of nodes at rest
         
+        updated_node_class = module_interface.load_class(module, reload_module=True)
+        
+        affected_nodes = 0
+        updated_nodes = 0
         for node in self.network.nodes:
+            if node.module != module:
+                continue
+            
+            affected_nodes += 1
+            
             if node.state() != NodeState.IDLE:
                 self.console.print(f"Skipping running node '{node.name}'")
                 continue
             
-            # node.load_module
+            node.set_node_class(updated_node_class)
+            updated_nodes += 1
+        
+        if affected_nodes == 0:
+            self.console.print("No nodes were affected")
+        else:
+            self.console.print(f"Reload module for {updated_nodes}/{affected_nodes} nodes")
         
 def run():
     KoiShell().cmdloop()
