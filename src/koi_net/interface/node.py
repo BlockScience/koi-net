@@ -63,6 +63,7 @@ class NodeInterface:
         if self.initialized:
             self.console.print(f"Created node '{self.node.identity.rid}'")
         else:
+            # self.console.print("Failed to initialize, run `node init <name>` to try again")
             self.delete()
     
     def exists(self):
@@ -132,18 +133,18 @@ class NodeInterface:
         finally:
             self.stop()
         
-    def start(self):
+    def start(self, block: bool = True):
         if self.state() == NodeState.IDLE:
             print(f"Starting {self.name}...", end=" ", flush=True)
-            self.node.start()
+            self.node.start(block=block)
             print("Done")
         else:
             print("Node already started")
         
-    def stop(self):
+    def stop(self, block: bool = True):
         if self.state() == NodeState.RUNNING:
             print(f"Stopping {self.name}...", end=" ", flush=True)
-            self.node.stop()
+            self.node.stop(block=block)
             print("Done")
         else:
             print("Node already stopped")

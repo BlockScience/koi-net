@@ -44,7 +44,7 @@ class PartitionedFileHandler(logging.Handler):
         )
         
         self.dropped_log_handler = RotatingFileHandler(
-            filename="dropped_logs.ndjson",
+            filename="dropped_logs.txt",
             maxBytes=self.max_log_file_size,
             backupCount=self.max_log_file_backups,
             encoding=self.log_file_encoding,
@@ -109,7 +109,7 @@ class LogSystem:
         use_file_handler: bool = True,
         use_console_handler: bool = True,
         file_handler_log_level: int = logging.DEBUG,
-        console_handler_log_level: int = logging.INFO
+        console_handler_log_level: int = logging.DEBUG
     ):
         """Only instantiable once, other calls will return the first object."""
         if not cls._instance:

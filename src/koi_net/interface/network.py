@@ -154,6 +154,11 @@ class NetworkInterface:
         for node in self.nodes:
             if node.exists():
                 node.wipe_logs()
+    
+    def wipe_config(self):
+        for node in self.nodes:
+            if node.exists():
+                node.wipe_config()
 
     def run(self):
         try:
@@ -170,15 +175,15 @@ class NetworkInterface:
         finally:
             self.stop()
     
-    def start(self):
+    def start(self, block: bool = True):
         for name in self.config.nodes:
             node = self.resolve_node(name)
             if node.state() == NodeState.IDLE:
-                node.start()
+                node.start(block=block)
             
-    def stop(self):
+    def stop(self, block: bool = True):
         for name in reversed(self.config.nodes):
             node = self.resolve_node(name)
             if node.state() == NodeState.RUNNING:
-                node.stop()
+                node.stop(block=block)
         

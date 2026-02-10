@@ -78,7 +78,8 @@ class KoiShell(cmd.Cmd):
                 cmd_help = [
                     ("add", r"<module ref> \[name]", "adds a new node of type <module ref> to the network, if unset, name defaults to <module ref>"),
                     ("rm", "<name>", "removes a node from the network"),
-                    # ("init", "<name>", "initializes a node"),
+                    ("init", "<name>", "initializes a node"),
+                    ("wipe-config", "", "wipes a node's configuration, including private key"),
                     ("wipe-cache", "<name>", "wipes a node's RID cache"),
                     ("wipe-logs", "<name>", "wipes a node's logs"),
                     
@@ -91,12 +92,12 @@ class KoiShell(cmd.Cmd):
                     ("start", "<name>", "starts a node in the background"),
                     ("stop", "<name>", "stops a running background node"),
                     
-                    ("list", "", "lists all nodes in the network"),
-                    ("modules", "", "lists all available node modules and their aliases"),
+                    ("list", "", "lists all nodes in the network")
                 ]
             case "network":
                 cmd_help = [
                     ("sync", "", "synchronizes the local environment with the network configuration"),
+                    ("wipe-config", "", "wipes configuration, including private key, of all network nodes"),
                     ("wipe-cache", "", "wipes RID cache of all network nodes"),
                     ("wipe-logs", "", "wipes logs of all network nodes"),
                     ("status", "", "lists the current state of all network nodes"),
@@ -135,10 +136,10 @@ class KoiShell(cmd.Cmd):
                 self.node_add(*args)
             case "rm":
                 self.node_rm(*args)
+            case "init":
+                self.node_init(*args)
             case "list":
                 self.node_list(*args)
-            case "modules":
-                self.module_list(*args)
             case "config-get":
                 self.node_config_get(*args)
             case "config-set":
@@ -230,6 +231,11 @@ class KoiShell(cmd.Cmd):
                 return
         
         self.network.remove_node(node)
+        
+    @validate_args
+    @load_node
+    def node_init(self, node: NodeInterface):
+        node.init()
     
     @validate_args
     def node_list(self):
@@ -309,6 +315,10 @@ class KoiShell(cmd.Cmd):
     @validate_args
     def network_wipe_logs(self):
         self.network.wipe_logs()
+        
+    @validate_args
+    def network_wipe_config(self):
+        self.network.wipe_config()
     
     @validate_args
     def network_status(self):
