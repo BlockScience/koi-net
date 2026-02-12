@@ -1,12 +1,11 @@
-from logging import Logger
 import queue
-import traceback
+from dataclasses import dataclass
 
-from ..build import comp_order
 from ..config.base import BaseNodeConfig
 from ..processor.pipeline import KnowledgePipeline
 from ..processor.kobj_queue import KobjQueue
 from ..build.threaded_component import ThreadedComponent
+from ..build.component import depends_on
 
 
 class End:
@@ -15,24 +14,16 @@ class End:
 
 STOP_WORKER = End()
 
-@comp_order.worker
+
+@dataclass
 class KnowledgeProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `kobj_queue`."""
     
-    def __init__(
-        self,
-        log: Logger,
-        config: BaseNodeConfig,
-        kobj_queue: KobjQueue,
-        pipeline: KnowledgePipeline,
-        root_dir
-    ):
-        self.log = log
-        self.config = config
-        self.kobj_queue = kobj_queue
-        self.pipeline = pipeline
-        self.root_dir = root_dir
-        
+    config: BaseNodeConfig
+    kobj_queue: KobjQueue
+    pipeline: KnowledgePipeline
+    
+    @depends_on("server", "poller")
     def stop(self):
         self.kobj_queue.q.put(STOP_WORKER)
         super().stop()
@@ -47,14 +38,11 @@ class KnowledgeProcessingWorker(ThreadedComponent):
                         return
                     
                     self.log.info(f"Dequeued {item!r}")
-                    
                     self.pipeline.process(item)
+                    
                 finally:
                     self.kobj_queue.q.task_done()
                     
             except queue.Empty:
                 pass
-            
-            except Exception:
-                traceback.print_exc()
-                continue
+

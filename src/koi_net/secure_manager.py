@@ -1,11 +1,13 @@
+from dataclasses import dataclass, field
 from logging import Logger
 from pathlib import Path
+
 import cryptography.exceptions
 from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode
 
-from koi_net.config.loader import ConfigLoader
+from .config.provider import ConfigProvider
 from .identity import NodeIdentity
 from .protocol.envelope import UnsignedEnvelope, SignedEnvelope
 from .protocol.secure import PublicKey
@@ -22,29 +24,19 @@ from .exceptions import (
 from .config.base import BaseNodeConfig
 
 
+@dataclass
 class SecureManager:
     """Subsystem handling secure protocol logic."""
+    
+    log: Logger
     identity: NodeIdentity
     cache: Cache
-    config: BaseNodeConfig
-    priv_key: PrivateKey
+    config: ConfigProvider | BaseNodeConfig
+    root_dir: Path
     
-    def __init__(
-        self, 
-        log: Logger,
-        identity: NodeIdentity, 
-        cache: Cache,
-        config: BaseNodeConfig,
-        config_loader: ConfigLoader,
-        root_dir: Path
-    ):
-        self.log = log
-        self.identity = identity
-        self.cache = cache
-        self.config = config
-        self.config_loader = config_loader
-        self.root_dir = root_dir
-        
+    priv_key: PrivateKey = field(init=False)
+    
+    def __post_init__(self):
         self.load_priv_key()
         
     @property
@@ -67,7 +59,7 @@ class SecureManager:
                 self.log.warning("New private key overwriting old public key!")
             
             self.config.koi_net.node_profile.public_key = pub_key.to_der()
-        self.config_loader.save_to_yaml()
+        self.config.save_to_yaml()
     
     def load_priv_key(self):
         """Loads private key from PEM file path in config."""

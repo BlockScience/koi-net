@@ -1,13 +1,11 @@
-import socket
 import time
-from logging import Logger
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from fastapi import Request
-from structlog.contextvars import bound_contextvars
 
+from ..build.component import depends_on
 from ..build.threaded_component import ThreadedComponent
-from ..config.loader import ConfigLoader
 from ..network.response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
 from ..protocol.api_models import ErrorResponse
@@ -19,32 +17,19 @@ if TYPE_CHECKING:
     from fastapi import FastAPI, APIRouter
 
 
+@dataclass
 class NodeServer(ThreadedComponent):
     """Entry point for full nodes, manages FastAPI server."""
+    
     config: FullNodeConfig
     response_handler: ResponseHandler
-    app: "FastAPI"
-    router: "APIRouter"
-    server: "uvicorn.Server"
     
-    def __init__(
-        self,
-        log: Logger,
-        root_dir,
-        config: FullNodeConfig,
-        config_loader: ConfigLoader,
-        response_handler: ResponseHandler
-    ):
-        self.log = log
-        self.root_dir = root_dir
-        self.config = config
-        self.config_loader = config_loader
-        self.response_handler = response_handler
-        
+    app: "FastAPI" = field(init=False)
+    router: "APIRouter" = field(init=False)
+    server: "uvicorn.Server | None" = field(init=False, default=None)
+    
+    def __post_init__(self):
         self.build_app()
-        
-        self.server = None
-        self.thread = None
         
     def build_endpoints(self, router: "APIRouter"):
         """Builds endpoints for API router."""
@@ -86,7 +71,7 @@ class NodeServer(ThreadedComponent):
     
     async def logging_middleware(self, request: Request, call_next):
         """Binds contextvars per HTTP request, and emits access logs."""
-        with bound_contextvars(log_dir=self.root_dir):
+        with self.logging_context.bound_vars(thread="server"):
             self.log.info(f"Request from {request.client.host}:{request.client.port} - {request.method} {request.url.path}")
             response = await call_next(request)
             self.log.info(f"Response code {response.status_code}")
@@ -104,29 +89,11 @@ class NodeServer(ThreadedComponent):
             content=resp.model_dump(mode="json")
         )
     
-    def acquire_port(self):
-        derived_url = self.config.koi_net.node_profile.base_url == self.config.server.url
-        
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            address = (self.config.server.host, self.config.server.port)
-            while s.connect_ex(address) == 0:
-                self.log.debug(f"port {address[1]} in use")
-                self.config.server.port += 1
-                address = (address[0], self.config.server.port)
-        
-        self.log.debug(f"acquired port {address[1]}")
-        
-        if derived_url:
-            self.config.koi_net.node_profile.base_url = self.config.server.url
-        
-        self.config_loader.save_to_yaml()
-    
     def run(self):
         self.server.run()
         
+    @depends_on("port_manager")
     def start(self):
-        self.acquire_port()
-        
         import uvicorn
         self.server = uvicorn.Server(
             config=uvicorn.Config(

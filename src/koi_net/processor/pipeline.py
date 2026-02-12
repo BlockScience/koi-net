@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from logging import Logger
 from rid_lib.types import KoiNetEdge, KoiNetNode
 from rid_lib.ext import Cache
@@ -7,7 +8,6 @@ from ..protocol.event import EventType
 from ..network.request_handler import RequestHandler
 from ..network.event_queue import EventQueue
 from ..network.graph import NetworkGraph
-from ..identity import NodeIdentity
 from .handler import (
     KnowledgeHandler,
     HandlerType, 
@@ -18,32 +18,15 @@ from .knowledge_object import KnowledgeObject
 from .context import HandlerContext
 
 
+@dataclass
 class KnowledgePipeline:
+    log: Logger
     handler_context: HandlerContext
     cache: Cache
-    identity: NodeIdentity
     request_handler: RequestHandler
     event_queue: EventQueue
     graph: NetworkGraph
     knowledge_handlers: list[KnowledgeHandler]
-    
-    def __init__(
-        self, 
-        log: Logger,
-        handler_context: HandlerContext,
-        cache: Cache, 
-        request_handler: RequestHandler,
-        event_queue: EventQueue,
-        graph: NetworkGraph,
-        knowledge_handlers: list[KnowledgeHandler]
-    ):
-        self.log = log
-        self.handler_context = handler_context
-        self.cache = cache
-        self.request_handler = request_handler
-        self.event_queue = event_queue
-        self.graph = graph
-        self.knowledge_handlers = knowledge_handlers
     
     def call_handler_chain(
         self, 

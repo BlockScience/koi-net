@@ -1,4 +1,6 @@
+from dataclasses import dataclass, field
 from logging import Logger
+
 from rid_lib.types import KoiNetNode
 
 from ..behaviors.handshaker import Handshaker
@@ -7,21 +9,14 @@ from ..protocol.event import EventType
 from ..processor.kobj_queue import KobjQueue
 
 
+@dataclass
 class ErrorHandler:
     """Handles network and protocol errors that may occur during requests."""
-    timeout_counter: dict[KoiNetNode, int]
+    log: Logger
     kobj_queue: KobjQueue
+    handshaker: Handshaker
     
-    def __init__(
-        self, 
-        log: Logger,
-        kobj_queue: KobjQueue,
-        handshaker: Handshaker
-    ):
-        self.log = log
-        self.kobj_queue = kobj_queue
-        self.handshaker = handshaker
-        self.timeout_counter = {}
+    timeout_counter: dict[KoiNetNode, int] = field(init=False, default_factory=dict)
     
     def reset_timeout_counter(self, node: KoiNetNode):
         """Reset's a node timeout counter to zero."""

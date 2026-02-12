@@ -83,6 +83,10 @@ def secure_profile_handler(ctx: HandlerContext, kobj: KnowledgeObject):
     if sha256_hash(node_profile.public_key) != node_rid.hash:
         ctx.log.warning(f"Public key hash mismatch for {node_rid!r}!")
         return STOP_CHAIN
+    
+    if (node_rid != ctx.identity.rid) and (node_profile.base_url == ctx.identity.profile.base_url):
+        ctx.log.warning(f"Ignoring node claiming same base URL: {node_profile.base_url}")
+        return STOP_CHAIN
 
 @KnowledgeHandler.create(
     handler_type=HandlerType.Bundle, 
@@ -132,12 +136,13 @@ def edge_negotiation_handler(ctx: HandlerContext, kobj: KnowledgeObject):
             abort = True
         
         if not set(edge_profile.rid_types).issubset(provided_events):
-            ctx.log.debug("Requested RID types not provided by this node")
+            not_provided = set(edge_profile.rid_types) - set(provided_events)
+            ctx.log.debug(f"Requested RID types {not_provided} not provided by this node")
             abort = True
         
         if abort:
             event = Event.from_rid(EventType.FORGET, kobj.rid)
-            ctx.event_queue.push(event, peer_rid, flush=True)
+            ctx.event_queue.push(event, peer_rid)
             return STOP_CHAIN
         
         else:
@@ -278,6 +283,10 @@ def basic_network_output_filter(ctx: HandlerContext, kobj: KnowledgeObject):
         
         ctx.log.debug(f"Updating network targets with '{type(kobj.rid)}' subscribers: {subscribers}")
         kobj.network_targets.update(subscribers)
+        
+    if kobj.source and kobj.source in kobj.network_targets:
+        kobj.network_targets.remove(kobj.source)
+        ctx.log.debug(f"Removed event source '{kobj.source}' from network targest")
         
     return kobj
 

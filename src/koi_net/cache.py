@@ -1,6 +1,8 @@
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+from dataclasses import dataclass
+
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import b64_encode, b64_decode
@@ -8,11 +10,11 @@ from rid_lib.ext.utils import b64_encode, b64_decode
 from .config.base import BaseNodeConfig
 
 
+@dataclass
 class Cache:
-    def __init__(self, config: BaseNodeConfig, root_dir: Path):
-        self.config = config
-        self.root_dir = root_dir
-        
+    config: BaseNodeConfig
+    root_dir: Path
+    
     @property
     def directory_path(self):
         return self.root_dir / self.config.koi_net.cache_directory_path

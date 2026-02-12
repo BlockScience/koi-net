@@ -1,12 +1,11 @@
-from logging import Logger
 import queue
-import traceback
 import time
+from dataclasses import dataclass
 
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..build import comp_order
+from ..build.component import depends_on
 from ..config.base import BaseNodeConfig
 from ..network.event_queue import EventQueue
 from ..network.request_handler import RequestHandler
@@ -22,30 +21,17 @@ class End:
 
 STOP_WORKER = End()
 
-@comp_order.worker
+
+@dataclass
 class EventProcessingWorker(ThreadedComponent):
     """Thread worker that processes the `event_queue`."""
     
-    def __init__(
-        self,
-        log: Logger,
-        config: BaseNodeConfig,
-        cache: Cache,
-        event_queue: EventQueue,
-        request_handler: RequestHandler,
-        poll_event_buf: EventBuffer,
-        broadcast_event_buf: EventBuffer,
-        root_dir
-    ):
-        self.log = log
-        self.root_dir = root_dir
-        self.event_queue = event_queue
-        self.request_handler = request_handler
-        
-        self.config = config
-        self.cache = cache
-        self.poll_event_buf = poll_event_buf
-        self.broadcast_event_buf = broadcast_event_buf
+    config: BaseNodeConfig
+    cache: Cache
+    event_queue: EventQueue
+    request_handler: RequestHandler
+    poll_event_buf: EventBuffer
+    broadcast_event_buf: EventBuffer
         
     def flush_and_broadcast(self, target: KoiNetNode, force_flush: bool = False):
         """Broadcasts all events to target in event buffer."""
@@ -57,7 +43,8 @@ class EventProcessingWorker(ThreadedComponent):
         except RequestError:
             self.log.warning("Failed to reach target, event buffer reset")
             pass
-        
+    
+    @depends_on("kobj_worker")
     def stop(self):
         self.event_queue.q.put(STOP_WORKER)
         super().stop()
@@ -114,7 +101,3 @@ class EventProcessingWorker(ThreadedComponent):
                     now = time.time()
                     if (now - start_time) >= self.config.koi_net.event_worker.max_wait_time: 
                         self.flush_and_broadcast(target)
-                        
-            except Exception:
-                traceback.print_exc()
-                continue
