@@ -1,20 +1,24 @@
+import threading
+from dataclasses import dataclass, field
 from logging import Logger
 from queue import Queue
+
 from rid_lib.core import RID
 from rid_lib.ext import Bundle, Manifest
 from rid_lib.types import KoiNetNode
+
 from ..protocol.event import Event, EventType
 from .knowledge_object import KnowledgeObject
 
 
+@dataclass
 class KobjQueue:
     """Queue for knowledge objects entering the processing pipeline."""
-    q: Queue[KnowledgeObject]
+    log: Logger
+    shutdown_signal: threading.Event
     
-    def __init__(self, log: Logger):
-        self.log = log
-        self.q = Queue()
-        
+    q: Queue[KnowledgeObject] = field(init=False, default_factory=Queue)
+    
     def push(
         self, *,
         rid: RID | None = None,
@@ -48,3 +52,12 @@ class KobjQueue:
         
         self.q.put(_kobj)
         self.log.debug(f"Queued {_kobj!r}")
+    
+    def wait(self):
+        """Safe join, prevents deadlock if `kobj_worker` fails."""
+        while not self.shutdown_signal.wait(0.1):
+            if self.q.unfinished_tasks == 0:
+                return
+        
+        print("WAIT FAILED")
+        raise RuntimeError("Shutdown while awaiting queue")

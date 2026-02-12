@@ -1,23 +1,27 @@
+from dataclasses import dataclass
 from logging import Logger
 from rid_lib.ext import Bundle
+
+from ..build.component import depends_on
 from ..identity import NodeIdentity
 from ..processor.kobj_queue import KobjQueue
 
 
+@dataclass
 class ProfileMonitor:
     """Processes changes to node profile in the config."""
-    def __init__(
-        self,
-        log: Logger,
-        kobj_queue: KobjQueue,
-        identity: NodeIdentity
-    ):
-        self.log = log
-        self.kobj_queue = kobj_queue
-        self.identity = identity
-        
+    
+    log: Logger
+    kobj_queue: KobjQueue
+    identity: NodeIdentity
+    
+    @depends_on("kobj_worker", "port_manager")
     def start(self):
+        self.process_profile()
+        
+    def process_profile(self):
         """Processes identity bundle generated from config."""
+        
         self_bundle = Bundle.generate(
             rid=self.identity.rid,
             contents=self.identity.profile.model_dump()
@@ -28,5 +32,6 @@ class ProfileMonitor:
         self.log.debug("Waiting for profile to be processed...")
         # IMPORTANT: this waits for the identity bundle to be processed, later 
         # components (like the handshaker) assume this exists at runtime.
-        self.kobj_queue.q.join()
+        self.kobj_queue.wait()
         self.log.debug("Done!")
+        

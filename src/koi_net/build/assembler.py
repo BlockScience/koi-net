@@ -1,4 +1,3 @@
-
 from typing import Any, Self
 
 import structlog
@@ -52,7 +51,7 @@ class NodeAssembler:
             elif comp_type == CompType.SINGLETON:
                 # builds depedency dict for current component
                 dependencies = {}
-                for dep in artifact.dep_graph[comp_name]:
+                for dep in artifact.init_graph[comp_name]:
                     if dep not in components:
                         raise BuildError(f"Couldn't find required component '{dep}'")
                     dependencies[dep] = components[dep]

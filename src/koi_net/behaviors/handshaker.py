@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
+from ..build.component import depends_on
 from ..network.graph import NetworkGraph
 from ..config.base import BaseNodeConfig
 from ..identity import NodeIdentity
@@ -9,24 +11,18 @@ from ..network.event_queue import EventQueue
 from ..protocol.event import Event, EventType
 
 
+@dataclass
 class Handshaker:
     """Handles handshaking with other nodes."""
-    def __init__(
-        self, 
-        log: Logger,
-        cache: Cache, 
-        identity: NodeIdentity, 
-        event_queue: EventQueue,
-        config: BaseNodeConfig,
-        graph: NetworkGraph
-    ):
-        self.log = log
-        self.config = config
-        self.cache = cache
-        self.identity = identity
-        self.event_queue = event_queue
-        self.graph = graph
-        
+    
+    log: Logger
+    cache: Cache
+    identity: NodeIdentity
+    event_queue: EventQueue
+    config: BaseNodeConfig
+    graph: NetworkGraph
+    
+    @depends_on("graph", "profile_monitor", "server", "event_worker")
     def start(self):
         """Attempts handshake with first contact on startup.
         

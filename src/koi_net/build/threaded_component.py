@@ -1,18 +1,23 @@
 import threading
-from pathlib import Path
+from dataclasses import dataclass, field
+from logging import Logger
 
-from ..utils import bind_logdir
+from ..logging_context import LoggingContext
 
 
+@dataclass
 class ThreadedComponent:
     """Base class for threaded component. Derived classes MUST set `self.root_dir`."""
     
-    thread: threading.Thread | None = None
-    root_dir: Path
+    log: Logger
+    logging_context: LoggingContext
+    shutdown_signal: threading.Event
+    
+    thread: threading.Thread | None = field(init=False, default=None)
     
     def start(self):
         if self.thread and self.thread.is_alive():
-            print("component has already started")
+            self.log.debug(f"Component {self.__class__.__name__} has already started")
             return
             
         self.thread = threading.Thread(target=self.run_with_log_ctx)
@@ -22,11 +27,16 @@ class ThreadedComponent:
         if self.thread and self.thread.is_alive():
             self.thread.join()
         else:
-            print(f"component {self.__class__.__name__} has already stopped")
+            self.log.debug(f"Component {self.__class__.__name__} has already stopped")
     
-    @bind_logdir
     def run_with_log_ctx(self):
-        self.run()
+        with self.logging_context.bound_vars(thread=self.__class__.__name__):
+            try:
+                self.run()
+            except Exception as exc:
+                self.log.error(str(exc))
+                self.log.error("Raising shutdown signal")
+                self.shutdown_signal.set()
     
     def run(self):
         """Processing loop for thread."""

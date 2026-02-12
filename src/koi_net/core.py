@@ -4,14 +4,14 @@ from .build.base import BaseAssembly
 from .log_system import LogSystem
 from .cache import Cache
 from .config.base import BaseNodeConfig
-from .config.proxy import ConfigProxy
-from .config.loader import ConfigLoader
+from .config.provider import ConfigProvider
 from .config.full_node import FullNodeConfig
 from .config.partial_node import PartialNodeConfig
 from .processor.context import HandlerContext
 from .effector import DerefHandler, Effector
 from .behaviors.handshaker import Handshaker
 from .behaviors.sync_manager import SyncManager
+from .behaviors.port_manager import PortManager
 from .identity import NodeIdentity
 from .workers import KnowledgeProcessingWorker, EventProcessingWorker
 from .network.error_handler import ErrorHandler
@@ -45,8 +45,7 @@ class BaseNode(BaseAssembly):
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
     config_schema = BaseNodeConfig
-    config: BaseNodeConfig | ConfigProxy = ConfigProxy
-    config_loader: ConfigLoader = ConfigLoader
+    config: ConfigProvider | BaseNodeConfig = ConfigProvider
     knowledge_handlers: list[KnowledgeHandler] = [
         basic_rid_handler,
         basic_manifest_handler,
@@ -75,13 +74,14 @@ class BaseNode(BaseAssembly):
     profile_monitor: ProfileMonitor = ProfileMonitor
     
     def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
-        # cls._log_system()
+        cls._log_system()
         return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
 class FullNode(BaseNode):
-    server: NodeServer = NodeServer
     config: FullNodeConfig
+    port_manager: PortManager = PortManager
+    server: NodeServer = NodeServer
 
 class PartialNode(BaseNode):
-    poller: NodePoller = NodePoller
     config: PartialNodeConfig
+    poller: NodePoller = NodePoller
