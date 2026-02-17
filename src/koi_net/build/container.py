@@ -1,3 +1,4 @@
+from queue import Queue
 import time
 from typing import Any
 import threading
@@ -19,6 +20,7 @@ class NodeContainer:
     logging_context: LoggingContext
     root_dir: Path
     shutdown_signal: threading.Event
+    exception_queue: Queue[Exception]
     
     def __init__(self, artifact, components: dict[str, Any]):
         self._artifact = artifact
@@ -29,9 +31,10 @@ class NodeContainer:
             
         
         self._lifecycle = NodeLifecycle(
-            shutdown_signal=self.shutdown_signal,
             log=self.log,
             logging_context=self.logging_context,
+            shutdown_signal=self.shutdown_signal,
+            exception_queue=self.exception_queue,
             artifact=self._artifact,
             container=self
         )

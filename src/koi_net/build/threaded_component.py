@@ -1,3 +1,4 @@
+from queue import Queue
 import threading
 from dataclasses import dataclass, field
 from logging import Logger
@@ -12,6 +13,7 @@ class ThreadedComponent:
     log: Logger
     logging_context: LoggingContext
     shutdown_signal: threading.Event
+    exception_queue: Queue[Exception]
     
     thread: threading.Thread | None = field(init=False, default=None)
     
@@ -37,6 +39,7 @@ class ThreadedComponent:
                 self.log.error(str(exc))
                 self.log.error("Raising shutdown signal")
                 self.shutdown_signal.set()
+                self.exception_queue.put(exc)
     
     def run(self):
         """Processing loop for thread."""
