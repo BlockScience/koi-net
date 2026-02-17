@@ -1,5 +1,6 @@
 import threading
 from dataclasses import dataclass, field
+from queue import Empty, Queue
 from logging import Logger
 from enum import StrEnum
 from typing import Any
@@ -20,8 +21,9 @@ class NodeState(StrEnum):
 class NodeLifecycle:
     
     # injected components:
-    shutdown_signal: threading.Event
     log: Logger
+    shutdown_signal: threading.Event
+    exception_queue: Queue[Exception]
     logging_context: LoggingContext
     artifact: BuildArtifact
     container: Any
@@ -100,3 +102,10 @@ class NodeLifecycle:
         self.shutdown_signal.clear()
         self.state = NodeState.IDLE
         self.log.info("Shutdown complete!")
+        
+        try:
+            exc = self.exception_queue.get_nowait()
+            self.log.info("Raising queued error...")
+            raise exc
+        except Empty:
+            pass

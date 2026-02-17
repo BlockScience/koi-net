@@ -1,6 +1,7 @@
 import threading
 from logging import Logger
 from pathlib import Path
+from queue import Queue
 
 import structlog
 from structlog.contextvars import bound_contextvars
@@ -13,6 +14,7 @@ class BaseAssembly(NodeAssembler):
     root_dir: Path
     
     shutdown_signal: threading.Event = threading.Event
+    exception_queue: Queue[Exception] = Queue
 
     log: Logger = lambda root_dir: structlog.stdlib.get_logger().bind(log_dir=root_dir)
     logging_context: LoggingContext = LoggingContext
