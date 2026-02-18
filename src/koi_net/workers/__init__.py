@@ -1,2 +1,0 @@
-from .event_worker import EventProcessingWorker
-from .kobj_worker import KnowledgeProcessingWorker

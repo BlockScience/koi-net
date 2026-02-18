@@ -4,7 +4,7 @@ import pkgutil
 from importlib.metadata import entry_points
 from types import ModuleType
 
-from ..core import BaseNode
+from koi_net.core import BaseNode
 
 
 ENTRY_POINT_GROUP = "koi_net.node"

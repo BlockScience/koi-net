@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field
 
 from ..build.component import provides, CompType
-from .env_config import EnvConfig
-from .koi_net_config import KoiNetConfig
+from .models import EnvConfig, KoiNetConfig
 
 
 @provides(CompType.OBJECT)
