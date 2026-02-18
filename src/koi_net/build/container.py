@@ -1,13 +1,15 @@
 from queue import Queue
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import threading
 from pathlib import Path
 from logging import Logger
 
-from ..lifecycle import NodeLifecycle, NodeState
-from ..logging_context import LoggingContext
+from .lifecycle import NodeLifecycle, NodeState
 from .artifact import BuildArtifact
+
+if TYPE_CHECKING:
+    from ..components import LoggingContext
 
 
 class NodeContainer:

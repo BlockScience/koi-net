@@ -7,9 +7,11 @@ from koi_net.config.full_node import (
     NodeProvides
 )
 from koi_net.core import FullNode
-from koi_net.processor.context import HandlerContext
-from koi_net.processor.handler import HandlerType, KnowledgeHandler
-from koi_net.processor.knowledge_object import KnowledgeObject
+from koi_net.components import HandlerContext
+
+from koi_net.components.interfaces import HandlerType, KnowledgeHandler
+from koi_net.protocol.knowledge_object import KnowledgeObject
+
 from koi_net.protocol.event import Event, EventType
 from koi_net.protocol.edge import EdgeType, generate_edge_bundle
 

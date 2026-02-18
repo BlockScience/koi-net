@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from pydantic import ValidationError
 
 from ..exceptions import MissingEnvVarsError
-from .env_config import EnvConfig
+from .models import EnvConfig
 from .base import BaseNodeConfig
 
 
