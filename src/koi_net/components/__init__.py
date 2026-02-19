@@ -7,7 +7,6 @@ from .logging_context import LoggingContext
 from .poller import NodePoller
 from .server import NodeServer
 from .secure_manager import SecureManager
-from .handler_context import HandlerContext
 from .kobj_queue import KobjQueue
 from .pipeline import KnowledgePipeline
 from .error_handler import ErrorHandler

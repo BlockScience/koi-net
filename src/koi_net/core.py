@@ -9,7 +9,6 @@ from .config.partial_node import PartialNodeConfig
 
 from .components import (
     Cache,
-    HandlerContext,
     Effector,
     Handshaker,
     SyncManager,
@@ -57,7 +56,6 @@ class BaseNode(BaseAssembly):
     sync_manager: SyncManager = SyncManager
     response_handler: ResponseHandler = ResponseHandler
     resolver: NetworkResolver = NetworkResolver
-    handler_context: HandlerContext = HandlerContext
     effector: Effector = Effector
     pipeline: KnowledgePipeline = KnowledgePipeline
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
