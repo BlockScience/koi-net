@@ -1,24 +1,16 @@
 from pydantic import model_validator
+
+from ..protocol import NodeProfile, NodeType
 from .base import BaseNodeConfig
-from .models import ServerConfig, KoiNetConfig as BaseKoiNetConfig
-from ..protocol.node import (
-    NodeProfile as BaseNodeProfile,
-    NodeType,
-    NodeProvides
-)
+from .server_config import ServerConfig
 
 
-class NodeProfile(BaseNodeProfile):
+class FullNodeProfile(NodeProfile):
     """Node profile config class for full nodes."""
     node_type: NodeType = NodeType.FULL
 
-class KoiNetConfig(BaseKoiNetConfig):
-    """KOI-net config class for full nodes."""
-    node_profile: NodeProfile
-
 class FullNodeConfig(BaseNodeConfig):
     """Node config class for full nodes."""
-    koi_net: KoiNetConfig
     server: ServerConfig = ServerConfig()
     
     @model_validator(mode="after")

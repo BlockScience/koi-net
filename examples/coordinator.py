@@ -2,27 +2,29 @@ from dataclasses import dataclass
 
 from rid_lib.types import KoiNetNode, KoiNetEdge
 from koi_net.core import FullNode
-from koi_net.config.full_node import (
+from koi_net.config import (
     FullNodeConfig, 
     ServerConfig, 
     KoiNetConfig, 
-    NodeProfile, 
+    FullNodeProfile, 
     NodeProvides
 )
 
 from koi_net.components.interfaces import HandlerType, KnowledgeHandler
 from koi_net.components import NodeIdentity, Cache, EventQueue, KobjQueue
-
-from koi_net.protocol.event import Event, EventType
-from koi_net.protocol.edge import EdgeType, generate_edge_bundle
-from koi_net.protocol.knowledge_object import KnowledgeObject
-
+from koi_net.protocol import (
+    KnowledgeObject, 
+    Event, 
+    EventType, 
+    EdgeType, 
+    generate_edge_bundle
+)
 
 class CoordinatorConfig(FullNodeConfig):
     server: ServerConfig = ServerConfig(port=8080)
     koi_net: KoiNetConfig = KoiNetConfig(
         node_name="coordinator",
-        node_profile=NodeProfile(
+        node_profile=FullNodeProfile(
             provides=NodeProvides(
                 event=[KoiNetNode, KoiNetEdge],
                 state=[KoiNetNode, KoiNetEdge]
