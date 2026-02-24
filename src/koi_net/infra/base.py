@@ -2,18 +2,15 @@ import threading
 from logging import Logger
 from pathlib import Path
 from queue import Queue
-from typing import TYPE_CHECKING
 
 import structlog
 from structlog.contextvars import bound_contextvars
 
-from .assembler import NodeAssembler
-
-if TYPE_CHECKING:
-    from ..components import LoggingContext
+from .assembler import Assembler
+from ..components.logging_context import LoggingContext
 
 
-class BaseAssembly(NodeAssembler):
+class BaseAssembly(Assembler):
     root_dir: Path
     
     shutdown_signal: threading.Event = threading.Event

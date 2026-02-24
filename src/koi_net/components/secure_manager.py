@@ -7,11 +7,11 @@ from rid_lib.ext import Bundle, Cache
 from rid_lib.ext.utils import sha256_hash
 from rid_lib.types import KoiNetNode
 
-from ..config.provider import ConfigProvider
+from .config_provider import ConfigProvider
 from .identity import NodeIdentity
 from ..protocol.envelope import UnsignedEnvelope, SignedEnvelope
 from ..protocol.secure import PublicKey
-from ..protocol.api_models import ApiModels, EventsPayload
+from ..protocol.api.models import ApiModels, EventsPayload
 from ..protocol.event import EventType
 from ..protocol.node import NodeProfile
 from ..protocol.secure import PrivateKey

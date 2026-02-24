@@ -20,6 +20,7 @@ from .handshaker import Handshaker
 from .port_manager import PortManager
 from .profile_monitor import ProfileMonitor
 from .sync_manager import SyncManager
+from .config_provider import ConfigProvider
 
 from .knowledge_handlers.basic_rid_handler import BasicRidHandler
 from .knowledge_handlers.basic_manifest_handler import BasicManifestHandler

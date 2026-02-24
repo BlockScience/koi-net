@@ -3,7 +3,7 @@ from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from koi_net.build.component import depends_on
+from koi_net.infra import depends_on
 from koi_net.protocol.event import Event, EventType
 from koi_net.config.base import BaseNodeConfig
 

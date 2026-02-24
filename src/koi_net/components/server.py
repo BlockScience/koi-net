@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import Request
 
-from ..build.component import depends_on
+from ..infra import depends_on
 from .interfaces import ThreadedComponent
 from .response_handler import ResponseHandler
 from ..protocol.model_map import API_MODEL_MAP
-from ..protocol.api_models import ErrorResponse
+from ..protocol.api.models import ErrorResponse
 from ..protocol.errors import EXCEPTION_TO_ERROR_TYPE, ProtocolError
 from ..config.full_node import FullNodeConfig
 

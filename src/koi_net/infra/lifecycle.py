@@ -3,12 +3,13 @@ from dataclasses import dataclass, field
 from queue import Empty, Queue
 from logging import Logger
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from koi_net.build.artifact import BuildArtifact
-from koi_net.components import LoggingContext
+from .build_artifact import BuildArtifact
+from .consts import START_FUNC_NAME, STOP_FUNC_NAME
 
-from .component import START_FUNC_NAME, STOP_FUNC_NAME
+if TYPE_CHECKING:
+    from koi_net.components import LoggingContext
 
 
 class NodeState(StrEnum):
@@ -19,16 +20,13 @@ class NodeState(StrEnum):
 
 @dataclass
 class NodeLifecycle:
-    
-    # injected components:
     log: Logger
     shutdown_signal: threading.Event
     exception_queue: Queue[Exception]
-    logging_context: LoggingContext
+    logging_context: "LoggingContext"
     artifact: BuildArtifact
     container: Any
     
-    # internal vars:
     err: Exception = field(init=False, default=None)
     state: NodeState = field(init=False, default=NodeState.IDLE)
     thread: threading.Thread | None = field(init=False, default=None)

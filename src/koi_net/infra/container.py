@@ -6,7 +6,7 @@ from pathlib import Path
 from logging import Logger
 
 from .lifecycle import NodeLifecycle, NodeState
-from .artifact import BuildArtifact
+from .build_artifact import BuildArtifact
 
 if TYPE_CHECKING:
     from ..components import LoggingContext
@@ -17,10 +17,9 @@ class NodeContainer:
     _artifact: BuildArtifact
     _lifecyle: NodeLifecycle
 
-    # components:
     log: Logger
-    logging_context: LoggingContext
     root_dir: Path
+    logging_context: "LoggingContext"
     shutdown_signal: threading.Event
     exception_queue: Queue[Exception]
     

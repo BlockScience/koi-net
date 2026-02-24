@@ -5,7 +5,7 @@ from ..config.base import BaseNodeConfig
 from .pipeline import KnowledgePipeline
 from .kobj_queue import KobjQueue
 from .interfaces import ThreadedComponent
-from ..build.component import depends_on
+from ..infra import depends_on
 
 
 class End:

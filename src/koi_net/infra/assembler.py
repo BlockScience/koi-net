@@ -3,13 +3,13 @@ from typing import Any, Self
 import structlog
 
 from ..exceptions import BuildError
-from .artifact import BuildArtifact, CompType
+from .build_artifact import BuildArtifact, CompType
 from .container import NodeContainer
 
 log = structlog.stdlib.get_logger()
 
 
-class NodeAssembler:
+class Assembler:
     _container: type[NodeContainer] = NodeContainer
     
     # optional order overrides:

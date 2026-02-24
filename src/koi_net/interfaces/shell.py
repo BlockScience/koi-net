@@ -7,8 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from koi_net.build.container import NodeState
-from koi_net.log_system import LogSystem
+from koi_net.infra import NodeState, LogSystem
 from .module import module_interface
 from .network import NetworkInterface
 from .node import NodeInterface

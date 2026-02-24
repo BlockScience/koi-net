@@ -6,8 +6,8 @@ from contextlib import contextmanager
 from pydantic import ValidationError
 
 from ..exceptions import MissingEnvVarsError
-from .models import EnvConfig
-from .base import BaseNodeConfig
+from ..config.models import EnvConfig
+from ..config.base import BaseNodeConfig
 
 
 DELEGATE = "_delegate"

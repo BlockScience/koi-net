@@ -9,7 +9,7 @@ from rid_lib.types import KoiNetNode
 from pydantic import ValidationError
 
 from .identity import NodeIdentity
-from ..protocol.api_models import (
+from ..protocol.api.models import (
     RidsPayload,
     ManifestsPayload,
     BundlesPayload,
@@ -22,7 +22,7 @@ from ..protocol.api_models import (
     ResponseModels,
     ErrorResponse
 )
-from ..protocol.consts import (
+from ..protocol.api.paths import (
     BROADCAST_EVENTS_PATH,
     POLL_EVENTS_PATH,
     FETCH_RIDS_PATH,

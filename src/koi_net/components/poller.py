@@ -3,7 +3,7 @@ import time
 import threading
 from dataclasses import dataclass, field
 
-from ..build.component import depends_on
+from ..infra import depends_on
 from .interfaces import ThreadedComponent
 
 from .kobj_queue import KobjQueue

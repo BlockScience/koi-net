@@ -5,22 +5,22 @@ from typing import TYPE_CHECKING, Any
 import structlog
 
 from ..exceptions import BuildError
-from .component import (
+from .consts import (
     COMPONENT_TYPE_FIELD,
     DEPENDS_ON_FIELD, 
     START_FUNC_NAME, 
-    STOP_FUNC_NAME,
-    CompType
+    STOP_FUNC_NAME
 )
+from .component import CompType
 
 if TYPE_CHECKING:
-    from .assembler import NodeAssembler
+    from .assembler import Assembler
 
 log = structlog.stdlib.get_logger()
 
 
 class BuildArtifact:
-    assembler: "NodeAssembler"
+    assembler: "Assembler"
     
     comp_dict: dict[str, Any]
     comp_types: dict[str, CompType]
@@ -32,7 +32,7 @@ class BuildArtifact:
     start_order: list[str]
     stop_order: list[str]
     
-    def __init__(self, assembler: "NodeAssembler"):
+    def __init__(self, assembler: "Assembler"):
         self.assembler = assembler
         
     def collect_components(self):
