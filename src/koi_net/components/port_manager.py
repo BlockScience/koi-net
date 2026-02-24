@@ -2,9 +2,9 @@ from dataclasses import dataclass
 import socket
 from logging import Logger
 
-from ..build.component import depends_on
-from ..config.provider import ConfigProvider
+from ..infra import depends_on
 from ..config.full_node import FullNodeConfig
+from .config_provider import ConfigProvider
 
 
 @dataclass

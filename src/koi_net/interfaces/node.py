@@ -11,12 +11,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from rid_lib.types import KoiNetEdge, KoiNetNode
+from rid_lib.types import KoiNetEdge
 from koi_net.exceptions import MissingEnvVarsError
 from koi_net.protocol.edge import EdgeProfile
 from koi_net.core import BaseNode
-from koi_net.build.container import NodeState, NodeContainer
-from koi_net.log_system import LogSystem
+from koi_net.infra import NodeState, NodeContainer, LogSystem
 
 from .module import module_interface
 

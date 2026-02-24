@@ -3,7 +3,7 @@ from logging import Logger
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..build.component import depends_on
+from ..infra import depends_on
 from ..exceptions import RequestError
 from .graph import NetworkGraph
 from .request_handler import RequestHandler

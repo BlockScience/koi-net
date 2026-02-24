@@ -7,10 +7,10 @@ from rid_lib.ext import Manifest, Cache
 from rid_lib.ext.bundle import Bundle
 
 from .kobj_queue import KobjQueue
-from ..protocol.consts import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
+from ..protocol.api.paths import BROADCAST_EVENTS_PATH, FETCH_BUNDLES_PATH, FETCH_MANIFESTS_PATH, FETCH_RIDS_PATH, POLL_EVENTS_PATH
 from ..protocol.envelope import SignedEnvelope
 from .secure_manager import SecureManager
-from ..protocol.api_models import (
+from ..protocol.api.models import (
     EventsPayload,
     PollEvents,
     RidsPayload,

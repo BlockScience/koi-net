@@ -1,11 +1,7 @@
 from enum import StrEnum
 
+from .consts import COMPONENT_TYPE_FIELD, DEPENDS_ON_FIELD
 
-START_FUNC_NAME = "start"
-STOP_FUNC_NAME = "stop"
-
-COMPONENT_TYPE_FIELD = "__component_type__"
-DEPENDS_ON_FIELD = "__depends_on__"
 
 class CompType(StrEnum):
     SINGLETON = "SINGLETON"

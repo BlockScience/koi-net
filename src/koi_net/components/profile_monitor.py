@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from logging import Logger
 from rid_lib.ext import Bundle
 
-from ..build.component import depends_on
+from ..infra import depends_on
 from .identity import NodeIdentity
 from .kobj_queue import KobjQueue
 

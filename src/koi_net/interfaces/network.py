@@ -7,8 +7,8 @@ from rich.console import Console
 
 from koi_net.config.base import BaseNodeConfig
 from koi_net.protocol.node import NodeType
-from koi_net.build.container import NodeState
-from koi_net.config.provider import ConfigProvider
+from koi_net.infra import NodeState
+from koi_net.components.config_provider import ConfigProvider
 from .node import NodeInterface
 
 

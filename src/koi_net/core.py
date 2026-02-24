@@ -1,12 +1,9 @@
 from pathlib import Path
 
-from .build.base import BaseAssembly
-from .log_system import LogSystem
+from .infra import BaseAssembly, LogSystem
 from .config.base import BaseNodeConfig
-from .config.provider import ConfigProvider
 from .config.full_node import FullNodeConfig
 from .config.partial_node import PartialNodeConfig
-
 from .components import (
     Cache,
     Effector,
@@ -35,8 +32,10 @@ from .components import (
     ForgetNodeHandler,
     NodeContactHandler,
     EdgeNegotiationHandler,
-    SecureProfileHandler
+    SecureProfileHandler,
+    ConfigProvider
 )
+
 
 class BaseNode(BaseAssembly):
     _log_system: LogSystem = LogSystem
@@ -44,7 +43,7 @@ class BaseNode(BaseAssembly):
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
-    config_schema = BaseNodeConfig
+    config_schema: BaseNodeConfig = BaseNodeConfig
     config: ConfigProvider | BaseNodeConfig = ConfigProvider
     cache: Cache = Cache
     identity: NodeIdentity = NodeIdentity
@@ -78,8 +77,8 @@ class BaseNode(BaseAssembly):
 
 class FullNode(BaseNode):
     config: FullNodeConfig
-    port_manager: PortManager = PortManager
     server: NodeServer = NodeServer
+    port_manager: PortManager = PortManager
 
 class PartialNode(BaseNode):
     config: PartialNodeConfig

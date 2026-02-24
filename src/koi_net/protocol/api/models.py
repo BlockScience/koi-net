@@ -4,8 +4,8 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from rid_lib import RID, RIDType
 from rid_lib.ext import Bundle, Manifest
-from .event import Event
-from .errors import ErrorType
+from ..event import Event
+from ..errors import ErrorType
 
 
 # REQUEST MODELS

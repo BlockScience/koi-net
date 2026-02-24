@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from ..build.component import provides, CompType
+from ..infra import provides, CompType
 from .models import EnvConfig, KoiNetConfig
 
 
