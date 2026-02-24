@@ -19,7 +19,8 @@ class Handshaker:
         identity: NodeIdentity, 
         event_queue: EventQueue,
         config: NodeConfig,
-        graph: NetworkGraph
+        graph: NetworkGraph,
+        profile_monitor
     ):
         self.config = config
         self.cache = cache
