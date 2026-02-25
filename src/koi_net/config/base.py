@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from ..build.component import provides, CompType
+from ..infra import provides, CompType
 from .env_config import EnvConfig
 from .koi_net_config import KoiNetConfig
 
@@ -15,7 +15,7 @@ class BaseNodeConfig(BaseModel):
     """
     
     koi_net: KoiNetConfig
-    # note: EnvConfig has to use a default factory, otherwise it will
+    # NOTE: EnvConfig has to use a default factory, otherwise it will be
     # evaluated during the library import and cause an error if any
     # env variables are undefined
     env: EnvConfig = Field(default_factory=EnvConfig)

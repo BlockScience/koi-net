@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from rid_lib import RIDType
 from rid_lib.types import KoiNetNode
 
-from ..protocol.node import NodeProfile
+from ..protocol import NodeProfile
 
 
 class EventWorkerConfig(BaseModel):
