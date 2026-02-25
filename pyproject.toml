@@ -1,6 +1,6 @@
 [project]
 name = "koi-net"
-version = "1.3.0-beta.10"
+version = "1.3.0-beta.11"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
