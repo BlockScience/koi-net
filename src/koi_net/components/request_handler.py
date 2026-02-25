@@ -111,7 +111,10 @@ class RequestHandler:
         data = signed_envelope.model_dump_json(exclude_none=True)
         
         try:
-            result = httpx.post(url, data=data)
+            result = httpx.post(
+                url=url, 
+                content=data, 
+                headers={"Content-Type": "application/json"})
             result.raise_for_status()
             self.error_handler.reset_timeout_counter(node)
             
