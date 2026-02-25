@@ -1,5 +1,4 @@
 from .assembler import Assembler
-from .base import BaseAssembly
 from .build_artifact import BuildArtifact
 from .component import provides, depends_on, CompType
 from .container import NodeContainer

@@ -76,6 +76,7 @@ class NodeInterface:
             try:
                 self._node = self.node_class(root_dir=Path(self.name))
                 self.initialized = True
+                
             except MissingEnvVarsError as err:
                 text = "\n".join([
                     f"[bold red]{v}[/bold red]" 
@@ -87,8 +88,10 @@ class NodeInterface:
                         renderable=text, 
                         title="Cannot initialize node, missing the following enironment variables:",
                         border_style="red"))
+                
             except Exception as err:
-                print(err)
+                self.console.print_exception()
+                
     
     def state(self):
         return self.node.get_state()

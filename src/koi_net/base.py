@@ -6,8 +6,8 @@ from queue import Queue
 import structlog
 from structlog.contextvars import bound_contextvars
 
-from .assembler import Assembler
-from ..components.logging_context import LoggingContext
+from .infra import Assembler
+from .components import LoggingContext
 
 
 class BaseAssembly(Assembler):

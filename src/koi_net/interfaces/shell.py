@@ -28,6 +28,9 @@ class KoiShell(cmd.Cmd):
         self.console.print(f"Found [green]{len(module_interface.module_names)} module(s)[/green] and [green]{len(self.network.nodes)} node(s)[/green]")
         print()
         
+    def emptyline(self):
+        pass
+        
     @staticmethod
     def load_node(func):
         @wraps(func)

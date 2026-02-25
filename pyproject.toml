@@ -33,7 +33,7 @@ docs = [
 ]
 
 [project.scripts]
-koi-sh = "koi_net.interface.shell:run"
+koi-sh = "koi_net.interfaces.shell:run"
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
