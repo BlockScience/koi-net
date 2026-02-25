@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from .infra import BaseAssembly, LogSystem
+from .infra import LogSystem
+from .base import BaseAssembly
 from .config.base import BaseNodeConfig
 from .config.full_node import FullNodeConfig
 from .config.partial_node import PartialNodeConfig

@@ -24,7 +24,7 @@ class ThreadedComponent:
             self.log.debug(f"Component {self.__class__.__name__} has already started")
             return
             
-        self.thread = threading.Thread(target=self.run_with_log_ctx)
+        self.thread = threading.Thread(target=self._run)
         self.thread.start()
         
     def stop(self):
@@ -33,15 +33,15 @@ class ThreadedComponent:
         else:
             self.log.debug(f"Component {self.__class__.__name__} has already stopped")
     
-    def run_with_log_ctx(self):
+    def _run(self):
         with self.logging_context.bound_vars(thread=self.__class__.__name__):
             try:
                 self.run()
             except Exception as exc:
-                self.log.error(str(exc))
+                self.log.error("Error in threaded component: " + str(exc))
+                self.exception_queue.put(exc)
                 self.log.error("Raising shutdown signal")
                 self.shutdown_signal.set()
-                self.exception_queue.put(exc)
     
     def run(self):
         """Processing loop for thread."""

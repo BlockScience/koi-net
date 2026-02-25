@@ -5,6 +5,9 @@ from logging import Logger
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
+from rich.console import Console
+from rich.traceback import Traceback
+
 from .build_artifact import BuildArtifact
 from .consts import START_FUNC_NAME, STOP_FUNC_NAME
 
@@ -27,24 +30,27 @@ class NodeLifecycle:
     artifact: BuildArtifact
     container: Any
     
-    err: Exception = field(init=False, default=None)
     state: NodeState = field(init=False, default=NodeState.IDLE)
     thread: threading.Thread | None = field(init=False, default=None)
     startup_signal: threading.Event = field(init=False, default_factory=threading.Event)
     
     def start(self, block: bool = True):
+        """Starts the lifecycle manager thread, beginning node startup."""
+        
         if self.state != NodeState.IDLE:
             self.log.warning("Node can't be started from non-idle state")
             return
         
         self.startup_signal.clear()
-        self.thread = threading.Thread(target=self.run)
+        self.thread = threading.Thread(target=self._run)
         self.thread.start()
         
         if block:
             self.startup_signal.wait()
         
     def stop(self, block: bool = True):
+        """Signals to lifecycle manager thread, beginning node shutdown."""
+        
         if self.state != NodeState.RUNNING:
             self.log.warning("Node can't be stopped from non-running state")
             return
@@ -54,19 +60,30 @@ class NodeLifecycle:
         if block and self.thread and self.thread.is_alive():
             self.thread.join()
 
-    def run(self):
+    def _run(self):
         with self.logging_context.bound_vars(thread=self.__class__.__name__):
             try:
-                self.startup()
+                self._startup()
                 self.startup_signal.set()
                 self.shutdown_signal.wait()
                 
             finally:
-                self.shutdown()
-                if self.err:
-                    raise self.err
+                self._shutdown()
+                
+                while True:
+                    try:
+                        exc = self.exception_queue.get_nowait()
+                        traceback = Traceback.from_exception(
+                            exc_type=type(exc),
+                            exc_value=exc,
+                            traceback=exc.__traceback__
+                        )
+                        Console().print(traceback)
+                        
+                    except Empty:
+                        break
         
-    def startup(self):
+    def _startup(self):
         self.state = NodeState.STARTING
         self.log.info("Starting node...")
         for comp_name in self.artifact.start_order:
@@ -77,9 +94,10 @@ class NodeLifecycle:
             try:
                 start_func()
             except Exception as err:
+                print()
+                self.log.error("Startup error: " + str(err))
+                self.exception_queue.put(err)
                 self.shutdown_signal.set()
-                self.log.error(str(err))
-                self.err = err
             
             if self.shutdown_signal.is_set():
                 self.log.error(f"Startup failed, aborting")
@@ -88,22 +106,21 @@ class NodeLifecycle:
         self.state = NodeState.RUNNING
         self.log.info("Startup complete!")
             
-    def shutdown(self):
+    def _shutdown(self):
         self.state = NodeState.STOPPING
         self.log.info("Stopping node...")
         for comp_name in self.artifact.stop_order:
             comp = getattr(self.container, comp_name)
             stop_func = getattr(comp, STOP_FUNC_NAME)
             self.log.info(f"Stopping {comp_name}...")
-            stop_func()
+            
+            try:
+                stop_func()
+            except Exception as err:
+                self.log.error("Shutdown error:", str(err))
+                self.exception_queue.put(err)
         
         self.shutdown_signal.clear()
         self.state = NodeState.IDLE
         self.log.info("Shutdown complete!")
-        
-        try:
-            exc = self.exception_queue.get_nowait()
-            self.log.info("Raising queued error...")
-            raise exc
-        except Empty:
-            pass
+
