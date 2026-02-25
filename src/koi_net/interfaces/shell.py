@@ -408,4 +408,10 @@ class KoiShell(cmd.Cmd):
             self.console.print(f"Reload module for {updated_nodes}/{affected_nodes} nodes")
         
 def run():
-    KoiShell().cmdloop()
+    koi_sh = KoiShell()
+    
+    try:
+        koi_sh.cmdloop()
+    except KeyboardInterrupt:
+        print("\nDetected keyboard interrupt, hard quitting...")
+        koi_sh.do_QUIT("")
