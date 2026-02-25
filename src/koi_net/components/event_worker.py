@@ -86,7 +86,7 @@ class EventProcessingWorker(ThreadedComponent):
                     
                     buf_len = self.broadcast_event_buf.buf_len(item.target)
                     if buf_len > self.config.koi_net.event_worker.max_buf_len:
-                        self.flush_and_broadcast(target)
+                        self.flush_and_broadcast(item.target)
 
                 finally:
                     self.event_queue.q.task_done()

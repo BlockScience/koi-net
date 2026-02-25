@@ -134,8 +134,8 @@ class NetworkResolver:
             except RequestError:
                 continue
             
-            except ProtocolError:
-                self.log.debug("Ignoring protocol error")
+            except ProtocolError as err:
+                self.log.warning(f"Remote protocol error: {str(err)}")
                 continue
                 
             self.log.debug(f"Received {len(payload.events)} events from {node_rid!r}")
