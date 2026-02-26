@@ -78,6 +78,7 @@ class NodeLifecycle:
                             exc_value=exc,
                             traceback=exc.__traceback__
                         )
+                        print()
                         Console().print(traceback)
                         
                     except Empty:
