@@ -20,6 +20,7 @@ Exception hierarchy map:
     - `InvalidKeyError`
     - `InvalidSignatureError`
     - `InvalidTargetError`
+  - `MissingEnvVarsError`
 """
 
 
@@ -105,3 +106,9 @@ class InvalidSignatureError(ProtocolError):
 class InvalidTargetError(ProtocolError):
     """Raised when peer node's target is not this node."""
     pass
+
+class MissingEnvVarsError(KoiNetError):
+    """Raised when required environment variables are missing."""
+    def __init__(self, message: str, vars: list[str]):
+        super().__init__(message)
+        self.vars = vars

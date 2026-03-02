@@ -1,10 +1,6 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "koi-net"
-version = "1.2.5"
+version = "1.3.0"
 description = "Implementation of KOI-net protocol in Python"
 authors = [
     {name = "Luke Miller", email = "luke@block.science"}
@@ -18,21 +14,26 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.10.6",
     "ruamel.yaml>=0.18.10",
-    "python-dotenv>=1.1.0",
     "cryptography>=45.0.3",
     "fastapi>=0.115.12",
     "uvicorn>=0.34.2",
+    "rich>=14.1.0",
     "structlog>=25.4.0",
+    "pydantic-settings>=2.12.0",
+    "jsonpointer>=3.0.0",
+    "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]
-dev = ["twine>=6.0", "build"]
 docs = [
     "sphinx",
     "sphinx-autoapi>=3.6.0",
     "sphinx-autodoc-typehints>=3.0.1",
     "sphinx-rtd-theme>=3.0.2",
 ]
+
+[project.scripts]
+koi-sh = "koi_net.interfaces.shell:run"
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"

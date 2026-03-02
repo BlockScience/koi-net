@@ -1,14 +1,14 @@
 from typing import NamedTuple
 from pydantic import BaseModel
 from .envelope import SignedEnvelope
-from .consts import (
+from .api.paths import (
     BROADCAST_EVENTS_PATH, 
     POLL_EVENTS_PATH,
     FETCH_BUNDLES_PATH, 
     FETCH_MANIFESTS_PATH, 
     FETCH_RIDS_PATH
 )
-from .api_models import (
+from .api.models import (
     EventsPayload,
     PollEvents,
     FetchBundles,

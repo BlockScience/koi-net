@@ -23,6 +23,14 @@
             },
             " ",
             {
+                "field": "thread",
+                "auto-width": true,
+                "default-value": "",
+                "prefix": "(",
+                "suffix": ")"
+            },
+            " ",
+            {
                 "field": "module",
                 "min-width": 15,
                 "max-width": 15,
@@ -42,6 +50,9 @@
                 "kind": "string"
             },
             "module": {
+                "kind": "string"
+            },
+            "thread": {
                 "kind": "string"
             }
         },

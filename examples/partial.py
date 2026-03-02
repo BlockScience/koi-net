@@ -1,11 +1,11 @@
-from koi_net.config.partial_node import PartialNodeConfig, KoiNetConfig, NodeProfile
+from koi_net.config import PartialNodeConfig, KoiNetConfig, PartialNodeProfile
 from koi_net.core import PartialNode
 
 
 class MyPartialNodeConfig(PartialNodeConfig):
     koi_net: KoiNetConfig = KoiNetConfig(
         node_name="partial",
-        node_profile=NodeProfile()
+        node_profile=PartialNodeProfile()
     )
 
 class MyPartialNode(PartialNode):
