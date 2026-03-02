@@ -1,57 +1,51 @@
-from .cache import Cache
-from .build.assembler import NodeAssembler
-from .config.core import NodeConfig
-from .config.proxy import ConfigProxy
-from .config.loader import ConfigLoader
+from pathlib import Path
+
+from .infra import LogSystem
+from .base import BaseAssembly
+from .config.base import BaseNodeConfig
 from .config.full_node import FullNodeConfig
 from .config.partial_node import PartialNodeConfig
-from .processor.context import HandlerContext
-from .effector import DerefHandler, Effector
-from .behaviors.handshaker import Handshaker
-from .behaviors.sync_manager import SyncManager
-from .identity import NodeIdentity
-from .workers import KnowledgeProcessingWorker, EventProcessingWorker
-from .network.error_handler import ErrorHandler
-from .network.event_queue import EventQueue
-from .network.graph import NetworkGraph
-from .network.request_handler import RequestHandler
-from .network.resolver import NetworkResolver
-from .network.response_handler import ResponseHandler
-from .network.event_buffer import EventBuffer
-from .processor.pipeline import KnowledgePipeline
-from .processor.kobj_queue import KobjQueue
-from .processor.handler import KnowledgeHandler
-from .secure_manager import SecureManager
-from .behaviors.profile_monitor import ProfileMonitor
-from .entrypoints import NodeServer, NodePoller
-from .processor.knowledge_handlers import (
-    basic_manifest_handler, 
-    basic_network_output_filter, 
-    basic_rid_handler, 
-    node_contact_handler, 
-    edge_negotiation_handler, 
-    forget_edge_on_node_deletion, 
-    secure_profile_handler
+from .components import (
+    Cache,
+    Effector,
+    Handshaker,
+    SyncManager,
+    PortManager,
+    NodeIdentity,
+    KnowledgeProcessingWorker, 
+    EventProcessingWorker,
+    ErrorHandler,
+    EventQueue,
+    NetworkGraph,
+    RequestHandler,
+    NetworkResolver,
+    ResponseHandler,
+    EventBuffer,
+    KnowledgePipeline,
+    KobjQueue,
+    SecureManager,
+    ProfileMonitor,
+    NodeServer, 
+    NodePoller,
+    BasicManifestHandler,
+    BasicNetworkOutputFilter,
+    BasicRidHandler,
+    ForgetNodeHandler,
+    NodeContactHandler,
+    EdgeNegotiationHandler,
+    SecureProfileHandler,
+    ConfigProvider
 )
 
-class BaseNode(NodeAssembler):
+
+class BaseNode(BaseAssembly):
+    _log_system: LogSystem = LogSystem
     kobj_queue: KobjQueue = KobjQueue
     event_queue: EventQueue = EventQueue
     poll_event_buf: EventBuffer = EventBuffer
     broadcast_event_buf: EventBuffer = EventBuffer
-    config_schema = NodeConfig
-    config: NodeConfig = ConfigProxy
-    config_loader: ConfigLoader = ConfigLoader
-    knowledge_handlers: list[KnowledgeHandler] = [
-        basic_rid_handler,
-        basic_manifest_handler,
-        secure_profile_handler,
-        edge_negotiation_handler,
-        node_contact_handler,
-        basic_network_output_filter,
-        forget_edge_on_node_deletion
-    ]
-    deref_handlers: list[DerefHandler] = []
+    config_schema: BaseNodeConfig = BaseNodeConfig
+    config: ConfigProvider | BaseNodeConfig = ConfigProvider
     cache: Cache = Cache
     identity: NodeIdentity = NodeIdentity
     graph: NetworkGraph = NetworkGraph
@@ -62,17 +56,31 @@ class BaseNode(NodeAssembler):
     sync_manager: SyncManager = SyncManager
     response_handler: ResponseHandler = ResponseHandler
     resolver: NetworkResolver = NetworkResolver
-    handler_context: HandlerContext = HandlerContext
     effector: Effector = Effector
     pipeline: KnowledgePipeline = KnowledgePipeline
     kobj_worker: KnowledgeProcessingWorker = KnowledgeProcessingWorker
     event_worker: EventProcessingWorker = EventProcessingWorker
     profile_monitor: ProfileMonitor = ProfileMonitor
+    
+    # knowledge handlers
+    
+    basic_manifest_handler: BasicManifestHandler = BasicManifestHandler
+    basic_network_output_filter: BasicNetworkOutputFilter = BasicNetworkOutputFilter
+    basic_rid_handler: BasicRidHandler = BasicRidHandler
+    forget_node_handler: ForgetNodeHandler = ForgetNodeHandler
+    node_contact_handler: NodeContactHandler = NodeContactHandler
+    edge_negotiation_handler: EdgeNegotiationHandler = EdgeNegotiationHandler
+    secure_profile_handler: SecureProfileHandler = SecureProfileHandler
+    
+    def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
+        cls._log_system()
+        return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
 class FullNode(BaseNode):
-    entrypoint: NodeServer = NodeServer
     config: FullNodeConfig
+    server: NodeServer = NodeServer
+    port_manager: PortManager = PortManager
 
 class PartialNode(BaseNode):
-    entrypoint: NodePoller = NodePoller
     config: PartialNodeConfig
+    poller: NodePoller = NodePoller
