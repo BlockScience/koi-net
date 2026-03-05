@@ -6,14 +6,8 @@ from queue import Queue
 import structlog
 from structlog.contextvars import bound_contextvars
 
-<<<<<<< Updated upstream:src/koi_net/base.py
 from .infra import Assembler
 from .components import LoggingContext
-=======
-from .assembler import NodeAssembler
-from ..components import LoggingContext
->>>>>>> Stashed changes:src/koi_net/build/base.py
-
 
 class BaseAssembly(Assembler):
     root_dir: Path
