@@ -1,0 +1,164 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.components.interfaces.knowledge_handler &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.components.interfaces.knowledge_handler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.components.interfaces.knowledge_handler</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">RIDType</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.protocol.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.protocol.knowledge_object</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowledgeObject</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">..pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowledgePipeline</span>
+
+
+<div class="viewcode-block" id="StopChain">
+<a class="viewcode-back" href="../../../../generated/koi_net.components.interfaces.knowledge_handler.html#koi_net.components.interfaces.knowledge_handler.StopChain">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StopChain</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for STOP_CHAIN sentinel returned by knowledge handlers.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="n">STOP_CHAIN</span> <span class="o">=</span> <span class="n">StopChain</span><span class="p">()</span>
+
+<div class="viewcode-block" id="HandlerType">
+<a class="viewcode-back" href="../../../../generated/koi_net.components.interfaces.knowledge_handler.html#koi_net.components.interfaces.knowledge_handler.HandlerType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HandlerType</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Types of handlers used in knowledge processing pipeline.</span>
+<span class="sd">    </span>
+<span class="sd">    - RID - provided RID; if event type is `FORGET`, this handler decides whether to delete the knowledge from the cache by setting the normalized event type to `FORGET`, otherwise this handler decides whether to validate the manifest (and fetch it if not provided).</span>
+<span class="sd">    - Manifest - provided RID, manifest; decides whether to validate the bundle (and fetch it if not provided).</span>
+<span class="sd">    - Bundle - provided RID, manifest, contents (bundle); decides whether to write knowledge to the cache by setting the normalized event type to `NEW` or `UPDATE`.</span>
+<span class="sd">    - Network - provided RID, manifest, contents (bundle); decides which nodes (if any) to broadcast an event about this knowledge to. (Note, if event type is `FORGET`, the manifest and contents will be retrieved from the local cache, and indicate the last state of the knowledge before it was deleted.)</span>
+<span class="sd">    - Final - provided RID, manifests, contents (bundle); final action taken after network broadcast.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">RID</span> <span class="o">=</span> <span class="s2">&quot;rid&quot;</span><span class="p">,</span> 
+    <span class="n">Manifest</span> <span class="o">=</span> <span class="s2">&quot;manifest&quot;</span><span class="p">,</span> 
+    <span class="n">Bundle</span> <span class="o">=</span> <span class="s2">&quot;bundle&quot;</span><span class="p">,</span> 
+    <span class="n">Network</span> <span class="o">=</span> <span class="s2">&quot;network&quot;</span><span class="p">,</span> 
+    <span class="n">Final</span> <span class="o">=</span> <span class="s2">&quot;final&quot;</span></div>
+
+
+<div class="viewcode-block" id="KnowledgeHandler">
+<a class="viewcode-back" href="../../../../generated/koi_net.components.interfaces.knowledge_handler.html#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KnowledgeHandler</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles knowledge processing events of the provided types.&quot;&quot;&quot;</span>
+    
+    <span class="n">log</span><span class="p">:</span> <span class="n">Logger</span>
+    <span class="n">pipeline</span><span class="p">:</span> <span class="s2">&quot;KnowledgePipeline&quot;</span>
+    
+    <span class="n">handler_type</span><span class="p">:</span> <span class="n">HandlerType</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">rid_types</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">RIDType</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">())</span>
+    <span class="n">event_types</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">())</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">register_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="KnowledgeHandler.handle">
+<a class="viewcode-back" href="../../../../generated/koi_net.components.interfaces.knowledge_handler.html#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.handle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kobj</span><span class="p">:</span> <span class="n">KnowledgeObject</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KnowledgeObject</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">StopChain</span><span class="p">:</span>
+        <span class="o">...</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

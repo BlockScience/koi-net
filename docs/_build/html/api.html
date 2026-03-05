@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="koi_net.components" href="generated/koi_net.components.html" />
+    <link rel="prev" title="koi-net" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/koi_net.components.html">koi_net.components</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#core">Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-koi_net.exceptions">Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.BuildError"><code class="docutils literal notranslate"><span class="pre">BuildError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.ClientError"><code class="docutils literal notranslate"><span class="pre">ClientError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.InvalidKeyError"><code class="docutils literal notranslate"><span class="pre">InvalidKeyError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.InvalidSignatureError"><code class="docutils literal notranslate"><span class="pre">InvalidSignatureError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.InvalidTargetError"><code class="docutils literal notranslate"><span class="pre">InvalidTargetError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.KoiNetError"><code class="docutils literal notranslate"><span class="pre">KoiNetError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.MissingEnvVarsError"><code class="docutils literal notranslate"><span class="pre">MissingEnvVarsError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.NodeNotFoundError"><code class="docutils literal notranslate"><span class="pre">NodeNotFoundError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.PartialNodeQueryError"><code class="docutils literal notranslate"><span class="pre">PartialNodeQueryError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.ProtocolError"><code class="docutils literal notranslate"><span class="pre">ProtocolError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RemoteInvalidKeyError"><code class="docutils literal notranslate"><span class="pre">RemoteInvalidKeyError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RemoteInvalidSignatureError"><code class="docutils literal notranslate"><span class="pre">RemoteInvalidSignatureError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RemoteInvalidTargetError"><code class="docutils literal notranslate"><span class="pre">RemoteInvalidTargetError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RemoteProtocolError"><code class="docutils literal notranslate"><span class="pre">RemoteProtocolError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RemoteUnknownNodeError"><code class="docutils literal notranslate"><span class="pre">RemoteUnknownNodeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.RequestError"><code class="docutils literal notranslate"><span class="pre">RequestError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.SelfRequestError"><code class="docutils literal notranslate"><span class="pre">SelfRequestError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.ServerError"><code class="docutils literal notranslate"><span class="pre">ServerError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.TransportError"><code class="docutils literal notranslate"><span class="pre">TransportError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#koi_net.exceptions.UnknownNodeError"><code class="docutils literal notranslate"><span class="pre">UnknownNodeError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<p>This page is generated by <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>. If you see module and
+member docstrings below, autodoc is working.</p>
+<section id="components">
+<h2>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/koi_net.components.html#module-koi_net.components" title="koi_net.components"><code class="xref py py-obj docutils literal notranslate"><span class="pre">koi_net.components</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="core">
+<h2>Core<a class="headerlink" href="#core" title="Link to this heading"></a></h2>
+</section>
+<section id="module-koi_net.exceptions">
+<span id="exceptions"></span><h2>Exceptions<a class="headerlink" href="#module-koi_net.exceptions" title="Link to this heading"></a></h2>
+<p>KOI-net library exceptions.</p>
+<p>Exception hierarchy (conceptually):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">KoiNetError</span>
+  <span class="n">BuildError</span>
+  <span class="n">RequestError</span>
+    <span class="n">ClientError</span>
+      <span class="n">SelfRequestError</span>
+      <span class="n">PartialNodeQueryError</span>
+      <span class="n">NodeNotFoundError</span>
+    <span class="n">TransportError</span>
+    <span class="n">ServerError</span>
+      <span class="n">RemoteProtocolError</span>
+        <span class="n">RemoteUnknownNodeError</span>
+        <span class="n">RemoteInvalidKeyError</span>
+        <span class="n">RemoteInvalidSignatureError</span>
+        <span class="n">RemoteInvalidTargetError</span>
+  <span class="n">ProtocolError</span>
+    <span class="n">UnknownNodeError</span>
+    <span class="n">InvalidKeyError</span>
+    <span class="n">InvalidSignatureError</span>
+    <span class="n">InvalidTargetError</span>
+  <span class="n">MissingEnvVarsError</span>
+</pre></div>
+</div>
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.BuildError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">BuildError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#BuildError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.BuildError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.KoiNetError" title="koi_net.exceptions.KoiNetError"><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetError</span></code></a></p>
+<p>Raised when errors occur in build process.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.ClientError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">ClientError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#ClientError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.ClientError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RequestError" title="koi_net.exceptions.RequestError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RequestError</span></code></a></p>
+<p>Raised when this node makes an invalid request.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.InvalidKeyError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">InvalidKeyError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#InvalidKeyError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.InvalidKeyError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ProtocolError" title="koi_net.exceptions.ProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProtocolError</span></code></a></p>
+<p>Raised when peer node’s public key doesn’t match their RID.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.InvalidSignatureError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">InvalidSignatureError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#InvalidSignatureError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.InvalidSignatureError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ProtocolError" title="koi_net.exceptions.ProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProtocolError</span></code></a></p>
+<p>Raised when peer node’s envelope signature is invalid.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.InvalidTargetError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">InvalidTargetError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#InvalidTargetError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.InvalidTargetError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ProtocolError" title="koi_net.exceptions.ProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProtocolError</span></code></a></p>
+<p>Raised when peer node’s target is not this node.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.KoiNetError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">KoiNetError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#KoiNetError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.KoiNetError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Base exception.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.MissingEnvVarsError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">MissingEnvVarsError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/koi_net/exceptions.html#MissingEnvVarsError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.MissingEnvVarsError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.KoiNetError" title="koi_net.exceptions.KoiNetError"><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetError</span></code></a></p>
+<p>Raised when required environment variables are missing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> (<em>str</em>)</p></li>
+<li><p><strong>vars</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.NodeNotFoundError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">NodeNotFoundError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#NodeNotFoundError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.NodeNotFoundError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ClientError" title="koi_net.exceptions.ClientError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ClientError</span></code></a></p>
+<p>Raised when this node cannot find a node’s URL.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.PartialNodeQueryError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">PartialNodeQueryError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#PartialNodeQueryError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.PartialNodeQueryError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ClientError" title="koi_net.exceptions.ClientError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ClientError</span></code></a></p>
+<p>Raised when this node attempts to query a partial node.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.ProtocolError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">ProtocolError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#ProtocolError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.ProtocolError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.KoiNetError" title="koi_net.exceptions.KoiNetError"><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetError</span></code></a></p>
+<p>Base for protocol errors raised by this node.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RemoteInvalidKeyError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RemoteInvalidKeyError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RemoteInvalidKeyError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RemoteInvalidKeyError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RemoteProtocolError" title="koi_net.exceptions.RemoteProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RemoteProtocolError</span></code></a></p>
+<p>Raised by peer node when this node’s public key doesn’t match their RID.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RemoteInvalidSignatureError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RemoteInvalidSignatureError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RemoteInvalidSignatureError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RemoteInvalidSignatureError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RemoteProtocolError" title="koi_net.exceptions.RemoteProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RemoteProtocolError</span></code></a></p>
+<p>Raised by peer node when this node’s envelope signature is invalid.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RemoteInvalidTargetError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RemoteInvalidTargetError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RemoteInvalidTargetError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RemoteInvalidTargetError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RemoteProtocolError" title="koi_net.exceptions.RemoteProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RemoteProtocolError</span></code></a></p>
+<p>Raised by peer node when this node’s envelope target is not it’s RID.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RemoteProtocolError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RemoteProtocolError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RemoteProtocolError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RemoteProtocolError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ServerError" title="koi_net.exceptions.ServerError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ServerError</span></code></a></p>
+<p>Base for protocol errors raised by peer node.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RemoteUnknownNodeError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RemoteUnknownNodeError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RemoteUnknownNodeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RemoteUnknownNodeError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RemoteProtocolError" title="koi_net.exceptions.RemoteProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RemoteProtocolError</span></code></a></p>
+<p>Raised by peer node when this node is unknown.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.RequestError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">RequestError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#RequestError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.RequestError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.KoiNetError" title="koi_net.exceptions.KoiNetError"><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetError</span></code></a></p>
+<p>Base for network request errors.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.SelfRequestError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">SelfRequestError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#SelfRequestError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.SelfRequestError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ClientError" title="koi_net.exceptions.ClientError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ClientError</span></code></a></p>
+<p>Raised when this node tries to request itself.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.ServerError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">ServerError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#ServerError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.ServerError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RequestError" title="koi_net.exceptions.RequestError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RequestError</span></code></a></p>
+<p>Raised when an server error occurs during a request.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.TransportError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">TransportError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#TransportError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.TransportError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.RequestError" title="koi_net.exceptions.RequestError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RequestError</span></code></a></p>
+<p>Raised when a transport error occurs during a request.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="koi_net.exceptions.UnknownNodeError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.exceptions.</span></span><span class="sig-name descname"><span class="pre">UnknownNodeError</span></span><a class="reference internal" href="_modules/koi_net/exceptions.html#UnknownNodeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.exceptions.UnknownNodeError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#koi_net.exceptions.ProtocolError" title="koi_net.exceptions.ProtocolError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProtocolError</span></code></a></p>
+<p>Raised when peer node is unknown.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="koi-net" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generated/koi_net.components.html" class="btn btn-neutral float-right" title="koi_net.components" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
