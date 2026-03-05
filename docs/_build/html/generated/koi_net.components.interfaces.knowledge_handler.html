@@ -1,0 +1,260 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.components.interfaces.knowledge_handler &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="koi_net.components.interfaces.threaded_component" href="koi_net.components.interfaces.threaded_component.html" />
+    <link rel="prev" title="koi_net.components.interfaces.deref_handler" href="koi_net.components.interfaces.deref_handler.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#components">Components</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="koi_net.components.html">koi_net.components</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.cache.html">koi_net.components.cache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.config_provider.html">koi_net.components.config_provider</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.effector.html">koi_net.components.effector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.error_handler.html">koi_net.components.error_handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.event_buffer.html">koi_net.components.event_buffer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.event_queue.html">koi_net.components.event_queue</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.event_worker.html">koi_net.components.event_worker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.graph.html">koi_net.components.graph</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.handshaker.html">koi_net.components.handshaker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.identity.html">koi_net.components.identity</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="koi_net.components.interfaces.html">koi_net.components.interfaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.knowledge_handlers.html">koi_net.components.knowledge_handlers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.kobj_queue.html">koi_net.components.kobj_queue</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.kobj_worker.html">koi_net.components.kobj_worker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.logging_context.html">koi_net.components.logging_context</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.pipeline.html">koi_net.components.pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.poller.html">koi_net.components.poller</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.port_manager.html">koi_net.components.port_manager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.profile_monitor.html">koi_net.components.profile_monitor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.request_handler.html">koi_net.components.request_handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.resolver.html">koi_net.components.resolver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.response_handler.html">koi_net.components.response_handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.secure_manager.html">koi_net.components.secure_manager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.server.html">koi_net.components.server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.sync_manager.html">koi_net.components.sync_manager</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#core">Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#module-koi_net.exceptions">Exceptions</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.components.html">koi_net.components</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.components.interfaces.html">koi_net.components.interfaces</a></li>
+      <li class="breadcrumb-item active">koi_net.components.interfaces.knowledge_handler</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/koi_net.components.interfaces.knowledge_handler.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-koi_net.components.interfaces.knowledge_handler">
+<span id="koi-net-components-interfaces-knowledge-handler"></span><h1>koi_net.components.interfaces.knowledge_handler<a class="headerlink" href="#module-koi_net.components.interfaces.knowledge_handler" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.components.interfaces.knowledge_handler.HandlerType" title="koi_net.components.interfaces.knowledge_handler.HandlerType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HandlerType</span></code></a>(*values)</p></td>
+<td><p>Types of handlers used in knowledge processing pipeline.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler" title="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowledgeHandler</span></code></a>(log, pipeline)</p></td>
+<td><p>Handles knowledge processing events of the provided types.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.components.interfaces.knowledge_handler.StopChain" title="koi_net.components.interfaces.knowledge_handler.StopChain"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StopChain</span></code></a>()</p></td>
+<td><p>Class for STOP_CHAIN sentinel returned by knowledge handlers.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.components.interfaces.knowledge_handler.</span></span><span class="sig-name descname"><span class="pre">HandlerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/components/interfaces/knowledge_handler.html#HandlerType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>Types of handlers used in knowledge processing pipeline.</p>
+<ul class="simple">
+<li><p>RID - provided RID; if event type is <cite>FORGET</cite>, this handler decides whether to delete the knowledge from the cache by setting the normalized event type to <cite>FORGET</cite>, otherwise this handler decides whether to validate the manifest (and fetch it if not provided).</p></li>
+<li><p>Manifest - provided RID, manifest; decides whether to validate the bundle (and fetch it if not provided).</p></li>
+<li><p>Bundle - provided RID, manifest, contents (bundle); decides whether to write knowledge to the cache by setting the normalized event type to <cite>NEW</cite> or <cite>UPDATE</cite>.</p></li>
+<li><p>Network - provided RID, manifest, contents (bundle); decides which nodes (if any) to broadcast an event about this knowledge to. (Note, if event type is <cite>FORGET</cite>, the manifest and contents will be retrieved from the local cache, and indicate the last state of the knowledge before it was deleted.)</p></li>
+<li><p>Final - provided RID, manifests, contents (bundle); final action taken after network broadcast.</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType.Bundle">
+<span class="sig-name descname"><span class="pre">Bundle</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'bundle'</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType.Bundle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType.Final">
+<span class="sig-name descname"><span class="pre">Final</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'final'</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType.Final" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType.Manifest">
+<span class="sig-name descname"><span class="pre">Manifest</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'manifest'</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType.Manifest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType.Network">
+<span class="sig-name descname"><span class="pre">Network</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'network'</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType.Network" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.HandlerType.RID">
+<span class="sig-name descname"><span class="pre">RID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'rid'</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.HandlerType.RID" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.components.interfaces.knowledge_handler.</span></span><span class="sig-name descname"><span class="pre">KnowledgeHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pipeline</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/components/interfaces/knowledge_handler.html#KnowledgeHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Handles knowledge processing events of the provided types.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log</strong> (<em>Logger</em>)</p></li>
+<li><p><strong>pipeline</strong> (<a class="reference internal" href="koi_net.components.pipeline.html#koi_net.components.pipeline.KnowledgePipeline" title="koi_net.components.pipeline.KnowledgePipeline"><em>KnowledgePipeline</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.event_types">
+<span class="sig-name descname"><span class="pre">event_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">EventType</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.event_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.handle">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kobj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/components/interfaces/knowledge_handler.html#KnowledgeHandler.handle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.handle" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">KnowledgeObject</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code> | <a class="reference internal" href="#koi_net.components.interfaces.knowledge_handler.StopChain" title="koi_net.components.interfaces.knowledge_handler.StopChain"><code class="xref py py-class docutils literal notranslate"><span class="pre">StopChain</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kobj</strong> (<em>KnowledgeObject</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.handler_type">
+<span class="sig-name descname"><span class="pre">handler_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#koi_net.components.interfaces.knowledge_handler.HandlerType" title="koi_net.components.interfaces.knowledge_handler.HandlerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlerType</span></code></a></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.handler_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.log">
+<span class="sig-name descname"><span class="pre">log</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.log" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.pipeline">
+<span class="sig-name descname"><span class="pre">pipeline</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="koi_net.components.pipeline.html#koi_net.components.pipeline.KnowledgePipeline" title="koi_net.components.pipeline.KnowledgePipeline"><code class="xref py py-class docutils literal notranslate"><span class="pre">KnowledgePipeline</span></code></a></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.pipeline" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.rid_types">
+<span class="sig-name descname"><span class="pre">rid_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">RIDType</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></em><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.KnowledgeHandler.rid_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.components.interfaces.knowledge_handler.StopChain">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.components.interfaces.knowledge_handler.</span></span><span class="sig-name descname"><span class="pre">StopChain</span></span><a class="reference internal" href="../_modules/koi_net/components/interfaces/knowledge_handler.html#StopChain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.components.interfaces.knowledge_handler.StopChain" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for STOP_CHAIN sentinel returned by knowledge handlers.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="koi_net.components.interfaces.deref_handler.html" class="btn btn-neutral float-left" title="koi_net.components.interfaces.deref_handler" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="koi_net.components.interfaces.threaded_component.html" class="btn btn-neutral float-right" title="koi_net.components.interfaces.threaded_component" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
