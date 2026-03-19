@@ -5,6 +5,7 @@ from rid_lib.types import KoiNetNode
 
 from koi_net.exceptions import RequestError
 from koi_net.config.base import BaseNodeConfig
+from koi_net.infra import depends_on
 from koi_net.protocol.node import NodeProfile, NodeType
 from koi_net.protocol.edge import EdgeProfile, EdgeStatus, EdgeType, generate_edge_bundle
 from koi_net.protocol.knowledge_object import KnowledgeObject
@@ -28,19 +29,12 @@ class NodeContactHandler(KnowledgeHandler):
     handler_type = HandlerType.Network
     rid_types = (KoiNetNode,)
     
-    def handle(self, kobj: KnowledgeObject):
-        """Makes contact with providers of RID types of interest.
-        
-        When an incoming node knowledge object is identified as a provider
-        of an RID type of interest, this handler will propose a new edge 
-        subscribing to future node events, and fetch existing nodes to catch 
-        up to the current state.
-        """
+    def process_node(self, node_rid: KoiNetNode, node_bundle: Bundle):
         # prevents nodes from attempting to form a self loop
-        if kobj.rid == self.identity.rid:
+        if node_rid == self.identity.rid:
             return
         
-        node_profile = kobj.bundle.validate_contents(NodeProfile)
+        node_profile = node_bundle.validate_contents(NodeProfile)
         
         available_rid_types = list(
             set(self.config.koi_net.rid_types_of_interest) & 
@@ -51,7 +45,7 @@ class NodeContactHandler(KnowledgeHandler):
             return
         
         edge_rid = self.graph.get_edge(
-            source=kobj.rid,
+            source=node_rid,
             target=self.identity.rid,
         )
         
@@ -74,7 +68,7 @@ class NodeContactHandler(KnowledgeHandler):
         else:
             self.log.info(f"Proposing new edge with node provider {available_rid_types}")
             edge_bundle = generate_edge_bundle(
-                source=kobj.rid,
+                source=node_rid,
                 target=self.identity.rid,
                 rid_types=available_rid_types,
                 edge_type=(
@@ -90,7 +84,7 @@ class NodeContactHandler(KnowledgeHandler):
         self.log.info("Catching up on network state")
         try:
             payload = self.request_handler.fetch_rids(
-                node=kobj.rid, 
+                node=node_rid, 
                 rid_types=available_rid_types
             )
         except RequestError:
@@ -107,5 +101,25 @@ class NodeContactHandler(KnowledgeHandler):
             
             # marked as external since we are handling RIDs from another node
             # will fetch remotely instead of checking local cache
-            self.kobj_queue.push(rid=rid, source=kobj.rid)
+            self.kobj_queue.push(rid=rid, source=node_rid)
         self.log.info("Done")
+    
+    def handle(self, kobj: KnowledgeObject):
+        """Makes contact with providers of RID types of interest.
+        
+        When an incoming node knowledge object is identified as a provider
+        of an RID type of interest, this handler will propose a new edge 
+        subscribing to future node events, and fetch existing nodes to catch 
+        up to the current state.
+        """
+        self.process_node(kobj.rid, kobj.bundle)
+    
+    @depends_on("graph", "kobj_queue")
+    def start(self):
+        self.log.info("Starting node contact analysis on cached profiles...")
+        for rid in self.cache.list_rids(rid_types=(KoiNetNode,)):
+            bundle = self.cache.read(rid)
+            if not bundle:
+                continue
+            
+            self.process_node(rid, bundle)
