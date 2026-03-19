@@ -71,13 +71,11 @@
   <h1>Source code for koi_net.core</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.build.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAssembly</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.log_system</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogSystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.infra</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogSystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAssembly</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.config.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseNodeConfig</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.config.provider</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigProvider</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.config.full_node</span><span class="w"> </span><span class="kn">import</span> <span class="n">FullNodeConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.config.partial_node</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialNodeConfig</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">.components</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Cache</span><span class="p">,</span>
     <span class="n">Effector</span><span class="p">,</span>
@@ -106,18 +104,20 @@
     <span class="n">ForgetNodeHandler</span><span class="p">,</span>
     <span class="n">NodeContactHandler</span><span class="p">,</span>
     <span class="n">EdgeNegotiationHandler</span><span class="p">,</span>
-    <span class="n">SecureProfileHandler</span>
+    <span class="n">SecureProfileHandler</span><span class="p">,</span>
+    <span class="n">ConfigProvider</span>
 <span class="p">)</span>
 
+
 <div class="viewcode-block" id="BaseNode">
-<a class="viewcode-back" href="../../api.html#koi_net.core.BaseNode">[docs]</a>
+<a class="viewcode-back" href="../../generated/koi_net.core.html#koi_net.core.BaseNode">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BaseNode</span><span class="p">(</span><span class="n">BaseAssembly</span><span class="p">):</span>
     <span class="n">_log_system</span><span class="p">:</span> <span class="n">LogSystem</span> <span class="o">=</span> <span class="n">LogSystem</span>
     <span class="n">kobj_queue</span><span class="p">:</span> <span class="n">KobjQueue</span> <span class="o">=</span> <span class="n">KobjQueue</span>
     <span class="n">event_queue</span><span class="p">:</span> <span class="n">EventQueue</span> <span class="o">=</span> <span class="n">EventQueue</span>
     <span class="n">poll_event_buf</span><span class="p">:</span> <span class="n">EventBuffer</span> <span class="o">=</span> <span class="n">EventBuffer</span>
     <span class="n">broadcast_event_buf</span><span class="p">:</span> <span class="n">EventBuffer</span> <span class="o">=</span> <span class="n">EventBuffer</span>
-    <span class="n">config_schema</span> <span class="o">=</span> <span class="n">BaseNodeConfig</span>
+    <span class="n">config_schema</span><span class="p">:</span> <span class="n">BaseNodeConfig</span> <span class="o">=</span> <span class="n">BaseNodeConfig</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">ConfigProvider</span> <span class="o">|</span> <span class="n">BaseNodeConfig</span> <span class="o">=</span> <span class="n">ConfigProvider</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Cache</span> <span class="o">=</span> <span class="n">Cache</span>
     <span class="n">identity</span><span class="p">:</span> <span class="n">NodeIdentity</span> <span class="o">=</span> <span class="n">NodeIdentity</span>
@@ -151,15 +151,15 @@
 
 
 <div class="viewcode-block" id="FullNode">
-<a class="viewcode-back" href="../../api.html#koi_net.core.FullNode">[docs]</a>
+<a class="viewcode-back" href="../../generated/koi_net.core.html#koi_net.core.FullNode">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FullNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">FullNodeConfig</span>
-    <span class="n">port_manager</span><span class="p">:</span> <span class="n">PortManager</span> <span class="o">=</span> <span class="n">PortManager</span>
-    <span class="n">server</span><span class="p">:</span> <span class="n">NodeServer</span> <span class="o">=</span> <span class="n">NodeServer</span></div>
+    <span class="n">server</span><span class="p">:</span> <span class="n">NodeServer</span> <span class="o">=</span> <span class="n">NodeServer</span>
+    <span class="n">port_manager</span><span class="p">:</span> <span class="n">PortManager</span> <span class="o">=</span> <span class="n">PortManager</span></div>
 
 
 <div class="viewcode-block" id="PartialNode">
-<a class="viewcode-back" href="../../api.html#koi_net.core.PartialNode">[docs]</a>
+<a class="viewcode-back" href="../../generated/koi_net.core.html#koi_net.core.PartialNode">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PartialNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">PartialNodeConfig</span>
     <span class="n">poller</span><span class="p">:</span> <span class="n">NodePoller</span> <span class="o">=</span> <span class="n">NodePoller</span></div>

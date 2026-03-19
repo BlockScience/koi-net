@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.infra.log_system &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.infra.log_system</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.infra.log_system</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">logging.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotatingFileHandler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">structlog</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">colorama</span>
+
+
+<span class="n">shared_log_processors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">add_logger_name</span><span class="p">,</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">add_log_level</span><span class="p">,</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">PositionalArgumentsFormatter</span><span class="p">(),</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">TimeStamper</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;iso&quot;</span><span class="p">),</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">UnicodeDecoder</span><span class="p">(),</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">CallsiteParameterAdder</span><span class="p">({</span>
+        <span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">CallsiteParameter</span><span class="o">.</span><span class="n">MODULE</span><span class="p">,</span>
+        <span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">CallsiteParameter</span><span class="o">.</span><span class="n">FUNC_NAME</span>
+    <span class="p">}),</span>
+    <span class="n">structlog</span><span class="o">.</span><span class="n">contextvars</span><span class="o">.</span><span class="n">merge_contextvars</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="PartitionedFileHandler">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.PartitionedFileHandler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PartitionedFileHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">log_file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;log.ndjson&quot;</span><span class="p">,</span>
+        <span class="n">max_log_file_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">num_log_file_backups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">log_file_encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;utf-8&quot;</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RotatingFileHandler</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file_name</span> <span class="o">=</span> <span class="n">log_file_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_size</span> <span class="o">=</span> <span class="n">max_log_file_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_backups</span> <span class="o">=</span> <span class="n">num_log_file_backups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file_encoding</span> <span class="o">=</span> <span class="n">log_file_encoding</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">processor_formatter</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">ProcessorFormatter</span><span class="p">(</span>
+            <span class="n">processor</span><span class="o">=</span><span class="n">structlog</span><span class="o">.</span><span class="n">processors</span><span class="o">.</span><span class="n">JSONRenderer</span><span class="p">(),</span>
+            <span class="n">foreign_pre_chain</span><span class="o">=</span><span class="n">shared_log_processors</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropped_log_handler</span> <span class="o">=</span> <span class="n">RotatingFileHandler</span><span class="p">(</span>
+            <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;dropped_logs.txt&quot;</span><span class="p">,</span>
+            <span class="n">maxBytes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_size</span><span class="p">,</span>
+            <span class="n">backupCount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_backups</span><span class="p">,</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file_encoding</span><span class="p">,</span>
+            <span class="n">delay</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="PartitionedFileHandler.del_handler">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.PartitionedFileHandler.del_handler">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">del_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">wipe_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">log_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">[</span><span class="n">log_dir</span><span class="p">]</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">wipe_logs</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">[</span><span class="n">log_dir</span><span class="p">]</span><span class="o">.</span><span class="n">baseFilename</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">[</span><span class="n">log_dir</span><span class="p">]</span></div>
+
+        
+<div class="viewcode-block" id="PartitionedFileHandler.get_handler">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.PartitionedFileHandler.get_handler">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">log_dir</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="n">file_handler</span> <span class="o">=</span> <span class="n">RotatingFileHandler</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">log_dir</span><span class="p">)</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file_name</span><span class="p">),</span>
+                <span class="n">maxBytes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_size</span><span class="p">,</span>
+                <span class="n">backupCount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_log_file_backups</span><span class="p">,</span>
+                <span class="n">encoding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file_encoding</span><span class="p">,</span>
+                <span class="n">delay</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            
+            <span class="n">file_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">processor_formatter</span><span class="p">)</span>
+            
+            <span class="n">file_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">[</span><span class="n">log_dir</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_handler</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">[</span><span class="n">log_dir</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="PartitionedFileHandler.emit">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.PartitionedFileHandler.emit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">log_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log_dir</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">log_dir</span>
+            
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span> <span class="ow">and</span> <span class="s2">&quot;log_dir&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">msg</span><span class="p">:</span>
+            <span class="n">log_dir</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">msg</span><span class="p">[</span><span class="s2">&quot;log_dir&quot;</span><span class="p">]</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dropped_log_handler</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_handler</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">log_dir</span><span class="p">))</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">record</span><span class="p">)</span></div>
+</div>
+
+        
+
+<div class="viewcode-block" id="LogSystem">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.LogSystem">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogSystem</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configures and initializes the logging system.&quot;&quot;&quot;</span>
+    
+    <span class="n">use_file_handler</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">use_console_handler</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">file_handler_log_level</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">console_handler_log_level</span><span class="p">:</span> <span class="nb">int</span>
+    
+    <span class="n">_instance</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">use_file_handler</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_console_handler</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">file_handler_log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span>
+        <span class="n">console_handler_log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Only instantiable once, other calls will return the first object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">use_file_handler</span> <span class="o">=</span> <span class="n">use_file_handler</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">use_console_handler</span> <span class="o">=</span> <span class="n">use_console_handler</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">file_handler_log_level</span> <span class="o">=</span> <span class="n">file_handler_log_level</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">console_handler_log_level</span> <span class="o">=</span> <span class="n">console_handler_log_level</span>
+            
+            <span class="n">obj</span><span class="o">.</span><span class="n">configure</span><span class="p">()</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="n">obj</span>
+            
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span>
+    
+<div class="viewcode-block" id="LogSystem.delete_file_handler">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.LogSystem.delete_file_handler">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_file_handler</span><span class="p">(</span><span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">wipe_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">PartitionedFileHandler</span><span class="p">):</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">del_handler</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="n">wipe_logs</span><span class="o">=</span><span class="n">wipe_logs</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="LogSystem.configure">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.LogSystem.configure">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">handlers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_file_handler</span><span class="p">:</span>
+            <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PartitionedFileHandler</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_console_handler</span><span class="p">:</span>
+            <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configure_console_handler</span><span class="p">())</span>
+        
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="n">handlers</span><span class="o">=</span><span class="n">handlers</span><span class="p">)</span>
+        <span class="n">old_factory</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogRecordFactory</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">record_factory</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">old_factory</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="n">kwargs</span><span class="p">)</span>
+            
+            <span class="n">ctx</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">contextvars</span><span class="o">.</span><span class="n">get_contextvars</span><span class="p">()</span>
+            <span class="n">record</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;log_dir&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">record</span>
+        
+        <span class="n">logging</span><span class="o">.</span><span class="n">setLogRecordFactory</span><span class="p">(</span><span class="n">record_factory</span><span class="p">)</span>
+        
+        <span class="n">structlog</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">processors</span><span class="o">=</span><span class="n">shared_log_processors</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">ProcessorFormatter</span><span class="o">.</span><span class="n">wrap_for_formatter</span><span class="p">],</span>
+            <span class="n">wrapper_class</span><span class="o">=</span><span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">BoundLogger</span><span class="p">,</span>
+            <span class="n">logger_factory</span><span class="o">=</span><span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">LoggerFactory</span><span class="p">(),</span>
+            <span class="n">cache_logger_on_first_use</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="LogSystem.configure_console_handler">
+<a class="viewcode-back" href="../../../generated/koi_net.infra.log_system.html#koi_net.infra.log_system.LogSystem.configure_console_handler">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configure_console_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">console_renderer</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">ConsoleRenderer</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                <span class="c1"># Render the timestamp without the key name in yellow.</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+                    <span class="s2">&quot;timestamp&quot;</span><span class="p">,</span>
+                    <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">KeyValueColumnFormatter</span><span class="p">(</span>
+                        <span class="n">key_style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">value_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">DIM</span><span class="p">,</span>
+                        <span class="n">reset_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">RESET_ALL</span><span class="p">,</span>
+                        <span class="n">value_repr</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">),</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+                    <span class="s2">&quot;level&quot;</span><span class="p">,</span>
+                    <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">LogLevelColumnFormatter</span><span class="p">(</span>
+                        <span class="n">level_styles</span><span class="o">=</span><span class="p">{</span>
+                            <span class="n">level</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">BRIGHT</span> <span class="o">+</span> <span class="n">color</span>
+                            <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="p">{</span>
+                                <span class="s2">&quot;critical&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span>
+                                <span class="s2">&quot;exception&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span>
+                                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span>
+                                <span class="s2">&quot;warn&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">YELLOW</span><span class="p">,</span>
+                                <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">YELLOW</span><span class="p">,</span>
+                                <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">GREEN</span><span class="p">,</span>
+                                <span class="s2">&quot;debug&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">GREEN</span><span class="p">,</span>
+                                <span class="s2">&quot;notset&quot;</span><span class="p">:</span> <span class="n">colorama</span><span class="o">.</span><span class="n">Back</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span>
+                            <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="p">},</span>
+                        <span class="n">reset_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">RESET_ALL</span><span class="p">,</span>
+                        <span class="n">width</span><span class="o">=</span><span class="mi">9</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+                <span class="c1"># Render the event without the key name in bright magenta.</span>
+                
+                <span class="c1"># Default formatter for all keys not explicitly mentioned. The key is</span>
+                <span class="c1"># cyan, the value is green.</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+                    <span class="s2">&quot;path&quot;</span><span class="p">,</span>
+                    <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">KeyValueColumnFormatter</span><span class="p">(</span>
+                        <span class="n">key_style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">value_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">MAGENTA</span><span class="p">,</span>
+                        <span class="n">reset_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">RESET_ALL</span><span class="p">,</span>
+                        <span class="n">value_repr</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                        <span class="n">width</span><span class="o">=</span><span class="mi">30</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+                    <span class="s2">&quot;event&quot;</span><span class="p">,</span>
+                    <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">KeyValueColumnFormatter</span><span class="p">(</span>
+                        <span class="n">key_style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">value_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
+                        <span class="n">reset_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">RESET_ALL</span><span class="p">,</span>
+                        <span class="n">value_repr</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                        <span class="n">width</span><span class="o">=</span><span class="mi">30</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
+                    <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="n">structlog</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">KeyValueColumnFormatter</span><span class="p">(</span>
+                        <span class="n">key_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">BLUE</span><span class="p">,</span>
+                        <span class="n">value_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Fore</span><span class="o">.</span><span class="n">GREEN</span><span class="p">,</span>
+                        <span class="n">reset_style</span><span class="o">=</span><span class="n">colorama</span><span class="o">.</span><span class="n">Style</span><span class="o">.</span><span class="n">RESET_ALL</span><span class="p">,</span>
+                        <span class="n">value_repr</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        
+        <span class="n">console_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+        <span class="n">console_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span>
+            <span class="n">structlog</span><span class="o">.</span><span class="n">stdlib</span><span class="o">.</span><span class="n">ProcessorFormatter</span><span class="p">(</span>
+                <span class="n">processor</span><span class="o">=</span><span class="n">console_renderer</span><span class="p">,</span>
+                <span class="n">foreign_pre_chain</span><span class="o">=</span><span class="n">shared_log_processors</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="n">console_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">console_handler_log_level</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">console_handler</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

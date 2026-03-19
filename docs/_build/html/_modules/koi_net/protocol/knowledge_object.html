@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.protocol.knowledge_object &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.protocol.knowledge_object</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.protocol.knowledge_object</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">RID</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib.ext</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manifest</span><span class="p">,</span> <span class="n">Bundle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">KoiNetNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span><span class="p">,</span> <span class="n">EventType</span>
+
+
+<div class="viewcode-block" id="KnowledgeObject">
+<a class="viewcode-back" href="../../../generated/koi_net.protocol.knowledge_object.html#koi_net.protocol.knowledge_object.KnowledgeObject">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KnowledgeObject</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A normalized knowledge representation for internal processing.</span>
+<span class="sd">    </span>
+<span class="sd">    Represents an RID, manifest, bundle, or event. Contains three fields </span>
+<span class="sd">    (`normalized_event_type`, `source`, `network_targets`) used for </span>
+<span class="sd">    decision making in the knowledge processing pipeline. </span>
+<span class="sd">    </span>
+<span class="sd">    The source indicates which node this object originated from, or</span>
+<span class="sd">    `None` if it was generated by this node.</span>
+<span class="sd">    </span>
+<span class="sd">    The normalized event type indicates how the knowledge object is </span>
+<span class="sd">    viewed from the perspective of this node, and what cache actions </span>
+<span class="sd">    will take place. (`NEW`, `UPDATE`) -&gt; cache write, `FORGET` -&gt; </span>
+<span class="sd">    cache delete, `None` -&gt; no cache action, and end of pipeline.</span>
+<span class="sd">    </span>
+<span class="sd">    The network targets indicate other nodes in the network this </span>
+<span class="sd">    knowledge object will be sent to. The event sent to them will be </span>
+<span class="sd">    constructed from this knowledge object&#39;s RID, manifest, contents, </span>
+<span class="sd">    and normalized event type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">rid</span><span class="p">:</span> <span class="n">RID</span>
+    <span class="n">manifest</span><span class="p">:</span> <span class="n">Manifest</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">contents</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_type</span><span class="p">:</span> <span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">normalized_event_type</span><span class="p">:</span> <span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">KoiNetNode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">network_targets</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">KoiNetNode</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;KObj &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rid</span><span class="si">}</span><span class="s2">&#39; event type: &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">event_type</span><span class="si">}</span><span class="s2">&#39; -&gt; &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">normalized_event_type</span><span class="si">}</span><span class="s2">&#39;, source: &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="si">}</span><span class="s2">&#39;&gt;&quot;</span>
+    
+<div class="viewcode-block" id="KnowledgeObject.from_rid">
+<a class="viewcode-back" href="../../../generated/koi_net.protocol.knowledge_object.html#koi_net.protocol.knowledge_object.KnowledgeObject.from_rid">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_rid</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> 
+        <span class="n">rid</span><span class="p">:</span> <span class="n">RID</span><span class="p">,</span> 
+        <span class="n">event_type</span><span class="p">:</span> <span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">source</span><span class="p">:</span> <span class="n">KoiNetNode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeObject&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a `KnowledgeObject` from an `RID`.&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">rid</span><span class="o">=</span><span class="n">rid</span><span class="p">,</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span>
+        <span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KnowledgeObject.from_manifest">
+<a class="viewcode-back" href="../../../generated/koi_net.protocol.knowledge_object.html#koi_net.protocol.knowledge_object.KnowledgeObject.from_manifest">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_manifest</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> 
+        <span class="n">manifest</span><span class="p">:</span> <span class="n">Manifest</span><span class="p">,</span> 
+        <span class="n">event_type</span><span class="p">:</span> <span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">source</span><span class="p">:</span> <span class="n">KoiNetNode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeObject&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a `KnowledgeObject` from a `Manifest`.&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">rid</span><span class="o">=</span><span class="n">manifest</span><span class="o">.</span><span class="n">rid</span><span class="p">,</span>
+            <span class="n">manifest</span><span class="o">=</span><span class="n">manifest</span><span class="p">,</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span>
+        <span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KnowledgeObject.from_bundle">
+<a class="viewcode-back" href="../../../generated/koi_net.protocol.knowledge_object.html#koi_net.protocol.knowledge_object.KnowledgeObject.from_bundle">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_bundle</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> 
+        <span class="n">bundle</span><span class="p">:</span> <span class="n">Bundle</span><span class="p">,</span> 
+        <span class="n">event_type</span><span class="p">:</span> <span class="n">EventType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">source</span><span class="p">:</span> <span class="n">KoiNetNode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeObject&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a `KnowledgeObject` from a `Bundle`.&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">rid</span><span class="o">=</span><span class="n">bundle</span><span class="o">.</span><span class="n">rid</span><span class="p">,</span>
+            <span class="n">manifest</span><span class="o">=</span><span class="n">bundle</span><span class="o">.</span><span class="n">manifest</span><span class="p">,</span>
+            <span class="n">contents</span><span class="o">=</span><span class="n">bundle</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span>
+        <span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KnowledgeObject.from_event">
+<a class="viewcode-back" href="../../../generated/koi_net.protocol.knowledge_object.html#koi_net.protocol.knowledge_object.KnowledgeObject.from_event">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_event</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">event</span><span class="p">:</span> <span class="n">Event</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">KoiNetNode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;KnowledgeObject&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a `KnowledgeObject` from an `Event`.&quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">rid</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">rid</span><span class="p">,</span>
+            <span class="n">manifest</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">manifest</span><span class="p">,</span>
+            <span class="n">contents</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span>
+            <span class="n">event_type</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span>
+        <span class="p">)</span></div>
+
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bundle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Bundle</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Bundle representation of knowledge object.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifest</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Knowledge object missing manifest or contents, cannot convert to `Bundle`.&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">Bundle</span><span class="p">(</span>
+            <span class="n">manifest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">manifest</span><span class="p">,</span>
+            <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span>
+        <span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalized_event</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Event</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Event representation of knowledge object.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized_event_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Internal event&#39;s normalized event type is None, cannot convert to Event&quot;</span><span class="p">)</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized_event_type</span> <span class="o">==</span> <span class="n">EventType</span><span class="o">.</span><span class="n">FORGET</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Event</span><span class="p">(</span>
+                <span class="n">rid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rid</span><span class="p">,</span>
+                <span class="n">event_type</span><span class="o">=</span><span class="n">EventType</span><span class="o">.</span><span class="n">FORGET</span>
+            <span class="p">)</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Event</span><span class="p">(</span>
+                <span class="n">rid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rid</span><span class="p">,</span>
+                <span class="n">event_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">normalized_event_type</span><span class="p">,</span>
+                <span class="n">manifest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">manifest</span><span class="p">,</span>
+                <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span>
+            <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

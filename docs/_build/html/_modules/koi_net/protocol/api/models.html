@@ -1,0 +1,195 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.protocol.api.models &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.protocol.api.models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.protocol.api.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Pydantic models for request and response objects in the KOI-net API.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">RID</span><span class="p">,</span> <span class="n">RIDType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib.ext</span><span class="w"> </span><span class="kn">import</span> <span class="n">Bundle</span><span class="p">,</span> <span class="n">Manifest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..event</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorType</span>
+
+
+<span class="c1"># REQUEST MODELS</span>
+
+<div class="viewcode-block" id="PollEvents">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.PollEvents">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PollEvents</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;poll_events&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;poll_events&quot;</span><span class="p">)</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+    
+<div class="viewcode-block" id="FetchRids">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.FetchRids">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FetchRids</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;fetch_rids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;fetch_rids&quot;</span><span class="p">)</span>
+    <span class="n">rid_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RIDType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    
+<div class="viewcode-block" id="FetchManifests">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.FetchManifests">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FetchManifests</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;fetch_manifests&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;fetch_manifests&quot;</span><span class="p">)</span>
+    <span class="n">rid_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RIDType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    
+<div class="viewcode-block" id="FetchBundles">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.FetchBundles">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FetchBundles</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;fetch_bundles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;fetch_bundles&quot;</span><span class="p">)</span>
+    <span class="n">rids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span></div>
+
+    
+
+<span class="c1"># RESPONSE/PAYLOAD MODELS</span>
+
+<div class="viewcode-block" id="RidsPayload">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.RidsPayload">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RidsPayload</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;rids_payload&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;rids_payload&quot;</span><span class="p">)</span>
+    <span class="n">rids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ManifestsPayload">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.ManifestsPayload">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ManifestsPayload</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;manifests_payload&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;manifests_payload&quot;</span><span class="p">)</span>
+    <span class="n">manifests</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Manifest</span><span class="p">]</span>
+    <span class="n">not_found</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    
+<div class="viewcode-block" id="BundlesPayload">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.BundlesPayload">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BundlesPayload</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;bundles_payload&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;bundles_payload&quot;</span><span class="p">)</span>
+    <span class="n">bundles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Bundle</span><span class="p">]</span>
+    <span class="n">not_found</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">deferred</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RID</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+    
+<div class="viewcode-block" id="EventsPayload">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.EventsPayload">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EventsPayload</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;events_payload&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;events_payload&quot;</span><span class="p">)</span>
+    <span class="n">events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Event</span><span class="p">]</span></div>
+
+    
+
+<span class="c1"># ERROR MODELS</span>
+
+<div class="viewcode-block" id="ErrorResponse">
+<a class="viewcode-back" href="../../../../generated/koi_net.protocol.api.models.html#koi_net.protocol.api.models.ErrorResponse">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ErrorResponse</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;error_response&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">&quot;error_response&quot;</span><span class="p">)</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">ErrorType</span></div>
+
+
+<span class="c1"># TYPES</span>
+
+<span class="nb">type</span> <span class="n">RequestModels</span> <span class="o">=</span> <span class="n">EventsPayload</span> <span class="o">|</span> <span class="n">PollEvents</span> <span class="o">|</span> <span class="n">FetchRids</span> <span class="o">|</span> <span class="n">FetchManifests</span> <span class="o">|</span> <span class="n">FetchBundles</span>
+<span class="nb">type</span> <span class="n">ResponseModels</span> <span class="o">=</span> <span class="n">RidsPayload</span> <span class="o">|</span> <span class="n">ManifestsPayload</span> <span class="o">|</span> <span class="n">BundlesPayload</span> <span class="o">|</span> <span class="n">EventsPayload</span> <span class="o">|</span> <span class="n">ErrorResponse</span>
+
+<span class="nb">type</span> <span class="n">ApiModels</span> <span class="o">=</span> <span class="n">Annotated</span><span class="p">[</span>
+    <span class="n">RequestModels</span> <span class="o">|</span> <span class="n">ResponseModels</span><span class="p">,</span>
+    <span class="n">Field</span><span class="p">(</span><span class="n">discriminator</span><span class="o">=</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+<span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

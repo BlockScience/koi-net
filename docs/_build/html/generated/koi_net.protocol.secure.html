@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.protocol.secure &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="koi_net.protocol.node" href="koi_net.protocol.node.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#components">Components</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="koi_net.html">koi_net</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="koi_net.base.html">koi_net.base</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.html">koi_net.components</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.config.html">koi_net.config</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.core.html">koi_net.core</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.exceptions.html">koi_net.exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.infra.html">koi_net.infra</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.interfaces.html">koi_net.interfaces</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="koi_net.protocol.html">koi_net.protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.html">koi_net</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.protocol.html">koi_net.protocol</a></li>
+      <li class="breadcrumb-item active">koi_net.protocol.secure</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/koi_net.protocol.secure.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-koi_net.protocol.secure">
+<span id="koi-net-protocol-secure"></span><h1>koi_net.protocol.secure<a class="headerlink" href="#module-koi_net.protocol.secure" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.protocol.secure.der_to_raw_signature" title="koi_net.protocol.secure.der_to_raw_signature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">der_to_raw_signature</span></code></a>(der_signature[, curve])</p></td>
+<td><p>Converts a DER-encoded signature to raw r||s format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#koi_net.protocol.secure.raw_to_der_signature" title="koi_net.protocol.secure.raw_to_der_signature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">raw_to_der_signature</span></code></a>(raw_signature[, curve])</p></td>
+<td><p>Converts a raw r||s signature to DER format.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.protocol.secure.PrivateKey" title="koi_net.protocol.secure.PrivateKey"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PrivateKey</span></code></a>(priv_key)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#koi_net.protocol.secure.PublicKey" title="koi_net.protocol.secure.PublicKey"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PublicKey</span></code></a>(pub_key)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.protocol.secure.</span></span><span class="sig-name descname"><span class="pre">PrivateKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">priv_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>priv_key</strong> (<em>EllipticCurvePrivateKey</em>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.from_pem">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">priv_key_pem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey.from_pem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.from_pem" title="Link to this definition"></a></dt>
+<dd><p>Loads <cite>PrivateKey</cite> from encrypted PEM string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>priv_key_pem</strong> (<em>str</em>)</p></li>
+<li><p><strong>password</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.generate">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey.generate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.generate" title="Link to this definition"></a></dt>
+<dd><p>Generates a new <cite>Private Key</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.priv_key">
+<span class="sig-name descname"><span class="pre">priv_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">EllipticCurvePrivateKey</span></code></em><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.priv_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.public_key">
+<span class="sig-name descname"><span class="pre">public_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey.public_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.public_key" title="Link to this definition"></a></dt>
+<dd><p>Returns instance of <cite>PublicKey</cite> dervied from this private key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#koi_net.protocol.secure.PublicKey" title="koi_net.protocol.secure.PublicKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">PublicKey</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.sign">
+<span class="sig-name descname"><span class="pre">sign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey.sign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.sign" title="Link to this definition"></a></dt>
+<dd><p>Returns base64 encoded raw signature bytes of the form r||s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>message</strong> (<em>bytes</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PrivateKey.to_pem">
+<span class="sig-name descname"><span class="pre">to_pem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PrivateKey.to_pem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PrivateKey.to_pem" title="Link to this definition"></a></dt>
+<dd><p>Saves <cite>PrivateKey</cite> to encrypted PEM string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>password</strong> (<em>str</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.protocol.secure.</span></span><span class="sig-name descname"><span class="pre">PublicKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub_key</strong> (<em>EllipticCurvePublicKey</em>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.from_der">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_der</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub_key_der</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.from_der"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.from_der" title="Link to this definition"></a></dt>
+<dd><p>Loads <cite>PublicKey</cite> from base64 encoded DER string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub_key_der</strong> (<em>str</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.from_pem">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pub_key_pem</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.from_pem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.from_pem" title="Link to this definition"></a></dt>
+<dd><p>Loads <cite>PublicKey</cite> from PEM string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pub_key_pem</strong> (<em>str</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.pub_key">
+<span class="sig-name descname"><span class="pre">pub_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">EllipticCurvePublicKey</span></code></em><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.pub_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.to_der">
+<span class="sig-name descname"><span class="pre">to_der</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.to_der"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.to_der" title="Link to this definition"></a></dt>
+<dd><p>Saves <cite>PublicKey</cite> to base64 encoded DER string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.to_node_rid">
+<span class="sig-name descname"><span class="pre">to_node_rid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.to_node_rid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.to_node_rid" title="Link to this definition"></a></dt>
+<dd><p>Returns an orn:koi-net.node RID from hashed DER string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetNode</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.to_pem">
+<span class="sig-name descname"><span class="pre">to_pem</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.to_pem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.to_pem" title="Link to this definition"></a></dt>
+<dd><p>Saves <cite>PublicKey</cite> to PEM string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.PublicKey.verify">
+<span class="sig-name descname"><span class="pre">verify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#PublicKey.verify"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.PublicKey.verify" title="Link to this definition"></a></dt>
+<dd><p>Verifies a signature for a message.</p>
+<p>Raises <cite>cryptography.exceptions.InvalidSignature</cite> on failure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signature</strong> (<em>str</em>)</p></li>
+<li><p><strong>message</strong> (<em>bytes</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.der_to_raw_signature">
+<span class="sig-prename descclassname"><span class="pre">koi_net.protocol.secure.</span></span><span class="sig-name descname"><span class="pre">der_to_raw_signature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">der_signature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve=&lt;cryptography.hazmat.primitives.asymmetric.ec.SECP256R1</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#der_to_raw_signature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.der_to_raw_signature" title="Link to this definition"></a></dt>
+<dd><p>Converts a DER-encoded signature to raw r||s format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>der_signature</strong> (<em>bytes</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="koi_net.protocol.secure.raw_to_der_signature">
+<span class="sig-prename descclassname"><span class="pre">koi_net.protocol.secure.</span></span><span class="sig-name descname"><span class="pre">raw_to_der_signature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_signature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve=&lt;cryptography.hazmat.primitives.asymmetric.ec.SECP256R1</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/protocol/secure.html#raw_to_der_signature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.protocol.secure.raw_to_der_signature" title="Link to this definition"></a></dt>
+<dd><p>Converts a raw r||s signature to DER format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>raw_signature</strong> (<em>bytes</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="koi_net.protocol.node.html" class="btn btn-neutral float-left" title="koi_net.protocol.node" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

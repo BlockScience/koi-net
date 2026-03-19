@@ -12,20 +12,4 @@ Components
    :recursive:
    :nosignatures:
 
-   koi_net.components
-
-Core
-----
-
-.. automodule:: koi_net.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Exceptions
-----------
-
-.. automodule:: koi_net.exceptions
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   koi_net
