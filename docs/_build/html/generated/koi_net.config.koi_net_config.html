@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.config.koi_net_config &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="koi_net.config.partial_node" href="koi_net.config.partial_node.html" />
+    <link rel="prev" title="koi_net.config.full_node" href="koi_net.config.full_node.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#components">Components</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="koi_net.html">koi_net</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="koi_net.base.html">koi_net.base</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.components.html">koi_net.components</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="koi_net.config.html">koi_net.config</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.core.html">koi_net.core</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.exceptions.html">koi_net.exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.infra.html">koi_net.infra</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.interfaces.html">koi_net.interfaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="koi_net.protocol.html">koi_net.protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.html">koi_net</a></li>
+          <li class="breadcrumb-item"><a href="koi_net.config.html">koi_net.config</a></li>
+      <li class="breadcrumb-item active">koi_net.config.koi_net_config</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/koi_net.config.koi_net_config.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-koi_net.config.koi_net_config">
+<span id="koi-net-config-koi-net-config"></span><h1>koi_net.config.koi_net_config<a class="headerlink" href="#module-koi_net.config.koi_net_config" title="Link to this heading"></a></h1>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.config.koi_net_config.EventWorkerConfig" title="koi_net.config.koi_net_config.EventWorkerConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventWorkerConfig</span></code></a>(**data)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#koi_net.config.koi_net_config.KobjWorkerConfig" title="koi_net.config.koi_net_config.KobjWorkerConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KobjWorkerConfig</span></code></a>(**data)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#koi_net.config.koi_net_config.KoiNetConfig" title="koi_net.config.koi_net_config.KoiNetConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KoiNetConfig</span></code></a>(**data)</p></td>
+<td><p>Config for KOI-net parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#koi_net.config.koi_net_config.NodeContact" title="koi_net.config.koi_net_config.NodeContact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NodeContact</span></code></a>(**data)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.EventWorkerConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.config.koi_net_config.</span></span><span class="sig-name descname"><span class="pre">EventWorkerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/config/koi_net_config.html#EventWorkerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.config.koi_net_config.EventWorkerConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queue_timeout</strong> (<em>float</em>)</p></li>
+<li><p><strong>max_buf_len</strong> (<em>int</em>)</p></li>
+<li><p><strong>max_wait_time</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.EventWorkerConfig.max_buf_len">
+<span class="sig-name descname"><span class="pre">max_buf_len</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.EventWorkerConfig.max_buf_len" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.EventWorkerConfig.max_wait_time">
+<span class="sig-name descname"><span class="pre">max_wait_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.EventWorkerConfig.max_wait_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.EventWorkerConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[ConfigDict]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#koi_net.config.koi_net_config.EventWorkerConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.EventWorkerConfig.queue_timeout">
+<span class="sig-name descname"><span class="pre">queue_timeout</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.EventWorkerConfig.queue_timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KobjWorkerConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.config.koi_net_config.</span></span><span class="sig-name descname"><span class="pre">KobjWorkerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/config/koi_net_config.html#KobjWorkerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.config.koi_net_config.KobjWorkerConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>queue_timeout</strong> (<em>float</em>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KobjWorkerConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[ConfigDict]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#koi_net.config.koi_net_config.KobjWorkerConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KobjWorkerConfig.queue_timeout">
+<span class="sig-name descname"><span class="pre">queue_timeout</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.KobjWorkerConfig.queue_timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.config.koi_net_config.</span></span><span class="sig-name descname"><span class="pre">KoiNetConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/config/koi_net_config.html#KoiNetConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Config for KOI-net parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_name</strong> (<em>str</em>)</p></li>
+<li><p><strong>node_rid</strong> (<em>KoiNetNode</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>node_profile</strong> (<a class="reference internal" href="koi_net.protocol.node.html#koi_net.protocol.node.NodeProfile" title="koi_net.protocol.node.NodeProfile"><em>NodeProfile</em></a>)</p></li>
+<li><p><strong>rid_types_of_interest</strong> (<em>list</em><em>[</em><em>RIDType</em><em>]</em>)</p></li>
+<li><p><strong>cache_directory_path</strong> (<em>Path</em>)</p></li>
+<li><p><strong>private_key_pem_path</strong> (<em>Path</em>)</p></li>
+<li><p><strong>event_worker</strong> (<a class="reference internal" href="#koi_net.config.koi_net_config.EventWorkerConfig" title="koi_net.config.koi_net_config.EventWorkerConfig"><em>EventWorkerConfig</em></a>)</p></li>
+<li><p><strong>kobj_worker</strong> (<a class="reference internal" href="#koi_net.config.koi_net_config.KobjWorkerConfig" title="koi_net.config.koi_net_config.KobjWorkerConfig"><em>KobjWorkerConfig</em></a>)</p></li>
+<li><p><strong>first_contact</strong> (<a class="reference internal" href="#koi_net.config.koi_net_config.NodeContact" title="koi_net.config.koi_net_config.NodeContact"><em>NodeContact</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.cache_directory_path">
+<span class="sig-name descname"><span class="pre">cache_directory_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.cache_directory_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.event_worker">
+<span class="sig-name descname"><span class="pre">event_worker</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#koi_net.config.koi_net_config.EventWorkerConfig" title="koi_net.config.koi_net_config.EventWorkerConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventWorkerConfig</span></code></a></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.event_worker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.first_contact">
+<span class="sig-name descname"><span class="pre">first_contact</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#koi_net.config.koi_net_config.NodeContact" title="koi_net.config.koi_net_config.NodeContact"><code class="xref py py-class docutils literal notranslate"><span class="pre">NodeContact</span></code></a></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.first_contact" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.kobj_worker">
+<span class="sig-name descname"><span class="pre">kobj_worker</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#koi_net.config.koi_net_config.KobjWorkerConfig" title="koi_net.config.koi_net_config.KobjWorkerConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">KobjWorkerConfig</span></code></a></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.kobj_worker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[ConfigDict]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.node_name">
+<span class="sig-name descname"><span class="pre">node_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.node_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.node_profile">
+<span class="sig-name descname"><span class="pre">node_profile</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="koi_net.protocol.node.html#koi_net.protocol.node.NodeProfile" title="koi_net.protocol.node.NodeProfile"><code class="xref py py-class docutils literal notranslate"><span class="pre">NodeProfile</span></code></a></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.node_profile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.node_rid">
+<span class="sig-name descname"><span class="pre">node_rid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetNode</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.node_rid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.private_key_pem_path">
+<span class="sig-name descname"><span class="pre">private_key_pem_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.private_key_pem_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.KoiNetConfig.rid_types_of_interest">
+<span class="sig-name descname"><span class="pre">rid_types_of_interest</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">RIDType</span></code><span class="pre">]</span></em><a class="headerlink" href="#koi_net.config.koi_net_config.KoiNetConfig.rid_types_of_interest" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.NodeContact">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">koi_net.config.koi_net_config.</span></span><span class="sig-name descname"><span class="pre">NodeContact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/koi_net/config/koi_net_config.html#NodeContact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#koi_net.config.koi_net_config.NodeContact" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rid</strong> (<em>KoiNetNode</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>url</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.NodeContact.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar[ConfigDict]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#koi_net.config.koi_net_config.NodeContact.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.NodeContact.rid">
+<span class="sig-name descname"><span class="pre">rid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">KoiNetNode</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.NodeContact.rid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="koi_net.config.koi_net_config.NodeContact.url">
+<span class="sig-name descname"><span class="pre">url</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><a class="headerlink" href="#koi_net.config.koi_net_config.NodeContact.url" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="koi_net.config.full_node.html" class="btn btn-neutral float-left" title="koi_net.config.full_node" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="koi_net.config.partial_node.html" class="btn btn-neutral float-right" title="koi_net.config.partial_node" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,5 +1,8 @@
 # KOI-net
 
+[![PyPI](https://img.shields.io/pypi/v/koi-net)](https://pypi.org/project/koi-net/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://blockscience.github.io/koi-net/index.html)
+
 *This specification is the result of several iterations of KOI research, [read more here](https://github.com/BlockScience/koi).*
 
 ### Jump to Sections: 

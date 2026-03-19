@@ -1,4 +1,4 @@
-﻿koi\_net.components
+koi\_net.components
 ===================
 
 .. automodule:: koi_net.components

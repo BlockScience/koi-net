@@ -71,10 +71,13 @@
   <h1>Source code for koi_net.config.base</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..build.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">provides</span><span class="p">,</span> <span class="n">CompType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnvConfig</span><span class="p">,</span> <span class="n">KoiNetConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..infra</span><span class="w"> </span><span class="kn">import</span> <span class="n">provides</span><span class="p">,</span> <span class="n">CompType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.env_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnvConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.koi_net_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">KoiNetConfig</span>
 
 
+<div class="viewcode-block" id="BaseNodeConfig">
+<a class="viewcode-back" href="../../../generated/koi_net.config.base.html#koi_net.config.base.BaseNodeConfig">[docs]</a>
 <span class="nd">@provides</span><span class="p">(</span><span class="n">CompType</span><span class="o">.</span><span class="n">OBJECT</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">BaseNodeConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base node config class, intended to be extended.</span>
@@ -85,10 +88,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     
     <span class="n">koi_net</span><span class="p">:</span> <span class="n">KoiNetConfig</span>
-    <span class="c1"># note: EnvConfig has to use a default factory, otherwise it will</span>
+    <span class="c1"># NOTE: EnvConfig has to use a default factory, otherwise it will be</span>
     <span class="c1"># evaluated during the library import and cause an error if any</span>
     <span class="c1"># env variables are undefined</span>
-    <span class="n">env</span><span class="p">:</span> <span class="n">EnvConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">EnvConfig</span><span class="p">)</span>
+    <span class="n">env</span><span class="p">:</span> <span class="n">EnvConfig</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">EnvConfig</span><span class="p">)</span></div>
+
 </pre></div>
 
            </div>

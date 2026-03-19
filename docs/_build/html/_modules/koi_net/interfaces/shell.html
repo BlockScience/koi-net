@@ -1,0 +1,632 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.interfaces.shell &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.interfaces.shell</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.interfaces.shell</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cmd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">Console</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich</span><span class="w"> </span><span class="kn">import</span> <span class="n">box</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.infra</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeState</span><span class="p">,</span> <span class="n">LogSystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.module</span><span class="w"> </span><span class="kn">import</span> <span class="n">module_interface</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.network</span><span class="w"> </span><span class="kn">import</span> <span class="n">NetworkInterface</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeInterface</span>
+
+<div class="viewcode-block" id="KoiShell">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KoiShell</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="p">):</span>
+    <span class="c1"># intro = &quot;Welcome to the KOI shell, type help for a list of commands.\n&quot;</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;&gt;=&gt; &quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">LogSystem</span><span class="p">(</span><span class="n">use_console_handler</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;KOI shell: [cyan]type `help` for a list of commands[/cyan]&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">NetworkInterface</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found [green]</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">module_interface</span><span class="o">.</span><span class="n">module_names</span><span class="p">)</span><span class="si">}</span><span class="s2"> module(s)[/green] and [green]</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span><span class="si">}</span><span class="s2"> node(s)[/green]&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="KoiShell.emptyline">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.emptyline">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">emptyline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.load_node">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.load_node">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_node</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;KoiShell&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">resolve_node</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find node &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.parse_args">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.parse_args">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;KoiShell&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">parsed_args</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">parsed_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.validate_args">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.validate_args">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_args</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;KoiShell&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold red]</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">[/bold red]&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.do_quit">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_quit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_quit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">initialized</span> <span class="ow">or</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Nodes are still running! Run `network stop` first, or `QUIT` to exit anyway.&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.do_QUIT">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_QUIT">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_QUIT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.do_help">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_help">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subcmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s2">&quot;command&quot;</span><span class="p">,</span> <span class="s2">&quot;arguments&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="k">match</span> <span class="n">subcmd</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;node&quot;</span><span class="p">:</span>
+                <span class="n">cmd_help</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;add&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;&lt;module ref&gt; \[name]&quot;</span><span class="p">,</span> <span class="s2">&quot;adds a new node of type &lt;module ref&gt; to the network, if unset, name defaults to &lt;module ref&gt;&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;rm&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;removes a node from the network&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;initializes a node&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-config&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes a node&#39;s configuration, including private key&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-cache&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes a node&#39;s RID cache&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-logs&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes a node&#39;s logs&quot;</span><span class="p">),</span>
+                    
+                    <span class="p">(</span><span class="s2">&quot;config-get&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt; &lt;loc&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;prints the config value at the specified JSON pointer location&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;config-set&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt; &lt;loc&gt; &lt;val&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;sets the config at JSON pointer location to value&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;config-unset&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt; &lt;loc&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;shows info about nodes edges&quot;</span><span class="p">),</span>
+                    
+                    <span class="p">(</span><span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;runs a node in the foreground&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;starts a node in the background&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;stops a running background node&quot;</span><span class="p">),</span>
+                    
+                    <span class="p">(</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;lists all nodes in the network&quot;</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="k">case</span> <span class="s2">&quot;network&quot;</span><span class="p">:</span>
+                <span class="n">cmd_help</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;sync&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;synchronizes the local environment with the network configuration&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-config&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes configuration, including private key, of all network nodes&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-cache&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes RID cache of all network nodes&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;wipe-logs&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;wipes logs of all network nodes&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;lists the current state of all network nodes&quot;</span><span class="p">),</span>
+                    
+                    <span class="p">(</span><span class="s2">&quot;set-first-contact&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;name&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;Sets first contact of all nodes in the network&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;unset-first-contact&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;Unsets first contact from all nodes in the network&quot;</span><span class="p">),</span>
+                    
+                    <span class="p">(</span><span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;runs all network nodes in the foreground&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;starts all network nodes in the backround&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;stop&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;stops all running background nodes&quot;</span><span class="p">),</span>
+                    
+                <span class="p">]</span>
+            <span class="k">case</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span>
+                <span class="n">cmd_help</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;lists all detected node modules&quot;</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="n">cmd_help</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;sub cmd&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;group of node commands&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;network&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;sub cmd&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;group of network commands&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;module&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;sub cmd&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;group of module commands&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;help&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\[cmd]&quot;</span><span class="p">,</span> <span class="s2">&quot;list available commands or subcommands&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;quit&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;exits the shell&quot;</span><span class="p">),</span>
+                    <span class="p">(</span><span class="s2">&quot;QUIT&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;exits the shell, even if nodes are running&quot;</span><span class="p">),</span>
+                <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">cmd_info</span> <span class="ow">in</span> <span class="n">cmd_help</span><span class="p">:</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="o">*</span><span class="n">cmd_info</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.do_node">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_node">[docs]</a>
+    <span class="nd">@parse_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">match</span> <span class="n">sub_cmd</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_add</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;rm&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_rm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;init&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;list&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_list</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;config-get&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_config_get</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;config-set&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_config_set</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;config-unset&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_config_unset</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_info</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-config&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_wipe_config</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-cache&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_wipe_cache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-logs&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_wipe_logs</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;start&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_start</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;stop&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_stop</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;run&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_run</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown subcommand &#39;</span><span class="si">{</span><span class="n">sub_cmd</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.do_network">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_network">[docs]</a>
+    <span class="nd">@parse_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_network</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">match</span> <span class="n">sub_cmd</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;sync&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_sync</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-config&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_wipe_config</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-cache&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_wipe_cache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;wipe-logs&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_wipe_logs</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;status&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_status</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;set-first-contact&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_set_first_contact</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;unset-first-contact&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_unset_first_contact</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;start&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_start</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;stop&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_stop</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;run&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_run</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;set-first-contact&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">network_set_first_contact</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown subcommand &#39;</span><span class="si">{</span><span class="n">sub_cmd</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+                
+<div class="viewcode-block" id="KoiShell.do_module">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.do_module">[docs]</a>
+    <span class="nd">@parse_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_cmd</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">match</span> <span class="n">sub_cmd</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s2">&quot;list&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">module_list</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span> <span class="s2">&quot;reload&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">module_reload</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown subcommand &#39;</span><span class="si">{</span><span class="n">sub_cmd</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="KoiShell.node_add">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_add">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">module_ref</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">resolve_node</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Node with name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already exists&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">NodeInterface</span><span class="o">.</span><span class="n">from_ref</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">module_ref</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_rm">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_rm">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_rm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed node &#39;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Node is running, run `node stop </span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">` first&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.node_init">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_init">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">init</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_list">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_list">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">,</span> <span class="s2">&quot;rid&quot;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">continue</span>
+            
+            <span class="n">node_rid</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">node_rid</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">node_rid</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_config_get">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_config_get">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_config_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.node_config_set">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_config_set">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_config_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_config_unset">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_config_unset">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_config_unset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">unset_config</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.node_info">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_info">[docs]</a>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">info</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_run">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_run">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_start">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_start">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_stop">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_stop">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_wipe_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_wipe_config">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_wipe_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">wipe_config</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wiped config of &#39;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_wipe_cache">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_wipe_cache">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_wipe_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">wipe_cache</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wiped RID cache of &#39;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.node_wipe_logs">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.node_wipe_logs">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node_wipe_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">wipe_logs</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wiped logs of &#39;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_sync">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_sync">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.network_wipe_cache">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_wipe_cache">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_wipe_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">wipe_cache</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.network_wipe_logs">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_wipe_logs">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_wipe_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">wipe_logs</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="KoiShell.network_wipe_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_wipe_config">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_wipe_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">wipe_config</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_status">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_status">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;state&quot;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">node_state</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span>
+            <span class="k">match</span> <span class="n">node_state</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span>
+                <span class="k">case</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">STARTING</span><span class="p">:</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;blue&quot;</span>
+                <span class="k">case</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">:</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;green&quot;</span>
+                <span class="k">case</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">STOPPING</span><span class="p">:</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
+            
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span><span class="si">}</span><span class="s2">[/</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_set_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_set_first_contact">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@load_node</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_set_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">set_first_contact</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_unset_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_unset_first_contact">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_unset_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fc_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">get_first_contact</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">fc_node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">unset_first_contact</span><span class="p">(</span><span class="n">fc_node</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_run">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_run">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_start">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_start">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.network_stop">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.network_stop">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">network_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.module_list">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.module_list">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">module_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s2">&quot;module&quot;</span><span class="p">,</span> <span class="s2">&quot;alias(es)&quot;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="n">module_alias_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">module_interface</span><span class="o">.</span><span class="n">alias_module_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">module_alias_map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">alias_set</span> <span class="ow">in</span> <span class="n">module_alias_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alias_set</span><span class="p">))</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="KoiShell.module_reload">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.KoiShell.module_reload">[docs]</a>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">module_reload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">module_interface</span><span class="o">.</span><span class="n">resolve_ref</span><span class="p">(</span><span class="n">module_ref</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t resolve module reference &#39;</span><span class="si">{</span><span class="n">module_ref</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># can only reload modules of nodes at rest</span>
+        
+        <span class="n">updated_node_class</span> <span class="o">=</span> <span class="n">module_interface</span><span class="o">.</span><span class="n">load_class</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">reload_module</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="n">affected_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">updated_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">module</span> <span class="o">!=</span> <span class="n">module</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">affected_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">!=</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping running node &#39;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            
+            <span class="n">node</span><span class="o">.</span><span class="n">set_node_class</span><span class="p">(</span><span class="n">updated_node_class</span><span class="p">)</span>
+            <span class="n">updated_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="k">if</span> <span class="n">affected_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;No nodes were affected&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reload module for </span><span class="si">{</span><span class="n">updated_nodes</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">affected_nodes</span><span class="si">}</span><span class="s2"> nodes&quot;</span><span class="p">)</span></div>
+</div>
+
+        
+<div class="viewcode-block" id="run">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.shell.html#koi_net.interfaces.shell.run">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">():</span>
+    <span class="n">koi_sh</span> <span class="o">=</span> <span class="n">KoiShell</span><span class="p">()</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">koi_sh</span><span class="o">.</span><span class="n">cmdloop</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Detected keyboard interrupt, hard quitting...&quot;</span><span class="p">)</span>
+        <span class="n">koi_sh</span><span class="o">.</span><span class="n">do_QUIT</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

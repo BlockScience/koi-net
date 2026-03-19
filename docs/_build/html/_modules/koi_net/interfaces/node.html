@@ -1,0 +1,353 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.interfaces.node &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.interfaces.node</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.interfaces.node</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">jsonpointer</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonPointer</span><span class="p">,</span> <span class="n">JsonPointerException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">Console</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich</span><span class="w"> </span><span class="kn">import</span> <span class="n">box</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">rid_lib.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">KoiNetEdge</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">MissingEnvVarsError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.protocol.edge</span><span class="w"> </span><span class="kn">import</span> <span class="n">EdgeProfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseNode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.infra</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeState</span><span class="p">,</span> <span class="n">NodeContainer</span><span class="p">,</span> <span class="n">LogSystem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.module</span><span class="w"> </span><span class="kn">import</span> <span class="n">module_interface</span>
+
+
+<div class="viewcode-block" id="NodeInterface">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NodeInterface</span><span class="p">:</span>
+    <span class="n">node</span><span class="p">:</span> <span class="n">BaseNode</span> <span class="o">|</span> <span class="n">NodeContainer</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">node_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseNode</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_class</span> <span class="o">=</span> <span class="n">node_class</span>
+        <span class="c1"># top level module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module</span> <span class="o">=</span> <span class="n">node_class</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="NodeInterface.from_ref">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.from_ref">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_ref</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">module_ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">module_interface</span><span class="o">.</span><span class="n">resolve_ref</span><span class="p">(</span><span class="n">module_ref</span><span class="p">)</span>
+        <span class="n">node_class</span> <span class="o">=</span> <span class="n">module_interface</span><span class="o">.</span><span class="n">load_class</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">node_class</span><span class="o">=</span><span class="n">node_class</span><span class="p">)</span></div>
+
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;node not initialized&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node</span>
+    
+<div class="viewcode-block" id="NodeInterface.set_node_class">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.set_node_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_node_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_class</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_class</span> <span class="o">=</span> <span class="n">node_class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.create">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.create">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created node &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">rid</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># self.console.print(&quot;Failed to initialize, run `node init &lt;name&gt;` to try again&quot;)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.exists">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.exists">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.delete">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.delete">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">LogSystem</span><span class="o">.</span><span class="n">delete_file_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.init">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.init">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_class</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">True</span>
+                
+            <span class="k">except</span> <span class="n">MissingEnvVarsError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="sa">f</span><span class="s2">&quot;[bold red]</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">[/bold red]&quot;</span> 
+                    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">vars</span>
+                <span class="p">])</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span>
+                    <span class="n">Panel</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+                        <span class="n">renderable</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> 
+                        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Cannot initialize node, missing the following enironment variables:&quot;</span><span class="p">,</span>
+                        <span class="n">border_style</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">))</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print_exception</span><span class="p">()</span></div>
+
+                
+    
+<div class="viewcode-block" id="NodeInterface.state">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.info">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.info">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s2">&quot;rid types&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="n">box</span><span class="o">=</span><span class="n">box</span><span class="o">.</span><span class="n">SIMPLE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">edge_rid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">list_rids</span><span class="p">(</span><span class="n">rid_types</span><span class="o">=</span><span class="p">[</span><span class="n">KoiNetEdge</span><span class="p">]):</span>
+            <span class="n">bundle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">edge_rid</span><span class="p">)</span>
+            <span class="n">edge_profile</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">validate_contents</span><span class="p">(</span><span class="n">EdgeProfile</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">edge_profile</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">rid</span><span class="p">:</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;-&gt;&quot;</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">edge_profile</span><span class="o">.</span><span class="n">target</span>
+                
+            <span class="k">elif</span> <span class="n">edge_profile</span><span class="o">.</span><span class="n">target</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">rid</span><span class="p">:</span>
+                <span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;&lt;-&quot;</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">edge_profile</span><span class="o">.</span><span class="n">source</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">edge_profile</span><span class="o">.</span><span class="n">rid_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">direction</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">rid_type</span> <span class="ow">in</span> <span class="n">edge_profile</span><span class="o">.</span><span class="n">rid_types</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rid_type</span><span class="p">))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+            
+        
+<div class="viewcode-block" id="NodeInterface.run">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Press Ctrl + C to quit&quot;</span><span class="p">)</span>
+            <span class="k">while</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="ow">is</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">):</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.start">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.start">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Node already started&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.stop">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.stop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stopping </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">stop</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Node already stopped&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.wipe_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.wipe_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">wipe</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.wipe_cache">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.wipe_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">drop</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.wipe_logs">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.wipe_logs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">LogSystem</span><span class="o">.</span><span class="n">delete_file_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">wipe_logs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.mutate_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.mutate_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mutate_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mutate</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.get_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">config_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">JsonPointer</span><span class="p">(</span><span class="n">jp</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">config_json</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">val</span>
+        <span class="k">except</span> <span class="n">JsonPointerException</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold red]Location &#39;</span><span class="si">{</span><span class="n">jp</span><span class="si">}</span><span class="s2">&#39; does not exist[/bold red]&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Invalid JSON pointer&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NodeInterface.set_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.set_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+        <span class="n">pointer</span> <span class="o">=</span> <span class="n">JsonPointer</span><span class="p">(</span><span class="n">jp</span><span class="p">)</span>
+        <span class="n">prev_val</span> <span class="o">=</span> <span class="n">pointer</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">pointer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config_schema</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold red]Invalid value &#39;</span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="n">errors</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">[/bold red]&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">_set_delegate</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_yaml</span><span class="p">()</span>
+        
+        <span class="n">val_repr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;&lt;null&gt;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set config value [cyan]</span><span class="si">{</span><span class="n">val_repr</span><span class="p">(</span><span class="n">prev_val</span><span class="p">)</span><span class="si">}</span><span class="s2">[/cyan] -&gt; [green]</span><span class="si">{</span><span class="n">val_repr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2">[/green]&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="NodeInterface.unset_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.node.html#koi_net.interfaces.node.NodeInterface.unset_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unset_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jp</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">jp</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+</div>
+
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

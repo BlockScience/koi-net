@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>koi_net.interfaces.network &mdash; koi-net 1.3.0-beta.9 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6a662d8c"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            koi-net
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">koi-net</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">koi_net.interfaces.network</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for koi_net.interfaces.network</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">Console</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.config.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseNodeConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.protocol.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.infra</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeState</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">koi_net.components.config_provider</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigProvider</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeInterface</span>
+
+
+<div class="viewcode-block" id="KoiNetworkConfig">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.KoiNetworkConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KoiNetworkConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">first_contact</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">nodes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="NetworkConfigProvider">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkConfigProvider">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NetworkConfigProvider</span><span class="p">(</span><span class="n">ConfigProvider</span><span class="p">):</span>
+    <span class="n">_file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;koi-network-config.yaml&quot;</span></div>
+
+
+<div class="viewcode-block" id="NetworkInterface">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NetworkInterface</span><span class="p">:</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">KoiNetworkConfig</span> <span class="o">|</span> <span class="n">NetworkConfigProvider</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_schema</span> <span class="o">=</span> <span class="n">KoiNetworkConfig</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">NetworkConfigProvider</span><span class="p">(</span>
+            <span class="n">config_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config_schema</span><span class="p">,</span>
+            <span class="n">root_dir</span><span class="o">=</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NodeInterface</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_nodes</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="NetworkInterface.load_nodes">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.load_nodes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">NodeInterface</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">NodeInterface</span><span class="o">.</span><span class="n">from_ref</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="c1"># print(f&quot;Loading node &#39;{node.name}&#39;...&quot;)</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">init</span><span class="p">()</span></div>
+
+            
+<div class="viewcode-block" id="NetworkInterface.resolve_node">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.resolve_node">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NodeInterface</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">node</span></div>
+
+            
+<div class="viewcode-block" id="NetworkInterface.add_node">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.add_node">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_yaml</span><span class="p">()</span>
+        
+        <span class="n">fc_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_first_contact</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">fc_node</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">node</span><span class="o">.</span><span class="n">mutate_config</span><span class="p">()</span> <span class="k">as</span> <span class="n">config</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">apply_first_contact</span><span class="p">(</span>
+                    <span class="n">source</span><span class="o">=</span><span class="n">fc_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                    <span class="n">target</span><span class="o">=</span><span class="n">config</span>
+                <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.remove_node">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.remove_node">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_yaml</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span> <span class="o">==</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unset_first_contact</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.get_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.get_first_contact">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.apply_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.apply_first_contact">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">BaseNodeConfig</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">BaseNodeConfig</span><span class="p">):</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">first_contact</span><span class="o">.</span><span class="n">rid</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">node_rid</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">first_contact</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">node_profile</span><span class="o">.</span><span class="n">base_url</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.set_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.set_first_contact">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fc_node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Setting first contact...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fc_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">node_profile</span><span class="o">.</span><span class="n">node_type</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">PARTIAL</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Partial nodes cannot be first contacts&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="n">prev_fc_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_first_contact</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">prev_fc_node</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">prev_fc_node</span> <span class="o">==</span> <span class="n">fc_node</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;First contact is already </span><span class="si">{</span><span class="n">fc_node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unset_first_contact</span><span class="p">(</span><span class="n">prev_fc_node</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span> <span class="o">=</span> <span class="n">fc_node</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_yaml</span><span class="p">()</span>
+        
+        <span class="n">mutated_nodes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="n">fc_node</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="k">with</span> <span class="n">node</span><span class="o">.</span><span class="n">mutate_config</span><span class="p">()</span> <span class="k">as</span> <span class="n">config</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">apply_first_contact</span><span class="p">(</span>
+                    <span class="n">source</span><span class="o">=</span><span class="n">fc_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                    <span class="n">target</span><span class="o">=</span><span class="n">config</span>
+                <span class="p">)</span>
+                <span class="n">mutated_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated configuration of </span><span class="si">{</span><span class="n">mutated_nodes</span><span class="si">}</span><span class="s2"> node(s)&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.unset_first_contact">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.unset_first_contact">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unset_first_contact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fc_node</span><span class="p">:</span> <span class="n">NodeInterface</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unsetting first contact...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">first_contact</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">save_to_yaml</span><span class="p">()</span>
+        
+        <span class="n">mutated_nodes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">node</span><span class="o">.</span><span class="n">mutate_config</span><span class="p">()</span> <span class="k">as</span> <span class="n">config</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">first_contact</span><span class="o">.</span><span class="n">rid</span> <span class="o">==</span> <span class="n">fc_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">node_rid</span><span class="p">:</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">first_contact</span><span class="o">.</span><span class="n">rid</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">koi_net</span><span class="o">.</span><span class="n">first_contact</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">mutated_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated configuration of </span><span class="si">{</span><span class="n">mutated_nodes</span><span class="si">}</span><span class="s2"> node(s)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NetworkInterface.sync">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.sync">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fc_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_first_contact</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">fc_node</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">fc_node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">fc_node</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+            
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="n">fc_node</span> <span class="ow">and</span> <span class="n">node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">fc_node</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">node</span><span class="o">.</span><span class="n">mutate_config</span><span class="p">()</span> <span class="k">as</span> <span class="n">config</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">apply_first_contact</span><span class="p">(</span>
+                        <span class="n">source</span><span class="o">=</span><span class="n">fc_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                        <span class="n">target</span><span class="o">=</span><span class="n">config</span>
+                    <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.wipe_cache">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.wipe_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">wipe_cache</span><span class="p">()</span></div>
+
+                
+<div class="viewcode-block" id="NetworkInterface.wipe_logs">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.wipe_logs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">wipe_logs</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.wipe_config">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.wipe_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wipe_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">wipe_config</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NetworkInterface.run">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed startup of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span><span class="si">}</span><span class="s2"> node(s)!&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Press Ctrl + C to quit&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="ow">is</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">RUNNING</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+                
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="NetworkInterface.start">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.start">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_node</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="NetworkInterface.stop">
+<a class="viewcode-back" href="../../../generated/koi_net.interfaces.network.html#koi_net.interfaces.network.NetworkInterface.stop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_node</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">state</span><span class="p">()</span> <span class="o">==</span> <span class="n">NodeState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">stop</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span></div>
+</div>
+
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Block Science.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
