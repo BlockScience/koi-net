@@ -1,7 +1,7 @@
-from queue import Queue
 import time
-from typing import TYPE_CHECKING, Any
 import threading
+from queue import Queue
+from typing import TYPE_CHECKING, Any
 from pathlib import Path
 from logging import Logger
 

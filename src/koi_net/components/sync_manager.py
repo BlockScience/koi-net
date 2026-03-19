@@ -4,7 +4,7 @@ from rid_lib import RIDType
 from rid_lib.ext import Cache
 from rid_lib.types import KoiNetNode
 
-from ..config.koi_net_config import KoiNetConfig
+from ..config.base import BaseNodeConfig
 from ..infra import depends_on
 from ..exceptions import RequestError
 from .graph import NetworkGraph
@@ -20,14 +20,14 @@ class SyncManager:
     log: Logger
     graph: NetworkGraph
     cache: Cache
-    config: KoiNetConfig
+    config: BaseNodeConfig
     request_handler: RequestHandler
     kobj_queue: KobjQueue
     
     @depends_on("graph", "kobj_worker")
     def start(self):
         """Catches up with providers on startup."""
-        self.catch_up_with_all(self.config.rid_types_of_interest)
+        self.catch_up_with_all(self.config.koi_net.rid_types_of_interest)
     
     def catch_up_with_all(self, rid_types: list[RIDType]):
         node_providers = []
