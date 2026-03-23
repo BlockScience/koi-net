@@ -26,7 +26,11 @@ class ForgetNodeHandler(KnowledgeHandler):
         if kobj.normalized_event_type != EventType.FORGET:
             return
         
-        for edge_rid in self.graph.get_edges():
+        for edge in self.graph.dg.edges:
+            edge_rid = self.graph.dg.get_edge_data(*edge).get('rid')
+            if not edge_rid:
+                continue
+            
             edge_bundle = self.cache.read(edge_rid)
             if not edge_bundle:
                 continue
