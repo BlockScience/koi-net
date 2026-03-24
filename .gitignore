@@ -11,3 +11,5 @@ __pycache__/
 *.yaml
 *.egg-info
 *.ndjson*
+docs/_build/
+docs/build/
