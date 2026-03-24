@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from dataclasses import dataclass
 
+from pydantic import ValidationError
 from rid_lib.core import RID, RIDType
 from rid_lib.ext import Bundle
 from rid_lib.ext.utils import b64_encode, b64_decode
@@ -50,7 +51,16 @@ class Cache:
                 mode="r",
                 encoding="utf-8"
             ) as f:
-                return Bundle.model_validate_json(f.read())
+                file_content = f.read()
+            
+            if file_content == "":
+                return None
+
+            try:
+                return Bundle.model_validate_json(file_content)
+            except ValidationError:
+                return None
+            
         except FileNotFoundError:
             return None
     
