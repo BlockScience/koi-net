@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 from .infra import LogSystem
@@ -72,7 +73,14 @@ class BaseNode(BaseAssembly):
     edge_negotiation_handler: EdgeNegotiationHandler = EdgeNegotiationHandler
     secure_profile_handler: SecureProfileHandler = SecureProfileHandler
     
-    def __new__(cls, *args, root_dir: Path = Path.cwd(), **kwargs):
+    def __new__(cls, *args, root_dir: Path | None = None, **kwargs):
+        if root_dir is None:
+            if len(sys.argv) > 1:
+                root_dir = Path(sys.argv[1])
+                print(f"Root dir was set by CLI to '{root_dir}'")
+            else:
+                root_dir = Path.cwd()
+        
         cls._log_system()
         return super().__new__(cls, *args, root_dir=root_dir, **kwargs)
 
