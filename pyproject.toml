@@ -1,6 +1,6 @@
 [project]
 name = "koi-net"
-version = "2.0.0"
+version = "2.0.1"
 description = "Implementation of KOI-net protocol in Python"
 maintainers = [
     { name = "Luke Miller", email = "luke@block.science" }
@@ -37,7 +37,7 @@ docs = [
 ]
 
 [project.scripts]
-koi-sh = "koi_net.interface.shell:run"
+koi-sh = "koi_net.interfaces.shell:run"
 
 [project.urls]
 Homepage = "https://github.com/BlockScience/koi-net/"
