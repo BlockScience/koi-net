@@ -3,7 +3,6 @@ __pycache__/
 /.venv/
 /build/
 /dist/
-/docs/
 /tests/
 /prototypes/
 .rid_cache/
@@ -12,3 +11,5 @@ __pycache__/
 *.yaml
 *.egg-info
 *.ndjson*
+docs/_build/
+docs/build/

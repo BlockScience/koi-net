@@ -1,26 +1,27 @@
 """KOI-net library exceptions.
 
-Exception hierarchy map:
-- `KoiNetError`
-  - `BuildError`
-  - `RequestError`
-    - `ClientError`
-      - `SelfRequestError`
-      - `PartialNodeQueryError`
-      - `NodeNotFoundError`
-    - `TransportError`
-    - `ServerError`
-      - `RemoteProtocolError`
-        - `RemoteUnknownNodeError`
-        - `RemoteInvalidKeyError`
-        - `RemoteInvalidSignatureError`
-        - `RemoteInvalidTargetError`
-  - `ProtocolError`
-    - `UnknownNodeError`
-    - `InvalidKeyError`
-    - `InvalidSignatureError`
-    - `InvalidTargetError`
-  - `MissingEnvVarsError`
+Exception hierarchy (conceptually)::
+
+  KoiNetError
+    BuildError
+    RequestError
+      ClientError
+        SelfRequestError
+        PartialNodeQueryError
+        NodeNotFoundError
+      TransportError
+      ServerError
+        RemoteProtocolError
+          RemoteUnknownNodeError
+          RemoteInvalidKeyError
+          RemoteInvalidSignatureError
+          RemoteInvalidTargetError
+    ProtocolError
+      UnknownNodeError
+      InvalidKeyError
+      InvalidSignatureError
+      InvalidTargetError
+    MissingEnvVarsError
 """
 
 

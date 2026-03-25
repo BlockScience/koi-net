@@ -9,7 +9,6 @@ from structlog.contextvars import bound_contextvars
 from .infra import Assembler
 from .components import LoggingContext
 
-
 class BaseAssembly(Assembler):
     root_dir: Path
     
