@@ -36,11 +36,16 @@ class NodeContactHandler(KnowledgeHandler):
         
         node_profile = node_bundle.validate_contents(NodeProfile)
         
-        available_rid_types = list(
-            set(self.config.koi_net.rid_types_of_interest) & 
-            set(node_profile.provides.event)
-        )
+        # None indicates interest in all types, while an empty list would indicate interest in no types
+        if self.config.koi_net.rid_types_of_interest is None:
+            available_rid_types = node_profile.provides.event
         
+        else:
+            available_rid_types = list(
+                set(self.config.koi_net.rid_types_of_interest) & 
+                set(node_profile.provides.event)
+            )
+            
         if not available_rid_types:
             return
         
