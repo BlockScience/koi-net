@@ -47,6 +47,6 @@ if __name__ == "__main__":
 	MyPartialNode().run()
 ```
 
-See `examples/coordinator.py` for a more complex example node. See the [KOI-net library documentation](https://blockscience.github.io/koi-net) for more information.
+See `examples/coordinator.py` for a more complex example node, or see [the docs](https://blockscience.github.io/koi-net) for more information on the KOI-net framework.
 
 This framework depends on [rid-lib](https://github.com/BlockScience/rid-lib), the Python implementation of the RID protocol.
