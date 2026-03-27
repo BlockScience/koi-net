@@ -1,7 +1,7 @@
 [project]
 name = "koi-net"
 version = "2.0.2"
-description = "Implementation of KOI-net protocol in Python"
+description = "Implementation of KOI-net framework in Python"
 maintainers = [
     { name = "Luke Miller", email = "luke@block.science" }
 ]
