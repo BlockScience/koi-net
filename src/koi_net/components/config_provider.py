@@ -121,7 +121,7 @@ class ConfigProvider:
             pass
         
         try:
-            os.remove(self._root_dir / self.private_key_pem_path)
+            os.remove(self._root_dir / self.koi_net.private_key_pem_path)
         except FileNotFoundError:
             pass
     
