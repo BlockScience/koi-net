@@ -60,7 +60,7 @@ class NodeServer(ThreadedComponent):
 
         self.app = FastAPI(
             title="KOI-net Protocol API",
-            version="1.1.0"
+            version="1.0"
         )
         
         self.app.add_middleware(BaseHTTPMiddleware, dispatch=self.logging_middleware)
