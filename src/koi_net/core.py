@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -77,6 +78,10 @@ class BaseNode(BaseAssembly):
         if root_dir is None:
             if len(sys.argv) > 1:
                 root_dir = Path(sys.argv[1])
+                
+                if not root_dir.is_dir():
+                    os.mkdir(root_dir)
+                
                 print(f"Root dir was set by CLI to '{root_dir}'")
             else:
                 root_dir = Path.cwd()
