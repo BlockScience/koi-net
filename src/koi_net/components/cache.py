@@ -34,7 +34,10 @@ class Cache:
             mode="w", 
             encoding="utf-8"
         ) as f:
-            f.write(bundle.model_dump_json(indent=2))
+            f.write(
+                bundle.model_dump_json(
+                    by_alias=True,
+                    indent=2))
 
         return bundle
     
