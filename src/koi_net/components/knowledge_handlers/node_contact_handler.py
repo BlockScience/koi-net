@@ -36,6 +36,9 @@ class NodeContactHandler(KnowledgeHandler):
         
         node_profile = node_bundle.validate_contents(NodeProfile)
         
+        if node_profile.node_type is NodeType.PARTIAL:
+            return
+        
         # None indicates interest in all types, while an empty list would indicate interest in no types
         if self.config.koi_net.rid_types_of_interest is None:
             available_rid_types = node_profile.provides.event
