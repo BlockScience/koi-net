@@ -32,7 +32,7 @@ class SyncManager:
     def catch_up_with_all(self, rid_types: list[RIDType]):
         node_providers = []
         for rid_type in rid_types:
-            providers = self.graph.get_neighbors(
+            node_providers = self.graph.get_neighbors(
                 direction="in",
                 allowed_type=rid_type
             )
