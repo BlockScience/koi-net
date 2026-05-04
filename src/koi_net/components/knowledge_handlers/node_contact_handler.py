@@ -122,7 +122,7 @@ class NodeContactHandler(KnowledgeHandler):
         """
         self.process_node(kobj.rid, kobj.bundle)
     
-    @depends_on("graph", "kobj_worker")
+    @depends_on("graph", "kobj_worker", "handshaker")
     def start(self):
         self.log.info("Starting node contact analysis on cached profiles...")
         for rid in self.cache.list_rids(rid_types=(KoiNetNode,)):
