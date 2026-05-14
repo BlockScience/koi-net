@@ -1,13 +1,13 @@
 # KOI-net
 
 [![PyPI](https://img.shields.io/pypi/v/koi-net)](https://pypi.org/project/koi-net/)
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://blockscience.github.io/koi-net/index.html)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dynamicalsystemsgroup.github.io/koi-net/index.html)
 
-*This protocol and framework are the result of several iterations of KOI research, [read more here](https://github.com/BlockScience/koi).*
+*This protocol and framework are the result of several iterations of KOI research, [read more here](https://github.com/DynamicalSystemsGroup/koi).*
 
 KOI-net (Knowledge Organization Infrastructure Network) can be understood as both a network protocol for distributed knowledge processing, and as a Python framework for building nodes, networks, and applications on top of that protocol. This repo is the implementation of that framework.
 
-For information about the KOI-net protocol, see the [official specification](https://blockscience.github.io/koi-net-spec). 
+For information about the KOI-net protocol, see the [official specification](https://dynamicalsystemsgroup.github.io/koi-net-spec). 
 # Quick Start
 ## Installation
 
@@ -47,6 +47,6 @@ if __name__ == "__main__":
 	MyPartialNode().run()
 ```
 
-See `examples/coordinator.py` for a more complex example node, or see [the docs](https://blockscience.github.io/koi-net) for more information on the KOI-net framework.
+See `examples/coordinator.py` for a more complex example node, or see [the docs](https://dynamicalsystemsgroup.github.io/koi-net) for more information on the KOI-net framework.
 
-This framework depends on [rid-lib](https://github.com/BlockScience/rid-lib), the Python implementation of the RID protocol.
+This framework depends on [rid-lib](https://github.com/DynamicalSystemsGroup/rid-lib), the Python implementation of the RID protocol.
