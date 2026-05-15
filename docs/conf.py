@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 project = "koi-net"
-copyright = "Block Science"
+copyright = "Dynamical Systems Group"
 author = "Luke Miller"
 release = "1.3.0-beta.9"
 
